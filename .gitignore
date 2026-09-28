@@ -1,0 +1,21 @@
+# Secrets
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+
+# EMA workspaces (runs, databases, figures)
+ema_workspace/
+
+# Local IDE and tool settings
+.idea/
+.claude/settings.local.json
+.DS_Store
+
+# Documentation build output
+docs/_build/

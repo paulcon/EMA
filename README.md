@@ -1,0 +1,66 @@
+# EMA v2
+
+EMA (Exploratory Model Analysis) runs diagnostics on computational models to look for exploitable structure,
+and reports the results with figures, numbers, and their intervals.
+
+This is v2, a rebuild (decision 0002). For now the repository holds the design documents: there is no code
+yet. The order of work is `TODO.md`, and where things stand is `STATUS.md`.
+
+v1 is at `../EMA-v1` (GitHub `pauls-code-projects/EMA-v1`, tag `v1-final`), for reference only. Its working
+notes, including the lessons learned that led to v2, are in `docs/notes/v1/`.
+
+## What goes where
+
+| Kind | Says | Changes | Where |
+|---|---|---|---|
+| Spec | what to build | edited while `draft`; once `accepted`, changed only through a decision record | `docs/design/` |
+| Decision record | why one choice was made, and what else was considered | written once; replaced, never edited | `docs/decisions/` |
+| Plan | how one build step will be done, and its stop condition | written before the step; its status block updated as it goes | `docs/plans/` |
+| Status | what's done, in progress, next, and still open | at the end of every step | `STATUS.md` |
+| Guide | how a user does one task | outlines now; full text once the code exists | `docs/guides/` |
+| Notes | background: v1's lessons and working notes | not maintained | `docs/notes/` |
+
+## Ids
+
+Everything that code or tests may cite has an id, so a docstring, a test, or a commit can point to it.
+
+| Prefix | What | Defined in |
+|---|---|---|
+| P | principle | `docs/design/principles.md` |
+| U | use case | `docs/design/use_cases.md` |
+| OD | open decision | `STATUS.md` |
+| D | decision record (4 digits, e.g. D0007) | `docs/decisions/` |
+| M | model-interface requirement | `docs/design/model_interface.md` |
+| G | design generator requirement | `docs/design/designs.md` |
+| C | contract promise | `docs/design/contracts.md` |
+| T | trust-boundary rule | `docs/design/trust.md` |
+| Q, W, I | data-model question, write, invariant | `docs/design/data_model.md` |
+| S | sample model | `docs/design/sample_models.md` |
+
+## Files
+
+```text
+README.md                     this file
+CLAUDE.md                     instructions for Claude Code
+TODO.md                       what to do by hand before coding, in order
+STATUS.md                     done, in progress, next, open decisions
+docs/design/
+  purpose.md                  why EMA exists, and for whom
+  principles.md               P1…
+  glossary.md
+  scope.md                    v2.0 in and out; size budgets; what to port from v1
+  use_cases.md                U1…
+  model_interface.md          M1…
+  designs.md                  G1…
+  diagnostics/_template.md    one spec per diagnostic, in the five-row table format
+  uncertainty.md              one interval method per diagnostic
+  contracts.md                C1…, and the degenerate cases
+  data_model.md               Q/W/I…, from the data model template
+  architecture.md             packages, layers, modules, and their public names
+  trust.md                    T1…
+  sample_models.md            S1…, with expected answers
+docs/decisions/               README.md (how, and the index), 0000-template.md, 0001…, 0002…
+docs/plans/                   README.md, _template.md
+docs/guides/                  get_started.md, add_a_model.md, run_a_diagnostic.md, add_a_diagnostic.md (outlines)
+docs/notes/v1/                v1's working notes and the lessons learned (not maintained)
+```
