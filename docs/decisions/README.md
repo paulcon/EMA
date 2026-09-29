@@ -22,3 +22,7 @@ Write one when a choice:
 |---|---|---|---|
 | 0001 | Record decisions in decision records | proposed | 2026-09-28 |
 | 0002 | Rebuild v2 in a new repository; keep v1 for reference | proposed | 2026-09-28 |
+| 0003 | Call a model's variables model parameters, and what EMA analyzes model predictions | accepted | 2026-09-28 |
+| 0004 | Call EMA's intervals variability intervals | accepted | 2026-09-28 |
+| 0005 | Call the region a design samples the model parameter space, and make it part of the design | accepted | 2026-09-29 |
+| 0006 | Make the diagnostic evaluation, with its report, the unit of work | accepted | 2026-09-29 |

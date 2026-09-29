@@ -1,10 +1,11 @@
 # EMA v2 status
 
-**Updated:** 2026-09-28. Update this file at the end of every step, in the same commit as the work.
+**Updated:** 2026-09-29. Update this file at the end of every step, in the same commit as the work.
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`).
+- Writing the design documents by hand (`TODO.md`), step 1: purpose accepted; glossary rows drafted from
+  records 0003–0006; principles next.
 
 ## Done
 
@@ -13,10 +14,15 @@
 - 2026-09-28: data model template (`docs/design/data_model.md`), architecture draft
   (`docs/design/architecture.md`), this skeleton.
 - 2026-09-28: OD-1 decided: rebuild in a new repository named `EMA`; v1 kept as `EMA-v1`, tag `v1-final`.
+- 2026-09-28: purpose accepted (`docs/design/purpose.md`).
+- 2026-09-29: OD-2, OD-3, and OD-4 decided (records 0003–0006); the glossary and the purpose page's wording
+  follow them. How decisions are made is summarised in `docs/notes/decision_workflow.md`.
 
 ## Next
 
-- Steps 1–3 of `TODO.md`: purpose, principles, glossary, use cases, scope.
+- Step 1 of `TODO.md`: choose the principles (`docs/design/principles.md`); review and accept the glossary.
+- Steps 2–3: use cases; scope, including "Not in v2.0": diagnostic campaigns and studies that vary the model
+  parameter space (records 0005, 0006).
 
 ## Specs
 
@@ -50,9 +56,6 @@ Statuses: empty → draft → accepted. Claude Code builds only from accepted sp
 
 | Id | Question | Options | Suggested | Blocks |
 |---|---|---|---|---|
-| OD-2 | The unit of work | one diagnostic with its report (your note); campaigns | one diagnostic | scope, data model, workspace |
-| OD-3 | Words for a model's variables and their ranges | `ModelParameter` and ranges (your note); input and input box (v1) | `ModelParameter` and `Box` | glossary, every spec |
-| OD-4 | The word for intervals | variation interval; confidence interval; <…> | <…> | glossary, uncertainty |
 | OD-5 | Diagnostics in v2.0 | from point run, scatter, coordinate lines, random lines, linear model, polynomial model | <3–4 of them> | scope, diagnostic specs |
 | OD-6 | Model interfaces in v2.0 | Python function; command line; both | both | model interface |
 | OD-7 | Agent in v2.0 | none; MCP server; own chat loop | none in v2.0, MCP after | scope, architecture |
@@ -78,3 +81,6 @@ you reach those steps.
 | Id | Decision | Record | Date |
 |---|---|---|---|
 | OD-1 | Rebuild in a new repository named `EMA`; v1 renamed `EMA-v1` and kept for reference (tag `v1-final`) | 0002 (proposed) | 2026-09-28 |
+| OD-2 | The unit of work is the diagnostic evaluation, with its report; diagnostic campaigns come in a later version | 0006 | 2026-09-29 |
+| OD-3 | "Model parameter", "model prediction", and "model output"; the region a design samples is the model parameter space, a property of the design | 0003, 0005 | 2026-09-29 |
+| OD-4 | "Variability interval": how much an estimate changes when the runs behind it change; not a confidence interval | 0004 | 2026-09-28 |

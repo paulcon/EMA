@@ -18,7 +18,7 @@ notes, including the lessons learned that led to v2, are in `docs/notes/v1/`.
 | Plan | how one build step will be done, and its stop condition | written before the step; its status block updated as it goes | `docs/plans/` |
 | Status | what's done, in progress, next, and still open | at the end of every step | `STATUS.md` |
 | Guide | how a user does one task | outlines now; full text once the code exists | `docs/guides/` |
-| Notes | background: v1's lessons and working notes | not maintained | `docs/notes/` |
+| Notes | background: v1's lessons and working notes; short guides to how the project works | not maintained | `docs/notes/` |
 
 ## Ids
 
@@ -62,5 +62,7 @@ docs/design/
 docs/decisions/               README.md (how, and the index), 0000-template.md, 0001…, 0002…
 docs/plans/                   README.md, _template.md
 docs/guides/                  get_started.md, add_a_model.md, run_a_diagnostic.md, add_a_diagnostic.md (outlines)
-docs/notes/v1/                v1's working notes and the lessons learned (not maintained)
+docs/notes/
+  decision_workflow.md        how open decisions, decision records, and specs fit together
+  v1/                         v1's working notes and the lessons learned (not maintained)
 ```
