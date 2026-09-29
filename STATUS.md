@@ -4,8 +4,7 @@
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`), step 1: purpose accepted; glossary rows drafted from
-  records 0003–0006; principles accepted (P1–P7; records 0007, 0008); the glossary's review is next.
+- Writing the design documents by hand (`TODO.md`): step 1 done; step 2 (use cases) next.
 
 ## Done
 
@@ -16,7 +15,7 @@
 - 2026-09-28: OD-1 decided: rebuild in a new repository named `EMA`; v1 kept as `EMA-v1`, tag `v1-final`.
 - 2026-09-28: purpose accepted (`docs/design/purpose.md`).
 - 2026-09-29: OD-2, OD-3, and OD-4 decided (records 0003–0006); the glossary and the purpose page's wording
-  follow them. How decisions are made is summarised in `docs/notes/decision_workflow.md`.
+  follow them. How decisions are made is summarized in `docs/notes/decision_workflow.md`.
 - 2026-09-29: principles accepted (`docs/design/principles.md`, P1–P8; record 0007), from an interview on the
   14 candidates: three dropped, two held for steps 9 and 10. Glossary rows added for "noisy" and "replicate";
   "approval" narrowed to runs.
@@ -24,10 +23,13 @@
   code" is a standard term for a model, no longer one to avoid.
 - 2026-09-29: P8 dropped (record 0008): the terminology test checks only public names and generated text,
   for a short list of words; in prose, the glossary's Avoid column is advice.
+- 2026-09-29: glossary accepted (`docs/design/glossary.md`), after a check against the accepted specs and
+  records: rows reconciled with P2 and P5–P7; rows added for model spec, point, price, store, failed run,
+  input deck, output parser, and heuristic threshold; American spelling. TODO step 1 done: purpose,
+  principles, and glossary accepted; OD-3 and OD-4 decided.
 
 ## Next
 
-- Step 1 of `TODO.md`: review and accept the glossary.
 - Steps 2–3: use cases; scope, including "Not in v2.0": diagnostic campaigns and studies that vary the model
   parameter space (records 0005, 0006).
 
@@ -37,7 +39,7 @@
 |---|---|
 | `docs/design/purpose.md` | accepted |
 | `docs/design/principles.md` | accepted |
-| `docs/design/glossary.md` | candidates listed |
+| `docs/design/glossary.md` | accepted |
 | `docs/design/scope.md` | empty |
 | `docs/design/use_cases.md` | empty |
 | `docs/design/model_interface.md` | empty |

@@ -11,7 +11,7 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 
 ## Foundations
 
-- [ ] **1. Purpose, principles, glossary.** `docs/design/purpose.md`, `principles.md`, `glossary.md`.
+- [x] **1. Purpose, principles, glossary.** `docs/design/purpose.md`, `principles.md`, `glossary.md`.
   - You: write the purpose page; choose at most 10 principles from the candidates; settle the words.
   - Decide: OD-3 (parameter and box), OD-4 (the word for intervals).
   - Claude can help: interview you on each candidate principle; check the glossary against the other specs.
@@ -30,6 +30,7 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
   - Decide: OD-9 (multiple outputs), OD-10 (fixed parameters), OD-11 (isolation), OD-20 (parsers).
 - [ ] **5. Designs.** `docs/design/designs.md`.
   - Decide: OD-13 (uniform sampling).
+  - Decide: a glossary row for "design generator".
 - [ ] **6. Diagnostic specs**, one per v2.0 diagnostic, from `docs/design/diagnostics/_template.md`.
   - You: draw each mock report by hand, and fill in the expected answers.
 - [ ] **7. Uncertainty; contracts and degenerate cases.** `docs/design/uncertainty.md`, `contracts.md`.
