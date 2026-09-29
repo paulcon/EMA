@@ -1,7 +1,6 @@
 # 0002. Rebuild v2 in a new repository; keep v1 for reference
 
-**Date:** 2026-09-28. **Status:** proposed (the owner decided to rebuild on 2026-09-28; this record awaits
-acceptance of its wording). **Resolves:** OD-1.
+**Date:** 2026-09-28. **Status:** accepted (2026-09-29). **Resolves:** OD-1.
 
 ## Context
 

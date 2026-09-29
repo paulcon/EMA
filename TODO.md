@@ -18,16 +18,17 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 - [x] **2. Use cases.** `docs/design/use_cases.md`.
   - You: 3–5 scenarios: what the analyst types, what EMA asks, the report they get, and the checks that say it
     works.
-- [ ] **3. Scope.** `docs/design/scope.md`.
+- [x] **3. Scope.** `docs/design/scope.md`.
   - You: the in and out lists for v2.0, the size budgets, and which v1 modules to port.
-  - Decided: OD-1, rebuild in a new repository (record 0002, proposed: accept or edit it).
-  - Decide: OD-2, OD-5, OD-6, OD-7, OD-8, OD-14.
-  - Also: accept or edit decision record 0001 (how decisions are recorded).
+  - Decided: OD-1 (0002), OD-2 (0006), OD-5 (0012), OD-6 (0014), OD-7 (0016, 0019), OD-8 (0017), OD-14
+    (0013); records 0001, 0015, 0018, 0020, 0021 accepted.
 
 ## What v2 does
 
 - [ ] **4. Model interface.** `docs/design/model_interface.md`.
   - Decide: OD-9 (multiple outputs), OD-10 (fixed parameters), OD-11 (isolation), OD-20 (parsers).
+  - Also: a run's three phases, and the open platform question (0015); run directories and the keep setting
+    (0020); scalar output parsers, and `noisy: true` refused (0021).
 - [ ] **5. Designs.** `docs/design/designs.md`.
   - Decide: OD-13 (uniform sampling).
   - Decide: a glossary row for "design generator".
@@ -48,7 +49,12 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 - [ ] **8. Data model.** `docs/design/data_model.md` (from the template).
   - Claude can help: check that every question in its §2 has a query, and that the tables match the model
     interface and designs specs.
+  - Also: each run's host (0015) and run directory (0020); model predictions in their own table, with no blob
+    store (0021).
 - [ ] **9. Architecture and the workspace layer.** `docs/design/architecture.md` (formerly `api_spec_draft.md`).
+  - Also: drop the `Executor` classes (0015); drop `ema.experimental` from v2.0 (0017); the MCP tools and the
+    server's instructions (0016, 0019); asking for a PDF (0018); the run-directory lookup (0020); within the
+    budgets in `scope.md`.
   - Decide: OD-15 (budgets), OD-16 (`Workspace` object), and its §12 items.
   - Decide: the held principle "One-way layers" (`docs/design/principles.md`, Candidates).
 - [ ] **10. Trust boundary.** `docs/design/trust.md`.
@@ -64,7 +70,9 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 - [ ] **12. Repository and tooling.**
   - Done by `move_v1_start_v2.sh`: v1 renamed to `EMA-v1` (tag `v1-final`); this repository created as `EMA`,
     with v1's notes in `docs/notes/v1/`.
-  - Decide: OD-17 (Python version), OD-18 (uv, docs, CI), OD-19 (eval budget, if there's an agent).
+  - Decide: OD-17 (Python version), OD-18 (uv, docs, CI), OD-19 (eval budget: needed, the MCP server is in
+    v2.0, 0016).
+  - Plan: pandoc and LaTeX as an optional install, in staged steps (0018).
   - Finish `CLAUDE.md` (the one-line principles, the commands) and `STATUS.md`.
 - [ ] **13. Guides as outlines.** `docs/guides/`: get started, add a model, run a diagnostic, add a diagnostic.
   - You: walk through each against `ema.workspace` on paper. Any awkward step means the workspace's functions

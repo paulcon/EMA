@@ -505,7 +505,7 @@ def plane(...) -> Design: ...          # TODO
 
 **Decide:**
 - Does `scipy.stats.qmc` (Sobol, Halton, Latin hypercube) replace or sit beside `uniform`?
-- Are quadrature grids and sparse grids in scope (your "Integration grids?")?
+- ~~Are quadrature grids and sparse grids in scope (your "Integration grids?")?~~ Settled: not in v2.0 (0013).
 
 ---
 

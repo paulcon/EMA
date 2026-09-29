@@ -4,7 +4,7 @@
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`): steps 1 and 2 done; step 3 (scope) next.
+- Writing the design documents by hand (`TODO.md`): steps 1–3 done; step 4 (model interface) next.
 
 ## Done
 
@@ -37,10 +37,20 @@
   inside P7, and the glossary's "replicate" row). How to add a use case: `docs/notes/adding_a_use_case.md`.
   TODO step 2 done.
 
+- 2026-09-29: scope accepted (`docs/design/scope.md`), from an interview. Records 0001 and 0002 accepted
+  (an OD row moves to "Decided" only when its record is accepted). Records 0012–0021 accepted: six
+  diagnostics, including a lines diagnostic for random or given lines, and the decay of the polynomial
+  model's coefficients (0012, OD-5); quadrature and sparse grids later (0013, OD-14); Python and command-line
+  models, no formula models (0014, OD-6); serial runs, ready for parallel and remote runs (0015); an MCP
+  server with use case U9 (0016, OD-7), and P1 clarified for MCP clients (0019); no interpretation (0017,
+  OD-8); Markdown reports with TeX math, and PDFs through pandoc (0018); model output kept in run
+  directories (0020); scalar model predictions of models not declared noisy (0021, settles P7's "Open").
+  Size budgets set: 8,000 source lines, 20 workspace names, 15 CLI commands, 10 MCP tools. U7 and the
+  use cases' asks of scope updated to match. TODO step 3 done.
+
 ## Next
 
-- Step 3: scope, including "Not in v2.0": diagnostic campaigns and studies that vary the model
-  parameter space (records 0005, 0006).
+- Step 4: the model interface (OD-9, OD-10, OD-11, OD-20), with what records 0015, 0020, and 0021 ask of it.
 
 ## Specs
 
@@ -49,7 +59,7 @@
 | `docs/design/purpose.md` | accepted |
 | `docs/design/principles.md` | accepted |
 | `docs/design/glossary.md` | accepted |
-| `docs/design/scope.md` | empty |
+| `docs/design/scope.md` | accepted |
 | `docs/design/use_cases.md` | accepted |
 | `docs/design/model_interface.md` | empty |
 | `docs/design/designs.md` | empty |
@@ -74,16 +84,11 @@ Statuses: empty → draft → accepted. Claude Code builds only from accepted sp
 
 | Id | Question | Options | Suggested | Blocks |
 |---|---|---|---|---|
-| OD-5 | Diagnostics in v2.0 | from point run, scatter, coordinate lines, random lines, linear model, polynomial model | <3–4 of them> | scope, diagnostic specs |
-| OD-6 | Model interfaces in v2.0 | Python function; command line; both | both | model interface |
-| OD-7 | Agent in v2.0 | none; MCP server; own chat loop | none in v2.0, MCP after | scope, architecture |
-| OD-8 | Experimental interpretation in v2.0 | none; a separate labeled section | none in v2.0 | scope, architecture |
 | OD-9 | Multiple outputs | in the schema and code from day 1; in the schema only; later | in the schema from day 1 | model interface, data model |
 | OD-10 | Fixed parameters (not design variables) | a parameter with no range; a separate mapping on the spec | <…> | model interface |
 | OD-11 | Python models isolated by default | yes; no; only models the agent writes | <…> | model interface, trust, principles (held candidate) |
 | OD-12 | The interval method for each v2.0 diagnostic | bootstrap; convergence; cross-validation; held-out error | <per diagnostic> | uncertainty, diagnostic specs |
 | OD-13 | Uniform sampling | own seeded stream; `scipy.stats.qmc`; both | <…> | designs |
-| OD-14 | Quadrature and sparse grids | in v2.0; later; never | later | designs, scope |
 | OD-15 | Budgets | per call; per workspace; none in v2.0 | per call | workspace, data model |
 | OD-16 | `Workspace` object or module functions | object; functions | object | architecture |
 | OD-17 | Python version (the package stays `ema`) | 3.12, 3.13, 3.14 | <…> | setup |
@@ -98,7 +103,12 @@ you reach those steps.
 
 | Id | Decision | Record | Date |
 |---|---|---|---|
-| OD-1 | Rebuild in a new repository named `EMA`; v1 renamed `EMA-v1` and kept for reference (tag `v1-final`) | 0002 (proposed) | 2026-09-28 |
+| OD-1 | Rebuild in a new repository named `EMA`; v1 renamed `EMA-v1` and kept for reference (tag `v1-final`) | 0002 | 2026-09-28 |
 | OD-2 | The unit of work is the diagnostic evaluation, with its report; diagnostic campaigns come in a later version | 0006 | 2026-09-29 |
 | OD-3 | "Model parameter", "model prediction", and "model output"; the region a design samples is the model parameter space, a property of the design | 0003, 0005 | 2026-09-29 |
 | OD-4 | "Variability interval": how much an estimate changes when the runs behind it change; not a confidence interval | 0004 | 2026-09-28 |
+| OD-5 | Six diagnostics: point run, scatter, coordinate lines, lines (random or given), linear model, polynomial model (with the decay of its coefficients) | 0012 | 2026-09-29 |
+| OD-6 | A Python function and a command-line simulation code; no formula models | 0014 | 2026-09-29 |
+| OD-7 | An MCP server in v2.0: run and read, and set up models from specs; P1 clarified for MCP clients; use case U9 | 0016, 0019 | 2026-09-29 |
+| OD-8 | No experimental interpretation in v2.0 | 0017 | 2026-09-29 |
+| OD-14 | Quadrature and sparse grids in a later version | 0013 | 2026-09-29 |

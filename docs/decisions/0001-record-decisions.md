@@ -1,6 +1,6 @@
 # 0001. Record decisions in decision records
 
-**Date:** 2026-09-28. **Status:** proposed. **Resolves:** none.
+**Date:** 2026-09-28. **Status:** accepted (2026-09-29). **Resolves:** none.
 
 ## Context
 
@@ -22,6 +22,8 @@ Nygard's format. We will keep three kinds of document apart:
 - specs in `docs/design/`, which change only through decisions once accepted;
 - decisions in `docs/decisions/`, which are never edited, only superseded;
 - status in `STATUS.md`, with open decisions listed as OD-n.
+
+An OD row moves from "Open decisions" to "Decided" only in the commit where its record becomes `accepted`.
 
 Claude Code builds only from accepted specs, and asks when a spec is silent.
 

@@ -1,22 +1,27 @@
 # Principles
 
-**Status:** accepted. **Updated:** 2026-09-29.
+**Status:** accepted. **Updated:** 2026-09-29 (P1 clarified by 0019; P7's "Open" settled by 0021).
 
 ## Accepted
 
 ### P1 Numbers come from EMA
 
-Every number in a diagnostic result, report, figure, or data card is computed by EMA from stored runs, and
-stored with the diagnostic result. No LLM computes, rounds, or restates one.
+Every number in a diagnostic result, report, figure, data card, or tool result is computed by EMA from
+stored runs, and stored with the diagnostic result. No LLM computes, rounds, or restates a number in anything
+EMA produces. An MCP client's own replies are outside EMA: EMA gives them result ids and its own rendered
+text, and the report is the reference (0019).
 
 - **Why:** an LLM makes arithmetic and transcription errors that look right, and a user can't tell a
   generated number from a computed one. A number must be reproducible from the stored runs and the diagnostic
   parameters. With the store as the one source, the report, the CLI, and a later agent can't disagree.
 - **Enforced by:** an import-linter contract: no module in `ema` imports an LLM SDK
   (`architecture.md` §1). The report renderer and the figure code accept only stored diagnostic results.
-  When an agent exists (OD-7), its tools return result ids, and the harness, not the LLM, renders the numbers.
+  The MCP server's tools return result ids and text that EMA renders from the store. The server's
+  instructions ask the client to quote that text and to point the analyst to the report, rather than restate
+  numbers (0016, 0019).
 - **Tested by:** the import-linter contract, in the fast tier; a test that rebuilds a report from the store
-  alone and requires byte-identical output.
+  alone and requires byte-identical output; with a scripted MCP client, every number in a tool result equals
+  the stored value it names (U9).
 
 ### P2 Results first; interpretation is separate
 
@@ -150,7 +155,8 @@ as replicates, and the diagnostic result reports the measured variation.
   point, except the point run's repeats (0011). A noisy reference model: the point run reports its
   variation, and later diagnostic results carry the note. A model declared deterministic that returns
   different values on repeats is caught by the point run, and gets a note.
-- **Open:** whether noisy models are in v2.0 is for `scope.md`.
+- **Open (settled):** models declared noisy are not in v2.0; `noisy: true` is refused, and the point run still
+  measures noise (0021).
 
 ## Candidates
 

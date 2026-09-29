@@ -47,12 +47,7 @@ were argued again or rediscovered in later sessions (record 0001, "Context").
 - A TODO step is done when its specs are `accepted` and its OD rows are decided, with records.
 - Going over a size budget in `docs/design/scope.md` is a decision too: it needs a record, not a drift.
 
-## Open question about the workflow
+## When an OD row moves
 
-When does an OD row move to "Decided"? `STATUS.md` and `../decisions/README.md` imply it moves in the commit
-that applies the decision, but OD-1 was moved while its record, 0002, was still `proposed`. Two readings:
-
-- **(a)** a row moves only when its record is `accepted`;
-- **(b)** a row moves when the owner has decided, and the record's status catches up later.
-
-Until this is settled (for example, in record 0001 before it is accepted), (a) is the safer reading.
+An OD row moves to "Decided" only in the commit where its record becomes `accepted` (record 0001). OD-1 moved
+early, while record 0002 was still `proposed`; 0002 was accepted on 2026-09-29.

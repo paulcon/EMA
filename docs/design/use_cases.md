@@ -1,6 +1,6 @@
 # Use cases
 
-**Status:** accepted. **Updated:** 2026-09-29.
+**Status:** accepted. **Updated:** 2026-09-29 (U9 added by 0016).
 
 > Each use case is a short scenario from the analyst's side: who they are, what model they have, what they
 > want to learn, what they type (in Python or the CLI), what EMA asks them, and the report they get. Write
@@ -9,7 +9,7 @@
 > - **Open decisions.** Where a use case depends on a decision still open in `../../STATUS.md`, it assumes
 >   the suggested option and marks the place with its OD-n. If the decision goes the other way, the use case
 >   is revised.
-> - **Length.** U1–U4 are written in full. U5–U8 are variations that start from an earlier use case: each
+> - **Length.** U1–U4 are written in full. U5–U9 are variations that start from an earlier use case: each
 >   has only its steps, what EMA asks, and "Done when".
 > - **Typed steps** are in Python, against `ema.workspace` as drafted in `architecture.md` §7, so they are
 >   provisional until that spec is accepted. One use case is also shown as CLI commands.
@@ -24,6 +24,7 @@
 | U6 | The model changes | P3, P5 |
 | U7 | A noisy model | P7; scope |
 | U8 | Reproduce a stored diagnostic result | P4, P5 |
+| U9 | The same through an MCP client | P1, P3, P4; OD-7 (0016) |
 
 ## U1 First look at a cheap Python model
 
@@ -174,7 +175,7 @@
   - choose a method: smooth along every line, a polynomial surrogate or a spectral method (and perhaps U4);
     kinks or jumps, local or piecewise methods;
   - look closer at a kink: run a finer line through it, in a narrower model parameter space, as a new
-    diagnostic evaluation (which diagnostic runs a single line is for OD-5);
+    diagnostic evaluation (the lines diagnostic, with the line given; 0012);
   - if a line looks noisy, tighten the solver tolerance or refine the mesh; that changes the model's files,
     so it makes a new model version (U6);
   - share the report and its figures.
@@ -297,7 +298,7 @@
 
   The linear model's report has its coefficients with intervals, the 1-D shadow, the residual histogram, and
   the residual norm. The active subspace, a 2-D shadow, and the decay of the coefficients are not in this
-  lean set; whether they are in v2.0 is for scope (step 3) and the polynomial model's spec (step 6).
+  lean set; the decay of the coefficients is in v2.0 (0012); the active subspace and a 2-D shadow are not.
 - **What they do next, outside EMA:**
   - build a polynomial surrogate of the chosen degree in a UQ tool, and use it for the uncertainty study;
   - export the stored runs, and fit the surrogate in their own tool (U5);
@@ -378,8 +379,8 @@
 
 ## U7 A noisy model
 
-Whether models declared noisy are in v2.0 is for scope (P7, "Open"). U7 needs only the point run and the
-note, whatever scope decides.
+Models declared noisy are not in v2.0 (0021). U7 needs only the point run and the note, so it works as
+written.
 
 - **Steps, as typed:** the heat solver from U2 is declared deterministic, but its iterative tolerance makes
   the peak temperature vary slightly between runs at the same point. After U2, the engineer runs the point
@@ -431,13 +432,32 @@ note, whatever scope decides.
   - a deleted diagnostic result is recomputed identical from its provenance and the stored runs (P5);
   - with one library version changed, the check names exactly that provenance field.
 
+## U9 The same through an MCP client
+
+- **Steps, as typed:** the analyst from U1 uses an MCP client (such as Claude Desktop) with EMA's MCP
+  server, in a fresh workspace, and asks in their own words to set up `beam.py` as a model, test it, and
+  run scatter over the same model parameter space with n = 200 and seed 1. The client's agent calls:
+  `propose_model` (a model spec for `beam.py`), `save_model`, `test_model`, `run_diagnostic`, and
+  `get_result`, and the analyst opens the report through its resource, `ema://results/{id}/report`.
+- **What EMA asks, and when:** three elicitations: the model spec, before it is saved (the model
+  parameters, units, nominal values, and the file); the test run: 1 new, 0 reused, time unknown; and
+  scatter: 200 new, 0 reused, about 0.2 s. The client's agent answers none of them.
+- **What they get:** tool results with result ids and EMA's rendered text; the same report as U1.
+- **Done when:** on R2, with a scripted MCP client (no LLM, so no API cost):
+  - the three elicitations come in that order, with U1's prices;
+  - a declined elicitation saves no model spec, or makes no run;
+  - every number in a tool result equals the stored value it names (P1);
+  - the report read through the resource is byte-identical to U1's report on R2 (P4);
+  - no tool writes a file that EMA runs.
+
 ## What the use cases ask of other specs
 
 > Collected for the steps that settle them. None of these is decided here.
 
-- **Scope (step 3):** the use cases use five diagnostics: point run, scatter, coordinate lines, linear model,
-  and polynomial model (OD-5 suggests 3–4). U4's report leaves out the active subspace, a 2-D shadow, and
-  the decay of the coefficients. U7 works whether or not models declared noisy are in v2.0.
+- **Scope (step 3), settled by 0012 and 0021:** v2.0 has six diagnostics: the five the use cases use, and
+  lines (random or given; U2's single line). The polynomial model's report adds the decay of the coefficients
+  to U4's lean set; the active subspace and a 2-D shadow are not in v2.0. Models declared noisy are not in
+  v2.0, and U7 works as written.
 - **Model interface (step 4):** U2's model spec fields (`command`, `input_deck`, `files`, `parameters`,
   `predictions` with a regex parser, OD-20) are provisional. U6 needs the files a model copies into its run
   directory (such as `solver.cfg`) to be part of its model version.
@@ -460,3 +480,8 @@ note, whatever scope decides.
   - the first approval for a model version shows the command, the input deck template, and the files (U2);
   - `export` writes a CSV of runs and a JSON file, not `.npz` (U5);
   - the CLI takes a model parameter space as `--space FILE` in U2; how is still open (§8).
+- **Architecture (step 9), `ema.mcp`:** at most 10 tools, each one workspace call, including `propose_model`
+  and `save_model`; approvals through MCP elicitation; the server's instructions (U9, 0016, 0019).
+- **Trust (step 10):** approvals through MCP elicitation; the agent writes model specs only (U9, 0016).
+- **Setup (step 12):** OD-19, the budget for live evals, before the MCP build step; U9's test uses a scripted
+  client, with no API cost (0016).
