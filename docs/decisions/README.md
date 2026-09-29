@@ -28,3 +28,4 @@ Write one when a choice:
 | 0006 | Make the diagnostic evaluation, with its report, the unit of work | accepted | 2026-09-29 |
 | 0007 | Choose the principles | accepted; P8 superseded by 0008 | 2026-09-29 |
 | 0008 | Drop P8; check glossary words only in names and generated text | accepted | 2026-09-29 |
+| 0009 | Call the models with known answers reference models | accepted | 2026-09-29 |

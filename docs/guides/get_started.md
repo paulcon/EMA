@@ -8,7 +8,7 @@
 
 1. Install EMA. <command>
 2. Open a workspace, and see where it lives. <…>
-3. Load a sample model (S2, Ishigami), and look at its parameters. <…>
+3. Load a reference model (R2, Ishigami), and look at its parameters. <…>
 4. Price a diagnostic before running it. <…>
 5. Run it, approving the runs. <…>
 6. Read the report: the figures, the numbers and their intervals, the notes. <…>

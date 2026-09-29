@@ -18,7 +18,7 @@
 
 | Term | Meaning | Standard terms it relates to | Avoid |
 |---|---|---|---|
-| model | a program or function that maps model parameter values to model predictions | simulator, computational model | code (for the model) |
+| model | a program or function that maps model parameter values to model predictions | simulator, computational model, simulation code | |
 | model version | a model's spec plus the contents of its files, identified by a hash | | |
 | model parameter | one of a model's variables whose value a design sets (0003) | input, input variable, factor | input, input parameter |
 | nominal value | a model parameter's default or best-guess value | base point, reference point | |
@@ -30,6 +30,7 @@
 | run | one evaluation of a model version at one point | model evaluation, simulation, sample | model call |
 | noisy | said of a model whose model predictions can differ between runs of the same model version at the same point; a model is treated as noisy only when its spec says so or repeated runs have measured the variation, and is deterministic otherwise (P7). Noise is the model's own variation, not a variability interval, which is about the runs behind an estimate (0004) | stochastic, nondeterministic, stochastic simulator | |
 | replicate | one of several runs of a noisy model version at the same point, numbered from 0; a deterministic model has only replicate 0 (P7) | replication, repeated run | |
+| reference model | a model with known answers, used to test EMA's diagnostics and as an example for users; ids R1, R2, … (`reference_models.md`, 0009) | test function, benchmark problem | sample model |
 | diagnostic | a formula or method that produces the diagnostic result for a given model and design, looking for one kind of structure (0006) | sensitivity analysis method, test | diagnostic test |
 | diagnostic evaluation | one execution of a diagnostic for a particular model and design, which produces the numbers of the diagnostic result; the unit of work (0006) | | diagnostic run |
 | diagnostic parameter | a setting of a diagnostic that the user chooses, such as the number of points or the seed; not a model parameter (0003) | hyperparameter, option | parameter (alone, where it could mean a model parameter) |

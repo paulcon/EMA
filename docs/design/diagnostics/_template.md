@@ -51,7 +51,7 @@
 
 ## Mock report
 
-> By hand: exactly what the report section looks like for one sample model (from `../sample_models.md`),
+> By hand: exactly what the report section looks like for one reference model (from `../reference_models.md`),
 > with real or plausible numbers. This is the target.
 
 ```markdown
@@ -60,12 +60,12 @@
 
 ## Expected answers
 
-> For each sample model this diagnostic will be tested on: the values the result must contain, with
+> For each reference model this diagnostic will be tested on: the values the result must contain, with
 > tolerances, and where they come from (analytic, literature, brute force).
 
-| Sample model | Quantity | Expected | Tolerance | Source |
+| Reference model | Quantity | Expected | Tolerance | Source |
 |---|---|---|---|---|
-| <S1> | <…> | <…> | <…> | <…> |
+| <R1> | <…> | <…> | <…> | <…> |
 
 ## Named constants
 

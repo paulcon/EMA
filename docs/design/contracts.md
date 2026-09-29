@@ -46,4 +46,4 @@
 | Tier | Contains | Budget | Runs |
 |---|---|---|---|
 | fast | unit tests, contract checks on small inputs, doctests | <30 s> | after every edit |
-| slow | end-to-end use cases, sample models, command-line models, the wheel build | <…> | before a step is reported done |
+| slow | end-to-end use cases, reference models, command-line models, the wheel build | <…> | before a step is reported done |

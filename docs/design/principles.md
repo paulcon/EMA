@@ -85,7 +85,7 @@ same diagnostic result, including its variability intervals. Every random draw i
   functions.
 - **Tested by:** the design generator contract: the same arguments give bit-identical points, and a different
   seed gives different points. The diagnostic contract: the same request with the same runs gives an
-  identical diagnostic result, intervals included. Golden reports for the sample models, compared exactly in
+  identical diagnostic result, intervals included. Golden reports for the reference models, compared exactly in
   the slow tier.
 
 ### P5 Every diagnostic result records its provenance
@@ -128,7 +128,7 @@ units (y → a·y + b, with a > 0) changes no note.
   nor a note.
 - **Tested by:** the diagnostic contract, over every diagnostic: too few runs, all runs failed, a constant
   model prediction, and a constant plus 1e-12 noise each give counts and a note, with no estimates. A constant
-  model among the sample models, with its expected report. Known-answer tests one run below, and at, the
+  model among the reference models, with its expected report. Known-answer tests one run below, and at, the
   minimum number of usable runs. The diagnostic contract: y → a·y + b leaves every note unchanged, and
   transforms each estimate as the diagnostic's spec says.
 
@@ -147,7 +147,7 @@ as replicates, and the diagnostic result reports the measured variation.
   point and stores the measured variation with the model version. Every diagnostic result for a model measured
   as noisy carries a note saying so.
 - **Tested by:** the store contract: for a deterministic model, EMA never makes a second run at a stored
-  point. A noisy sample model: the point run reports its variation, and later diagnostic results carry the
+  point. A noisy reference model: the point run reports its variation, and later diagnostic results carry the
   note. A model declared deterministic that returns different values on repeats is caught by the point run,
   and gets a note.
 - **Open:** whether noisy models are in v2.0 is for `scope.md`.

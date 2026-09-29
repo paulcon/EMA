@@ -37,7 +37,7 @@ work is `TODO.md`, and where things stand is `STATUS.md`.
 - v1 is at `../EMA-v1` (tag `v1-final`). It is **reference only**: read it when a plan says to, and never copy
   code from it unless the plan names the file to port. Name the source in the commit message ("Ported from
   EMA v1 at v1-final: src/ema/core/models/_sandbox.py").
-- v1 is also an independent source of numbers: running it on a sample model, with the same seed, checks a
+- v1 is also an independent source of numbers: running it on a reference model, with the same seed, checks a
   v2 diagnostic. Use v1's own virtual environment (`../EMA-v1/.venv`), never v2's.
 - v1's lessons learned are in `docs/notes/v1/`. Notes there are background, not specs.
 

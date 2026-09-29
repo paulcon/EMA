@@ -35,7 +35,7 @@ Everything that code or tests may cite has an id, so a docstring, a test, or a c
 | C | contract promise | `docs/design/contracts.md` |
 | T | trust-boundary rule | `docs/design/trust.md` |
 | Q, W, I | data-model question, write, invariant | `docs/design/data_model.md` |
-| S | sample model | `docs/design/sample_models.md` |
+| R | reference model | `docs/design/reference_models.md` |
 
 ## Files
 
@@ -58,7 +58,7 @@ docs/design/
   data_model.md               Q/W/I…, from the data model template
   architecture.md             packages, layers, modules, and their public names
   trust.md                    T1…
-  sample_models.md            S1…, with expected answers
+  reference_models.md         R1…, with expected answers
 docs/decisions/               README.md (how, and the index), 0000-template.md, 0001…, 0002…
 docs/plans/                   README.md, _template.md
 docs/guides/                  get_started.md, add_a_model.md, run_a_diagnostic.md, add_a_diagnostic.md (outlines)

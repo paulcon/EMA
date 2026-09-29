@@ -20,6 +20,8 @@
 - 2026-09-29: principles accepted (`docs/design/principles.md`, P1–P8; record 0007), from an interview on the
   14 candidates: three dropped, two held for steps 9 and 10. Glossary rows added for "noisy" and "replicate";
   "approval" narrowed to runs.
+- 2026-09-29: "sample models" renamed "reference models", ids R1… (record 0009); in the glossary, "simulation
+  code" is a standard term for a model, no longer one to avoid.
 - 2026-09-29: P8 dropped (record 0008): the terminology test checks only public names and generated text,
   for a short list of words; in prose, the glossary's Avoid column is advice.
 
@@ -46,7 +48,7 @@
 | `docs/design/data_model.md` | template |
 | `docs/design/architecture.md` | draft |
 | `docs/design/trust.md` | empty |
-| `docs/design/sample_models.md` | empty |
+| `docs/design/reference_models.md` | empty |
 
 Statuses: empty → draft → accepted. Claude Code builds only from accepted specs.
 

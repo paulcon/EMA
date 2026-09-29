@@ -39,6 +39,6 @@ plan names it.
 - v2 starts with an empty memory and a short CLAUDE.md. Working preferences from v1's memory are restated in
   v2's CLAUDE.md.
 - Everything v1 verified (estimators, the sandbox, the approval rules) has to be verified again as it is
-  ported, against the sample models and against v1's own output.
+  ported, against the reference models and against v1's own output.
 - `move_v1_start_v2.sh` performs the move. The v1 GitHub rename, the tag push, and the new repository are
   confirmed step by step when it runs.
