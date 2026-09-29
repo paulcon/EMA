@@ -22,7 +22,7 @@
 
 | Spec | Status |
 |---|---|
-| `docs/design/purpose.md` | empty |
+| `docs/design/purpose.md` | accepted |
 | `docs/design/principles.md` | candidates listed |
 | `docs/design/glossary.md` | candidates listed |
 | `docs/design/scope.md` | empty |
