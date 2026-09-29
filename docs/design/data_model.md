@@ -122,7 +122,7 @@ erDiagram
     DESIGNS ||--|{ DESIGN_POINTS : "has"
     MODELS ||--o{ RUNS : "is evaluated by"
     RUNS ||--|{ OUTPUTS : "produces"
-    DESIGNS ||--o{ DIAGNOSTICS : "is analysed by"
+    DESIGNS ||--o{ DIAGNOSTICS : "is analyzed by"
     %% <add or change relationships>
 ```
 

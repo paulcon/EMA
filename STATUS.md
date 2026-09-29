@@ -66,7 +66,7 @@ Statuses: empty → draft → accepted. Claude Code builds only from accepted sp
 | OD-5 | Diagnostics in v2.0 | from point run, scatter, coordinate lines, random lines, linear model, polynomial model | <3–4 of them> | scope, diagnostic specs |
 | OD-6 | Model interfaces in v2.0 | Python function; command line; both | both | model interface |
 | OD-7 | Agent in v2.0 | none; MCP server; own chat loop | none in v2.0, MCP after | scope, architecture |
-| OD-8 | Experimental interpretation in v2.0 | none; a separate labelled section | none in v2.0 | scope, architecture |
+| OD-8 | Experimental interpretation in v2.0 | none; a separate labeled section | none in v2.0 | scope, architecture |
 | OD-9 | Multiple outputs | in the schema and code from day 1; in the schema only; later | in the schema from day 1 | model interface, data model |
 | OD-10 | Fixed parameters (not design variables) | a parameter with no range; a separate mapping on the spec | <…> | model interface |
 | OD-11 | Python models isolated by default | yes; no; only models the agent writes | <…> | model interface, trust, principles (held candidate) |

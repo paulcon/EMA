@@ -126,7 +126,7 @@ src/ema/
   plotting/                   layer 3
     __init__.py
     figures.py                new_figure, save (with its data card), axis_label
-    style.py                  palette, colour maps, how failed runs are drawn
+    style.py                  palette, color maps, how failed runs are drawn
   report/                     layer 3
     __init__.py
     render.py                 render a Report to Markdown
@@ -656,7 +656,7 @@ returns a type from `ema.types` or `ema.report`, and raises only `EMAError` subc
 
 It computes nothing itself. It strings together the lower layers' calls, which take about 15 steps for one
 diagnostic, in the order the rules require. So the order is written once, and the lower layers can be
-reorganised without changing the guides, the CLI, or the MCP tools.
+reorganized without changing the guides, the CLI, or the MCP tools.
 
 ```python
 def open_workspace(path: str | Path = "ema_workspace") -> "Workspace": ...
