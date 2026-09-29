@@ -1,6 +1,6 @@
 # Add a model
 
-**Status:** outline. **Use cases:** <U…>. **Spec:** `../design/model_interface.md`.
+**Status:** outline. **Use cases:** U1, U2, U6. **Spec:** `../design/model_interface.md`.
 
 > Two paths: a Python function, and a command-line program with an input deck.
 

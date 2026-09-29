@@ -1,6 +1,6 @@
 # Run a diagnostic and read its report
 
-**Status:** outline. **Use cases:** <U…>. **Specs:** `../design/diagnostics/`, `../design/uncertainty.md`.
+**Status:** outline. **Use cases:** U1–U5, U7, U8. **Specs:** `../design/diagnostics/`, `../design/uncertainty.md`.
 
 1. Choose a diagnostic: the list, and each one's spec. <…>
 2. Choose the ranges (the box) and the diagnostic's parameters. <…>

@@ -1,6 +1,6 @@
 # Get started
 
-**Status:** outline. **Use case:** <U1>.
+**Status:** outline. **Use cases:** U1, U5.
 
 > Outline now, full text once the code exists. Write it against `ema.workspace` before any code: if a step is
 > awkward to explain, the workspace's functions are wrong. Each step shows what the user types and what they

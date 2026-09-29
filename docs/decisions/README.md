@@ -29,3 +29,5 @@ Write one when a choice:
 | 0007 | Choose the principles | accepted; P8 superseded by 0008 | 2026-09-29 |
 | 0008 | Drop P8; check glossary words only in names and generated text | accepted | 2026-09-29 |
 | 0009 | Call the models with known answers reference models | accepted | 2026-09-29 |
+| 0010 | Reuse failed runs unless the user asks to retry them | accepted | 2026-09-29 |
+| 0011 | Let the point run repeat a deterministic model, to measure its noise | accepted | 2026-09-29 |

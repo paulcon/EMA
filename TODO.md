@@ -15,7 +15,7 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
   - You: write the purpose page; choose at most 10 principles from the candidates; settle the words.
   - Decide: OD-3 (parameter and box), OD-4 (the word for intervals).
   - Claude can help: interview you on each candidate principle; check the glossary against the other specs.
-- [ ] **2. Use cases.** `docs/design/use_cases.md`.
+- [x] **2. Use cases.** `docs/design/use_cases.md`.
   - You: 3–5 scenarios: what the analyst types, what EMA asks, the report they get, and the checks that say it
     works.
 - [ ] **3. Scope.** `docs/design/scope.md`.
@@ -33,8 +33,14 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
   - Decide: a glossary row for "design generator".
 - [ ] **6. Diagnostic specs**, one per v2.0 diagnostic, from `docs/design/diagnostics/_template.md`.
   - You: draw each mock report by hand, and fill in the expected answers.
+  - Decide: the per-model-parameter estimate in scatter's report (U1: for example, a rank correlation).
+  - Decide: the per-line estimate in coordinate lines' report (U2: for example, the spectrum's decay rate).
+  - Decide: the point run's measured variation (U7): which numbers, and what its tolerance for "varies" is
+    relative to (P6), since one point has no range.
 - [ ] **7. Uncertainty; contracts and degenerate cases.** `docs/design/uncertainty.md`, `contracts.md`.
   - Decide: OD-12 (the interval method per diagnostic).
+  - Decide: whether every diagnostic's report adds U3's failure map (failed and usable runs in each pair of
+    model parameters) when runs fail, or only scatter's.
   - Claude can help: draft the negative control for each promise.
 
 ## How v2 is built

@@ -143,13 +143,13 @@ as replicates, and the diagnostic result reports the measured variation.
   solver tolerance or an internal random seed can make a model noisy without the user knowing, so noise is
   measured, not assumed.
 - **Enforced by:** the model spec has a `noisy` field, false by default, and the store key includes a
-  replicate number, always 0 for a deterministic model. The point run diagnostic (OD-5) repeats runs at one
-  point and stores the measured variation with the model version. Every diagnostic result for a model measured
-  as noisy carries a note saying so.
+  replicate number: 0 for a deterministic model, except the point run's repeats, which are numbered 1, 2, …
+  (0011). The point run diagnostic (OD-5) repeats runs at one point and stores the measured variation with
+  the model version. Every diagnostic result for a model measured as noisy carries a note saying so.
 - **Tested by:** the store contract: for a deterministic model, EMA never makes a second run at a stored
-  point. A noisy reference model: the point run reports its variation, and later diagnostic results carry the
-  note. A model declared deterministic that returns different values on repeats is caught by the point run,
-  and gets a note.
+  point, except the point run's repeats (0011). A noisy reference model: the point run reports its
+  variation, and later diagnostic results carry the note. A model declared deterministic that returns
+  different values on repeats is caught by the point run, and gets a note.
 - **Open:** whether noisy models are in v2.0 is for `scope.md`.
 
 ## Candidates

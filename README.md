@@ -64,5 +64,6 @@ docs/plans/                   README.md, _template.md
 docs/guides/                  get_started.md, add_a_model.md, run_a_diagnostic.md, add_a_diagnostic.md (outlines)
 docs/notes/
   decision_workflow.md        how open decisions, decision records, and specs fit together
+  adding_a_use_case.md        how to add a use case, with a template
   v1/                         v1's working notes and the lessons learned (not maintained)
 ```

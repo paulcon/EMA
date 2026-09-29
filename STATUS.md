@@ -4,7 +4,7 @@
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`): step 1 done; step 2 (use cases) next.
+- Writing the design documents by hand (`TODO.md`): steps 1 and 2 done; step 3 (scope) next.
 
 ## Done
 
@@ -28,9 +28,18 @@
   input deck, output parser, and heuristic threshold; American spelling. TODO step 1 done: purpose,
   principles, and glossary accepted; OD-3 and OD-4 decided.
 
+- 2026-09-29: use cases accepted (`docs/design/use_cases.md`, U1–U8), from an interview. U1–U4 in full (a
+  cheap Python model; a slow command-line simulator; failed runs; a polynomial fit); U5–U8 short (reuse and
+  export; a changed model; hidden noise; reproducing a diagnostic result). Open decisions are marked OD-n,
+  with the suggested option assumed; the last section lists what the use cases ask of the later specs. New
+  "Decide:" lines on TODO steps 6 and 7. Records 0010 (reuse failed runs unless the user asks to retry; the
+  glossary's "failed run" row) and 0011 (the point run may repeat a deterministic model; resolves a conflict
+  inside P7, and the glossary's "replicate" row). How to add a use case: `docs/notes/adding_a_use_case.md`.
+  TODO step 2 done.
+
 ## Next
 
-- Steps 2–3: use cases; scope, including "Not in v2.0": diagnostic campaigns and studies that vary the model
+- Step 3: scope, including "Not in v2.0": diagnostic campaigns and studies that vary the model
   parameter space (records 0005, 0006).
 
 ## Specs
@@ -41,7 +50,7 @@
 | `docs/design/principles.md` | accepted |
 | `docs/design/glossary.md` | accepted |
 | `docs/design/scope.md` | empty |
-| `docs/design/use_cases.md` | empty |
+| `docs/design/use_cases.md` | accepted |
 | `docs/design/model_interface.md` | empty |
 | `docs/design/designs.md` | empty |
 | `docs/design/diagnostics/` | template only |

@@ -33,8 +33,8 @@
 | point | one value for each model parameter; a design is a set of points, and a run is made at one point | design point, sample point, parameter vector | |
 | run | one evaluation of a model version at one point, as one replicate (P7) | model evaluation, simulation, sample | model call |
 | noisy | said of a model whose model predictions can differ between runs of the same model version at the same point; a model is treated as noisy only when its spec says so or repeated runs have measured the variation, and is deterministic otherwise (P7). Noise is the model's own variation, not a variability interval, which is about the runs behind an estimate (0004) | stochastic, nondeterministic, stochastic simulator | |
-| replicate | one of several runs of a noisy model version at the same point, numbered from 0; a deterministic model has only replicate 0 (P7) | replication, repeated run | |
-| failed run | a run that produced no model predictions (an exception, a crash, a timeout, or unreadable model output); it is stored with its reason, and its model predictions are NaN (P6) | | |
+| replicate | one of several runs of a noisy model version at the same point, numbered from 0; a deterministic model has only replicate 0, except the point run's repeats (P7, 0011) | replication, repeated run | |
+| failed run | a run that produced no model predictions (an exception, a crash, a timeout, or unreadable model output); it is stored with its reason and NaN model predictions, and reused like any stored run unless the user asks to retry (P6, 0010) | | |
 | reference model | a model with known answers, used to test EMA's diagnostics and as an example for users; ids R1, R2, … (`reference_models.md`, 0009) | test function, benchmark problem | sample model |
 | diagnostic | a formula or method that produces the diagnostic result for a given model and design, looking for one kind of structure (0006) | sensitivity analysis method, test | diagnostic test |
 | diagnostic evaluation | one execution of a diagnostic for a particular model and design, which produces the numbers of the diagnostic result; the unit of work (0006) | | diagnostic run |
