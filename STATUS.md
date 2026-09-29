@@ -23,7 +23,7 @@
 
 ## Next
 
-- Step 1 of `TODO.md`: review and accept the glossary; add P1–P8 to `CLAUDE.md`, one line each.
+- Step 1 of `TODO.md`: review and accept the glossary.
 - Steps 2–3: use cases; scope, including "Not in v2.0": diagnostic campaigns and studies that vary the model
   parameter space (records 0005, 0006).
 

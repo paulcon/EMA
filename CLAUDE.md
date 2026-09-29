@@ -52,8 +52,14 @@ work is `TODO.md`, and where things stand is `STATUS.md`.
 
 > One line each; the full text, the reason, and the enforcement are in `docs/design/principles.md`.
 
-- P1 <…>
-- P2 <…>
+- P1 Numbers come from EMA: every number a user sees is computed from stored runs; no LLM makes one.
+- P2 Results first: diagnostic results hold no interpretation; any is labeled experimental, kept apart.
+- P3 Everything that decides a run is hashed; every new run is priced and approved before it runs.
+- P4 Deterministic: the same request and runs give the same diagnostic result; every random draw is seeded.
+- P5 Every diagnostic result records its provenance.
+- P6 No data, no estimates; tolerances are relative to a model prediction's range, so units change no note.
+- P7 Noise is explicit: a model is deterministic unless its spec says noisy or repeats measure it.
+- P8 The glossary's words, in code, docs, and messages; never the words in its Avoid column.
 
 ## Commands
 
