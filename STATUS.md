@@ -5,7 +5,7 @@
 ## Now
 
 - Writing the design documents by hand (`TODO.md`), step 1: purpose accepted; glossary rows drafted from
-  records 0003–0006; principles accepted (P1–P8, record 0007); the glossary's review is next.
+  records 0003–0006; principles accepted (P1–P7; records 0007, 0008); the glossary's review is next.
 
 ## Done
 
@@ -20,6 +20,8 @@
 - 2026-09-29: principles accepted (`docs/design/principles.md`, P1–P8; record 0007), from an interview on the
   14 candidates: three dropped, two held for steps 9 and 10. Glossary rows added for "noisy" and "replicate";
   "approval" narrowed to runs.
+- 2026-09-29: P8 dropped (record 0008): the terminology test checks only public names and generated text,
+  for a short list of words; in prose, the glossary's Avoid column is advice.
 
 ## Next
 

@@ -152,21 +152,6 @@ as replicates, and the diagnostic result reports the measured variation.
   and gets a note.
 - **Open:** whether noisy models are in v2.0 is for `scope.md`.
 
-### P8 The glossary's words
-
-Code, documents, reports, and messages use the glossary's words, and none of the words in its Avoid column,
-except where the glossary allows one (such as "input deck"). This states once, for every glossary row, what
-records 0003, 0004, and 0005 require for theirs.
-
-- **Why:** words like "input" and "confidence interval" carry meanings EMA doesn't intend (0003, 0004); one
-  word per idea removes the guess, for users and for an agent. When code names are the specs' words, a reader
-  finds the code for a spec, and the spec for the code.
-- **Enforced by:** the glossary's Avoid column is the only list of words to avoid, and a row's allowed
-  exceptions sit in the same row. The terminology test parses `glossary.md` itself, so a new row is enforced
-  without editing the test.
-- **Tested by:** the terminology test, over docs, report templates, golden reports, and error messages, and
-  over code identifiers (no `qoi`, `box`, or `DiagnosticRun`).
-
 ## Candidates
 
 > Held until the step that decides what they depend on. Candidates dropped on 2026-09-29, and why, are in

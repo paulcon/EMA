@@ -1,6 +1,6 @@
 # 0007. Choose the principles
 
-**Date:** 2026-09-29. **Status:** accepted. **Resolves:** none (TODO step 1).
+**Date:** 2026-09-29. **Status:** accepted; P8 superseded by 0008. **Resolves:** none (TODO step 1).
 
 ## Context
 

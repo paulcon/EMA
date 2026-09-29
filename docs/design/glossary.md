@@ -3,8 +3,16 @@
 **Status:** candidates listed. **Updated:** 2026-09-29.
 
 > One word per idea, in your nomenclature, linked to the standard terms so readers (and the agent) can
-> connect them. The code, the docs, and the messages use these words. Avoid the synonyms in the last column;
-> a test can check for them, as v1's `test_terminology.py` did.
+> connect them. The code, the docs, and the messages use these words. The Avoid column is advice for prose,
+> applied in review; documents are not scanned (record 0008).
+>
+> A terminology test checks only public identifiers in `ema` (modules, classes, functions, arguments, fields,
+> CLI commands and flags, data card keys) and the text EMA generates for users (report templates, golden
+> reports, figure labels, CLI and error messages), for a short list of words that are always wrong there:
+> - in identifiers: `qoi`, `box`, `DiagnosticRun`;
+> - in generated text: "confidence interval", "CI", "credible interval", "error bar", "QoI", "box".
+>
+> A word joins the list when a decision record decides against it.
 >
 > Terms marked OD-n wait on that decision in `STATUS.md`.
 

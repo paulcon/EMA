@@ -59,7 +59,6 @@ work is `TODO.md`, and where things stand is `STATUS.md`.
 - P5 Every diagnostic result records its provenance.
 - P6 No data, no estimates; tolerances are relative to a model prediction's range, so units change no note.
 - P7 Noise is explicit: a model is deterministic unless its spec says noisy or repeats measure it.
-- P8 The glossary's words, in code, docs, and messages; never the words in its Avoid column.
 
 ## Commands
 
