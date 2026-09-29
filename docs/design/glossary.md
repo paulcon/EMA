@@ -20,6 +20,8 @@
 | model output | anything a run produces: a Python function's return value, or the files, logs, and streams a command-line program writes; model predictions are read from it (0003) | simulation output, output files | |
 | design | a set of points in one model parameter space at which to run the model, made by a design generator; short for experimental design | design of experiments, sample, experimental design | |
 | run | one evaluation of a model version at one point | model evaluation, simulation, sample | model call |
+| noisy | said of a model whose model predictions can differ between runs of the same model version at the same point; a model is treated as noisy only when its spec says so or repeated runs have measured the variation, and is deterministic otherwise (P7). Noise is the model's own variation, not a variability interval, which is about the runs behind an estimate (0004) | stochastic, nondeterministic, stochastic simulator | |
+| replicate | one of several runs of a noisy model version at the same point, numbered from 0; a deterministic model has only replicate 0 (P7) | replication, repeated run | |
 | diagnostic | a formula or method that produces the diagnostic result for a given model and design, looking for one kind of structure (0006) | sensitivity analysis method, test | diagnostic test |
 | diagnostic evaluation | one execution of a diagnostic for a particular model and design, which produces the numbers of the diagnostic result; the unit of work (0006) | | diagnostic run |
 | diagnostic parameter | a setting of a diagnostic that the user chooses, such as the number of points or the seed; not a model parameter (0003) | hyperparameter, option | parameter (alone, where it could mean a model parameter) |
@@ -31,7 +33,7 @@
 | data card | the JSON beside a figure recording what it shows | | |
 | report | the Markdown a diagnostic evaluation produces: header, the diagnostic result, figures, provenance | | |
 | workspace | the directory holding the database and stored files | | |
-| approval | the user's yes to an action that runs or saves something | | |
+| approval | the user's yes to a diagnostic evaluation's new runs, given after EMA shows their price; it covers everything that decides what those runs do (P3) | | |
 | budget | the most runs or seconds a request may use | | |
 | provenance | the record of where a diagnostic result came from | | |
 | experimental | interpretation or advice, labelled apart from diagnostic results (OD-8) | | beta |

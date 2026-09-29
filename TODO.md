@@ -43,7 +43,10 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
     interface and designs specs.
 - [ ] **9. Architecture and the workspace layer.** `docs/design/architecture.md` (formerly `api_spec_draft.md`).
   - Decide: OD-15 (budgets), OD-16 (`Workspace` object), and its §12 items.
+  - Decide: the held principle "One-way layers" (`docs/design/principles.md`, Candidates).
 - [ ] **10. Trust boundary.** `docs/design/trust.md`.
+  - Decide: the held principle "User code runs isolated, without EMA's secrets" (`docs/design/principles.md`,
+    Candidates), after OD-11.
 - [ ] **11. Sample models with expected answers.** `docs/design/sample_models.md`.
   - Claude can help: compute reference values with v1's `testfunctions/truth.py`, or by brute force, as an
     independent check on yours.

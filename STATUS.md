@@ -5,7 +5,7 @@
 ## Now
 
 - Writing the design documents by hand (`TODO.md`), step 1: purpose accepted; glossary rows drafted from
-  records 0003–0006; principles next.
+  records 0003–0006; principles accepted (P1–P8, record 0007); the glossary's review is next.
 
 ## Done
 
@@ -17,10 +17,13 @@
 - 2026-09-28: purpose accepted (`docs/design/purpose.md`).
 - 2026-09-29: OD-2, OD-3, and OD-4 decided (records 0003–0006); the glossary and the purpose page's wording
   follow them. How decisions are made is summarised in `docs/notes/decision_workflow.md`.
+- 2026-09-29: principles accepted (`docs/design/principles.md`, P1–P8; record 0007), from an interview on the
+  14 candidates: three dropped, two held for steps 9 and 10. Glossary rows added for "noisy" and "replicate";
+  "approval" narrowed to runs.
 
 ## Next
 
-- Step 1 of `TODO.md`: choose the principles (`docs/design/principles.md`); review and accept the glossary.
+- Step 1 of `TODO.md`: review and accept the glossary; add P1–P8 to `CLAUDE.md`, one line each.
 - Steps 2–3: use cases; scope, including "Not in v2.0": diagnostic campaigns and studies that vary the model
   parameter space (records 0005, 0006).
 
@@ -29,7 +32,7 @@
 | Spec | Status |
 |---|---|
 | `docs/design/purpose.md` | accepted |
-| `docs/design/principles.md` | candidates listed |
+| `docs/design/principles.md` | accepted |
 | `docs/design/glossary.md` | candidates listed |
 | `docs/design/scope.md` | empty |
 | `docs/design/use_cases.md` | empty |
@@ -62,7 +65,7 @@ Statuses: empty → draft → accepted. Claude Code builds only from accepted sp
 | OD-8 | Experimental interpretation in v2.0 | none; a separate labelled section | none in v2.0 | scope, architecture |
 | OD-9 | Multiple outputs | in the schema and code from day 1; in the schema only; later | in the schema from day 1 | model interface, data model |
 | OD-10 | Fixed parameters (not design variables) | a parameter with no range; a separate mapping on the spec | <…> | model interface |
-| OD-11 | Python models isolated by default | yes; no; only models the agent writes | <…> | model interface, trust |
+| OD-11 | Python models isolated by default | yes; no; only models the agent writes | <…> | model interface, trust, principles (held candidate) |
 | OD-12 | The interval method for each v2.0 diagnostic | bootstrap; convergence; cross-validation; held-out error | <per diagnostic> | uncertainty, diagnostic specs |
 | OD-13 | Uniform sampling | own seeded stream; `scipy.stats.qmc`; both | <…> | designs |
 | OD-14 | Quadrature and sparse grids | in v2.0; later; never | later | designs, scope |

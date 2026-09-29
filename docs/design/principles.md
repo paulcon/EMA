@@ -1,52 +1,186 @@
 # Principles
 
-**Status:** candidates listed. **Updated:** <YYYY-MM-DD>.
-
-> Aim for ten or fewer. A principle is an invariant (always true), not a procedure. Each has:
-> - **why**: the reason, which lets someone apply it to a case it didn't foresee;
-> - **enforced by**: the code that makes it true;
-> - **tested by**: the test that fails if it breaks.
->
-> A principle without a test is a wish. Implementation details (how a hash is computed, where commits are
-> batched) belong in docstrings, not here. CLAUDE.md lists each principle in one line and points here.
+**Status:** accepted. **Updated:** 2026-09-29.
 
 ## Accepted
 
-> Move a candidate here once you've decided on its wording.
+### P1 Numbers come from EMA
 
-### P1 <short name>
+Every number in a diagnostic result, report, figure, or data card is computed by EMA from stored runs, and
+stored with the diagnostic result. No LLM computes, rounds, or restates one.
 
-<statement, one or two sentences>
+- **Why:** an LLM makes arithmetic and transcription errors that look right, and a user can't tell a
+  generated number from a computed one. A number must be reproducible from the stored runs and the diagnostic
+  parameters. With the store as the one source, the report, the CLI, and a later agent can't disagree.
+- **Enforced by:** an import-linter contract: no module in `ema` imports an LLM SDK
+  (`architecture.md` §1). The report renderer and the figure code accept only stored diagnostic results.
+  When an agent exists (OD-7), its tools return result ids, and the harness, not the LLM, renders the numbers.
+- **Tested by:** the import-linter contract, in the fast tier; a test that rebuilds a report from the store
+  alone and requires byte-identical output.
 
-- **Why:** <…>
-- **Enforced by:** <module or mechanism>
-- **Tested by:** <test name>
+### P2 Results first; interpretation is separate
+
+A diagnostic result holds only estimates, counts, notes, and figures. Interpretation is any comparison with a
+heuristic threshold, and anything that says what a number means or what to do next. It is never part of a
+diagnostic result or of a report's main body; if EMA produces any, it is labeled experimental and kept in its
+own section (OD-8). Every heuristic threshold used in interpretation is a named constant, documented in the
+spec that uses it.
+
+- **Why:** the user is the domain expert (`purpose.md`): EMA gives evidence, and judging what it means for the
+  model is the user's job. Thresholds are heuristics that will be revised, and a diagnostic result must not
+  change when they do. Named thresholds can be found, checked, and challenged in the spec, and versioned
+  together, so a change is visible.
+- **Enforced by:** separate types: `DiagnosticResult` has no field for a verdict, and `interpret()` in
+  `ema.experimental` returns a separate `Interpretation`. An import-linter contract: nothing in layers 0–3
+  imports `ema.experimental` (`architecture.md` §11). Separate storage: interpretations have their own table,
+  keyed by the diagnostic result and the version of the rules, and their own renderer. Ruff's
+  magic-value-comparison rule (PLR2004) in `ema.experimental`.
+- **Tested by:** a test that builds a report with and without interpretations and requires the main body to be
+  byte-identical (v1's `check_summary_ignores_interpretation`); the import-linter contract; a test that every
+  threshold constant is named in a spec, and every threshold a spec names is a constant.
+
+### P3 Everything that decides a run is hashed; every new run is priced and approved
+
+Everything that decides what a run does (the model's spec, the contents of its files, and the point) is part
+of the run's key and of its approval. A stored run is reused only when its model version and point match
+(0005, 0006). A new run happens only after the user approves that diagnostic evaluation's new runs (0006).
+The approval shows the price (how many runs are new, how many are reused, and the estimated time, or
+"unknown"), and EMA never makes more new runs than it approved.
+
+- **Why:** a run can take hours on the user's computer, and `purpose.md` promises both reuse of runs and a
+  question before running. A model is arbitrary code, so an approval is informed only if it covers everything
+  that decides what the code does. A stale run corrupts a diagnostic result with no visible sign. Tying each
+  run to a model version makes a diagnostic result reproducible. One definition of "what decides a run" serves
+  both the key and the approval, so the two can't drift apart (v1's bug A1). `purpose.md` promises a time
+  estimate before running; an approval is informed only if it shows how many runs and how long; and making
+  more runs than approved spends the user's time without their yes.
+- **Enforced by:** the store keys runs by model version hash and point hash, and has no other lookup. The model
+  version hash covers the spec and the contents of every file the model reads (`model_interface.md`). The
+  scheduler is the only code that runs a model: it checks the store first, and refuses a new run unless an
+  approval matches its model version hash and point. One approval module, from day 1 (`trust.md`); an
+  approval records the model version hash and the new points it covers. Model files are compared as files
+  (samefile, casefold), never as strings. The workspace prices the design against the store (new vs reused)
+  before asking, and the approval records that price; the scheduler stops at the approved number of new
+  runs. The time estimate comes from stored run durations for that model version, and is "unknown" when
+  there are none.
+- **Tested by:** change one byte in a model file: the model version changes, and no run is reused. Run the
+  same diagnostic evaluation twice: the second makes no new runs and asks for no approval. Two designs in
+  different model parameter spaces reuse runs at their shared points. Approve, change one byte in a model
+  file, and run: the run is refused. A design with k of its n points stored: the price says n−k new, and
+  exactly n−k runs are made. The scheduler refuses one run more than the approval states. With no stored
+  durations, the price says the time is unknown.
+- **Open:** budgets (OD-15) may add a second cap beside the approval.
+
+### P4 Diagnostic evaluations are deterministic
+
+With the same EMA and library versions, the same request gives the same design, and with the same runs, the
+same diagnostic result, including its variability intervals. Every random draw is seeded from the request.
+
+- **Why:** `purpose.md` promises that each diagnostic evaluation and its diagnostic result can be reproduced.
+  The same request gives the same points, so a repeated or overlapping request finds its runs in the store
+  (P3). Golden reports, snapshot comparisons, and checks against v1 at the same seed all need exact repeats.
+- **Enforced by:** every random draw takes its seed from the request, with derived seeds from a spawned
+  `SeedSequence`; when the user gives no seed, EMA picks one and records it (P5). Layers 0–1 take a seed
+  argument for any randomness (`architecture.md` §1), and Ruff's NPY002 bans numpy's legacy global random
+  functions.
+- **Tested by:** the design generator contract: the same arguments give bit-identical points, and a different
+  seed gives different points. The diagnostic contract: the same request with the same runs gives an
+  identical diagnostic result, intervals included. Golden reports for the sample models, compared exactly in
+  the slow tier.
+
+### P5 Every diagnostic result records its provenance
+
+Every diagnostic result records its provenance: EMA's version, the library versions, the model version, the
+request (the model parameter space and the diagnostic parameters, including the seed), the runs it used, and
+the approvals.
+
+- **Why:** `purpose.md` promises the data and metadata needed to reproduce each diagnostic evaluation. A user,
+  or a reviewer of their paper, can see what produced a number, including which runs and whose approval.
+  Exported runs and diagnostic results carry what other tools need to use them. When a rerun differs,
+  comparing the two provenance records says why: a new model version, a new library, or a new seed.
+- **Enforced by:** `DiagnosticResult` can't be constructed without a `Provenance` (a required field, with no
+  default). The store writes a diagnostic result and its provenance in one transaction.
+- **Tested by:** delete a stored diagnostic result, rerun it from its provenance and the stored runs, and
+  require an identical result. The store contract: no diagnostic result without provenance, and no
+  provenance without its runs and approvals. Change the seed, or the model version, and rerun: the two
+  provenance records differ in exactly that field.
+
+### P6 No data, no estimates; no dependence on units
+
+A failed run counts as not usable, and every diagnostic produces a diagnostic result however many runs
+failed. When a diagnostic evaluation has too few usable runs, or a model prediction that is constant to
+rounding, its diagnostic result holds counts and a note, and no estimates. Every tolerance on a model
+prediction, including "constant to rounding", is relative to that model prediction's range, so changing its
+units (y → a·y + b, with a > 0) changes no note.
+
+- **Why:** an estimate from three runs, or from a flat model prediction (0/0), prints as precisely as any
+  other, and its variability interval may not show the problem. v1 argued degenerate cases more than once
+  (whether a constant surface is additive, record 0001); one rule settles them for every diagnostic. Counts
+  and a note tell the user what to do: run more points, or widen the model parameter space. Units are the
+  user's choice: a note that appears in Pa and vanishes in kPa is an artifact, not evidence. Model predictions
+  in physical units span many orders of magnitude, and with several model predictions in different units
+  (OD-9), only relative tolerances treat them alike.
+- **Enforced by:** one precheck in the diagnostic base, run before `compute`, so no diagnostic can skip it.
+  The minimum number of usable runs and the flatness tolerance are named constants, documented in each
+  diagnostic's spec; every such threshold is dimensionless, and its spec says what it is relative to. One
+  function in `ema.numerics` makes every tolerance on a model prediction from its range, and diagnostics use
+  no absolute tolerance on model predictions. `DiagnosticResult` refuses to be built with neither estimates
+  nor a note.
+- **Tested by:** the diagnostic contract, over every diagnostic: too few runs, all runs failed, a constant
+  model prediction, and a constant plus 1e-12 noise each give counts and a note, with no estimates. A constant
+  model among the sample models, with its expected report. Known-answer tests one run below, and at, the
+  minimum number of usable runs. The diagnostic contract: y → a·y + b leaves every note unchanged, and
+  transforms each estimate as the diagnostic's spec says.
+
+### P7 Noise is explicit
+
+EMA treats a model as deterministic: one run per model version and point. A model is treated as noisy only
+when its spec says so, or when repeated runs at one point have measured variation; then the repeats are stored
+as replicates, and the diagnostic result reports the measured variation.
+
+- **Why:** reuse (P3) and determinism (P4) assume a run's model predictions depend only on the model version
+  and the point. Unmeasured noise reads as roughness and hides smoothness, the structure EMA looks for. A
+  solver tolerance or an internal random seed can make a model noisy without the user knowing, so noise is
+  measured, not assumed.
+- **Enforced by:** the model spec has a `noisy` field, false by default, and the store key includes a
+  replicate number, always 0 for a deterministic model. The point run diagnostic (OD-5) repeats runs at one
+  point and stores the measured variation with the model version. Every diagnostic result for a model measured
+  as noisy carries a note saying so.
+- **Tested by:** the store contract: for a deterministic model, EMA never makes a second run at a stored
+  point. A noisy sample model: the point run reports its variation, and later diagnostic results carry the
+  note. A model declared deterministic that returns different values on repeats is caught by the point run,
+  and gets a note.
+- **Open:** whether noisy models are in v2.0 is for `scope.md`.
+
+### P8 The glossary's words
+
+Code, documents, reports, and messages use the glossary's words, and none of the words in its Avoid column,
+except where the glossary allows one (such as "input deck"). This states once, for every glossary row, what
+records 0003, 0004, and 0005 require for theirs.
+
+- **Why:** words like "input" and "confidence interval" carry meanings EMA doesn't intend (0003, 0004); one
+  word per idea removes the guess, for users and for an agent. When code names are the specs' words, a reader
+  finds the code for a spec, and the spec for the code.
+- **Enforced by:** the glossary's Avoid column is the only list of words to avoid, and a row's allowed
+  exceptions sit in the same row. The terminology test parses `glossary.md` itself, so a new row is enforced
+  without editing the test.
+- **Tested by:** the terminology test, over docs, report templates, golden reports, and error messages, and
+  over code identifiers (no `qoi`, `box`, or `DiagnosticRun`).
 
 ## Candidates
 
-> From v1's design rules (`../notes/v1/lessons_learned_answers_2026-09-27.md` §3) and `../notes/v1/ema-redesign.md`.
-> Accept, reword, merge, or delete each.
+> Held until the step that decides what they depend on. Candidates dropped on 2026-09-29, and why, are in
+> record 0007 (`../decisions/0007-choose-the-principles.md`).
 
-- **Numbers come from EMA, not from an LLM.** Every number a user sees is computed and stored by EMA.
-- **Results first; interpretation is separate.** Values, intervals, run counts, figures, and data caveats are
-  results. Any comparison with a heuristic threshold, and any advice, is interpretation, kept apart and
-  labelled experimental (or left out, OD-8).
-- **Runs belong to a model version and are reused.** A run is stored against the version that produced it.
-  A changed model is a new version, and nothing stale is reused.
-- **Designs are deterministic.** The same request gives the same points and the same numbers.
-- **Every diagnostic follows the same steps**: design → run → compute → plot → report. A failed run is NaN,
-  and every diagnostic tolerates it.
-- **No data, no claims.** With too few usable runs, or an output that is constant to rounding, a diagnostic
-  reports counts and a note, and claims nothing.
-- **Conclusions don't depend on units.** Every tolerance is relative to the output's size or range.
-- **Every estimate has an interval,** made by a stated method (OD-12). A claim that something is small needs
-  the whole interval below its threshold.
-- **Compute from what the model received.** If the model rounds its inputs, diagnostics use the rounded
-  values.
-- **Noise is explicit.** A model is deterministic unless measured otherwise.
-- **Cost is known before running.** Every request is priced, and checked against its budget, before any run.
-- **Nothing runs without approval.** Approval covers everything that decides what a run does. User code runs
-  isolated, without EMA's secrets.
-- **Heuristic thresholds are named and documented.** No magic numbers in the code.
-- **Every result records its provenance**: EMA's version, the libraries, the model version, the seed, the
-  approvals.
+- **User code runs isolated, without EMA's secrets.** Split from "Nothing runs without approval" (now P3).
+  Waits on OD-11 and `trust.md`.
+- **One-way layers.** Each layer imports only from the layers below it. The interfaces (`ema.cli`, and later
+  `ema.mcp`) hold no logic, and `ema.workspace` is the one place that orchestrates. Layers 0–1 (types,
+  numerics, designs) do no I/O. Held until `architecture.md` is accepted (step 9). Answers so far:
+  - Why: with all logic in the workspace, the notebook, the CLI, and a later agent behave the same; layers 0–1
+    without I/O can be checked with known-answer tests and no fixtures.
+  - Enforced by: import-linter's layers contract (`architecture.md` §11); a forbidden contract keeping `os`,
+    `pathlib`, `subprocess`, `sqlite3`, and other I/O libraries out of layers 0–1; each CLI command parses its
+    arguments, calls one workspace function, and formats the result.
+  - Tested by: `uv run lint-imports` in the fast tier; a test that every CLI command's result equals the result
+    of the workspace function it calls.
