@@ -51,3 +51,5 @@ Write one when a choice:
 | 0029 | Say what the model version covers, and check it before every call | accepted | 2026-09-30 |
 | 0030 | Store large model files once, read-only, and link them into run directories | accepted | 2026-09-30 |
 | 0031 | Add "run directory" to the glossary, and say in P3 which files the model version covers | accepted | 2026-09-30 |
+| 0032 | Draw uniform points from numpy's PCG64, behind a sampler interface ready for others | accepted | 2026-09-30 |
+| 0033 | Let a space hold a model parameter at a value, and add design words to the glossary | accepted | 2026-09-30 |

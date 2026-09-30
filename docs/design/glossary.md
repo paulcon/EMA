@@ -1,6 +1,6 @@
 # Glossary
 
-**Status:** accepted. **Updated:** 2026-09-30 (records 0022–0024, 0031).
+**Status:** accepted. **Updated:** 2026-09-30 (records 0022–0024, 0031, 0033).
 
 > One word per idea, in your nomenclature, linked to the standard terms so readers (and the agent) can
 > connect them. The code, the docs, and the messages use these words. The Avoid column is advice for prose,
@@ -21,7 +21,7 @@
 | model | a program or function that maps model parameter values to model predictions | simulator, computational model, simulation code | |
 | model version | a model's spec plus the contents of its files, identified by a hash | | |
 | model spec | the user's description of a model: how EMA runs it, its model parameters and nominal values, its model predictions, and whether it's noisy; it holds no model parameter space (0005). The model spec and the contents of the model's files make a model version | model configuration, model definition | |
-| model parameter | one of a model's variables whose value a design sets; a design that doesn't vary it holds it at its nominal value (0003, 0023) | input, input variable, factor | input, input parameter |
+| model parameter | one of a model's variables whose value a design sets; a design that doesn't vary it holds it at its nominal value, or at a held value its model parameter space gives (0003, 0023, 0033) | input, input variable, factor | input, input parameter |
 | nominal value | a model parameter's default or best-guess value | base point, reference point | |
 | model parameter space | the set of model parameter values a design may sample; each design has exactly one, and it belongs to the design, not the model (0005) | parameter space, input space, domain, design space, hyperrectangle, hyperellipsoid | box, input box, input space, domain, design space |
 | model parameter ranges | one [low, high] per model parameter: one way to define a model parameter space, as the sides of a hyperrectangle or the axes of a hyperellipsoid (0005) | bounds | box |
@@ -32,6 +32,9 @@
 | input deck | a command-line model's own input files, which EMA writes from a template with a point's model parameter values (0003) | input file | |
 | output parser | what reads model predictions from a command-line model's model output (0003; OD-20) | | |
 | design | a set of points in one model parameter space at which to run the model, made by a design generator; short for experimental design | design of experiments, sample, experimental design | |
+| design generator | what makes a design from a model parameter space (or, for the point design, a point) and its diagnostic parameters, with its size computed before it is built; v2.0 has point, uniform, convergent, and lines (given, coordinate, or random); a new kind of design is a new design generator (`designs.md`, 0033) | sampling scheme, design of experiments method | |
+| sampler | what makes the points of a uniform or convergent design in the unit cube, with the rate at which an estimate's error is assumed to fall; part of the design's identity; v2.0 has `random` (0032, 0033) | random number generator, quasi-Monte Carlo sequence, low-discrepancy sequence | |
+| nested | said of two designs when the smaller one's points are points of the larger, so the larger reuses the smaller's runs; `designs.md` says which designs are nested, and in what (0033) | nested designs, extensible sequence, sequential design | |
 | point | one value for each model parameter, held ones included (0023); a design is a set of points, and a run is made at one point | design point, sample point, parameter vector | |
 | run | one evaluation of a model version at one point, as one replicate (P7) | model evaluation, simulation, sample | model call |
 | run directory | the directory a run is prepared, executed, and collected in, at `<workspace>/runs/<run id>/`; it holds what the run saw and wrote (its input decks, its files, copied or linked, and its streams) and a record of the run, and is kept or deleted by the model spec's `keep` setting (0015, 0020, 0028, 0030) | working directory, scratch directory | workdir |

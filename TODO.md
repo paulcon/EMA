@@ -30,9 +30,9 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
     accepted.
   - Also: a run's three phases, and the open platform question (0015); run directories and the keep setting
     (0020); scalar output parsers, and `noisy: true` refused (0021).
-- [ ] **5. Designs.** `docs/design/designs.md`.
-  - Decide: OD-13 (uniform sampling).
-  - Decide: a glossary row for "design generator".
+- [x] **5. Designs.** `docs/design/designs.md`.
+  - Decided: OD-13 (0032); record 0033 accepted (held values; glossary rows for design generator, sampler,
+    and nested; the sampler's rate).
 - [ ] **6. Diagnostic specs**, one per v2.0 diagnostic, from `docs/design/diagnostics/_template.md`.
   - You: draw each mock report by hand, and fill in the expected answers.
   - Decide: the per-model-parameter estimate in scatter's report (U1: for example, a rank correlation).

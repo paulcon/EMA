@@ -4,7 +4,7 @@
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`): steps 1–4 done; step 5 (designs) next.
+- Writing the design documents by hand (`TODO.md`): steps 1–5 done; step 6 (diagnostic specs) next.
 
 ## Done
 
@@ -62,11 +62,22 @@
   "Running" row allows a batch call; U2's model spec follows the new spec. Requirements M1–M20. TODO step 4
   done.
 
+- 2026-09-30: designs accepted (`docs/design/designs.md`), from an interview. Record 0032 accepted (OD-13):
+  uniform points from numpy's PCG64 raw stream (the `random` sampler), behind a sampler interface, with
+  Sobol, Halton, Latin hypercube, and minimum-distance samplers listed for later. Record 0033 accepted: a
+  space may hold a model parameter at a value other than its nominal; glossary rows for design generator,
+  sampler, and nested, and the "model parameter" row amended; the sampler declares the rate its error is
+  assumed to fall at. The space is a hyperrectangle with a per-name JSON form; default seed 0; designs capped
+  at 10,000,000 points, with seams for chunked designs later; the convergent design's alpha is an error
+  factor, n_l = ⌈n_min · alpha^(−l/r)⌉, rounded up exactly; lines evenly spaced end to end in unit
+  coordinates, refinable n → 2n − 1; coordinate lines share a centered anchor when n is odd; random lines
+  each from their own stream. Requirements G1–G17. TODO step 5 done.
+
 ## Next
 
-- Step 5: designs (OD-13, and a glossary row for "design generator"), with what `model_interface.md` asks of
-  them: spaces that name a subset of the model parameters, scales in the space, limits refused, and
-  zero-width ranges (0023, 0024).
+- Step 6: the six diagnostic specs, with what `designs.md` asks of them: each diagnostic's design parameters
+  and defaults (the linear and polynomial models' n_min and alpha, the point run's repeats, coordinate lines'
+  n, the lines diagnostic's m, n, or given lines), and the held model parameters in each report's header.
 
 ## Specs
 
@@ -78,7 +89,7 @@
 | `docs/design/scope.md` | accepted |
 | `docs/design/use_cases.md` | accepted |
 | `docs/design/model_interface.md` | accepted |
-| `docs/design/designs.md` | empty |
+| `docs/design/designs.md` | accepted |
 | `docs/design/diagnostics/` | template only |
 | `docs/design/uncertainty.md` | empty |
 | `docs/design/contracts.md` | empty |
@@ -101,7 +112,6 @@ Statuses: empty → draft → accepted. Claude Code builds only from accepted sp
 | Id | Question | Options | Suggested | Blocks |
 |---|---|---|---|---|
 | OD-12 | The interval method for each v2.0 diagnostic | bootstrap; convergence; cross-validation; held-out error | <per diagnostic> | uncertainty, diagnostic specs |
-| OD-13 | Uniform sampling | own seeded stream; `scipy.stats.qmc`; both | <…> | designs |
 | OD-15 | Budgets | per call; per workspace; none in v2.0 | per call | workspace, data model |
 | OD-16 | `Workspace` object or module functions | object; functions | object | architecture |
 | OD-17 | Python version (the package stays `ema`) | 3.12, 3.13, 3.14 | <…> | setup |
@@ -126,5 +136,6 @@ you reach those steps.
 | OD-9 | Several scalar model predictions per model, in the spec and code from v2.0; a missing one is NaN with its reason; a diagnostic evaluation analyzes one | 0022 | 2026-09-30 |
 | OD-10 | No fixed values or constants: a model parameter that a design's space leaves out is held at its nominal value; every point is complete | 0023 | 2026-09-30 |
 | OD-11 | Every Python model runs in an isolated child process, one long-lived child per model version, with a timeout; no in-process option; no memory or CPU limits in v2.0 | 0026 | 2026-09-30 |
+| OD-13 | Uniform points from numpy's PCG64 raw stream (the `random` sampler), behind a sampler interface; Sobol, Halton, Latin hypercube, and minimum-distance samplers later | 0032 | 2026-09-30 |
 | OD-14 | Quadrature and sparse grids in a later version | 0013 | 2026-09-29 |
 | OD-20 | Three output parser kinds, each returning one scalar: regex, json, and csv; no python parser (a wrapper script writing JSON instead) | 0027 | 2026-09-30 |
