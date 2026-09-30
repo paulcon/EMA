@@ -1,6 +1,6 @@
 # Designs
 
-**Status:** accepted. **Updated:** 2026-09-30. **Depends on:** OD-13 (0032); records 0005, 0012, 0013, 0023, 0024, 0033.
+**Status:** accepted. **Updated:** 2026-09-30 (the lines' spectra named by 0038). **Depends on:** OD-13 (0032); records 0005, 0012, 0013, 0023, 0024, 0033.
 
 > The design generators in v2.0, from `../notes/v1/ema-redesign.md` and scope's Designs row (point, uniform,
 > convergent, and lines: coordinate, random, or given; 0012). For each: what the user provides, the points it
@@ -126,7 +126,7 @@ Shared by given, coordinate, and random lines (0012):
   are spread evenly in the logarithm. Held model parameters keep their values along every line.
 - **End to end.** The line's segment is where it meets the space; its n points are at t_j = j/(n − 1),
   j = 0 … n − 1, of the way from one end to the other, both ends included. Evenly spaced points are what the
-  lines' Fourier spectra need. An end on a face of the space is exactly that range's end (lo or hi). n ≥ 2.
+  lines' spectra need (Gram polynomials, `diagnostics/coordinate_lines.md`). An end on a face of the space is exactly that range's end (lo or hi). n ≥ 2.
 - **Refining:** since t_j = j/(n − 1), a line of 2n − 1 points contains the line of n points, bit for bit, so
   refining 17 → 33 points reuses all 17 runs.
 - **Rows and runs:** the size counts rows, line by line. Rows at the same point (lines crossing at a shared

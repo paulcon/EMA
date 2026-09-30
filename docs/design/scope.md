@@ -1,6 +1,6 @@
 # Scope of v2.0
 
-**Status:** accepted. **Updated:** 2026-09-30 (0022, 0025). **Depends on:** OD-2 (0006), OD-5 (0012), OD-6 (0014),
+**Status:** accepted. **Updated:** 2026-09-30 (0022, 0025, 0037). **Depends on:** OD-2 (0006), OD-5 (0012), OD-6 (0014),
 OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
 
 > What the first release does, what it explicitly doesn't, and the size budgets that keep it small. When
@@ -59,6 +59,12 @@ OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
 - **An own chat loop:** not planned; the agent is an MCP server (0016).
 - **Agent-written model code:** the agent drafts model specs only (0016).
 - **HTML reports; byte-identical PDFs:** later, if needed (0018).
+- **Two-model-parameter plots** (a failure map of failed and usable runs in each pair of model parameters, and
+  pair plots of the model prediction): later. About one small build step: 60–100 lines of figure code, a cap
+  on the number of pairs (a named constant), and known answers on R5 (the triangle a + b > 1 and the corner
+  a, b < −0.8) and R10 (the a·c interaction). Kept ready now: figures are made from the stored runs and the
+  diagnostic result alone, and every data card holds each point's run id, so a later figure needs no new runs
+  and no change to any design or estimate (0037).
 
 ## Size budgets
 

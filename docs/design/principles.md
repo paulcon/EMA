@@ -1,6 +1,6 @@
 # Principles
 
-**Status:** accepted. **Updated:** 2026-09-30 (P1 clarified by 0019; P7's "Open" settled by 0021; held candidate updated by 0026; P3's hash settings by 0029, and its tracked files by 0031).
+**Status:** accepted. **Updated:** 2026-09-30 (P1 clarified by 0019; P7's "Open" settled by 0021; held candidate updated by 0026; P3's hash settings by 0029, and its tracked files by 0031; P2's list by 0034; P6's constant by 0035, and its check by 0036).
 
 ## Accepted
 
@@ -25,11 +25,11 @@ text, and the report is the reference (0019).
 
 ### P2 Results first; interpretation is separate
 
-A diagnostic result holds only estimates, counts, notes, and figures. Interpretation is any comparison with a
-heuristic threshold, and anything that says what a number means or what to do next. It is never part of a
-diagnostic result or of a report's main body; if EMA produces any, it is labeled experimental and kept in its
-own section (OD-8). Every heuristic threshold used in interpretation is a named constant, documented in the
-spec that uses it.
+A diagnostic result holds only estimates, observations, counts, notes, and figures (0034). Interpretation is
+any comparison with a heuristic threshold, and anything that says what a number means or what to do next. It
+is never part of a diagnostic result or of a report's main body; if EMA produces any, it is labeled
+experimental and kept in its own section (OD-8). Every heuristic threshold used in interpretation is a named
+constant, documented in the spec that uses it.
 
 - **Why:** the user is the domain expert (`purpose.md`): EMA gives evidence, and judging what it means for the
   model is the user's job. Thresholds are heuristics that will be revised, and a diagnostic result must not
@@ -116,10 +116,10 @@ the approvals.
 ### P6 No data, no estimates; no dependence on units
 
 A failed run counts as not usable, and every diagnostic produces a diagnostic result however many runs
-failed. When a diagnostic evaluation has too few usable runs, or a model prediction that is constant to
-rounding, its diagnostic result holds counts and a note, and no estimates. Every tolerance on a model
-prediction, including "constant to rounding", is relative to that model prediction's range, so changing its
-units (y → a·y + b, with a > 0) changes no note.
+failed. When a diagnostic evaluation has too few usable runs, or a model prediction that is constant (the
+same value in every usable run, 0035), its diagnostic result holds counts and a note, and no estimates. Every
+tolerance on a model prediction is relative to that model prediction's range, so changing its units
+(y → a·y + b, with a > 0) changes no note.
 
 - **Why:** an estimate from three runs, or from a flat model prediction (0/0), prints as precisely as any
   other, and its variability interval may not show the problem. v1 argued degenerate cases more than once
@@ -129,13 +129,14 @@ units (y → a·y + b, with a > 0) changes no note.
   in physical units span many orders of magnitude, and with several model predictions in different units
   (OD-9), only relative tolerances treat them alike.
 - **Enforced by:** one precheck in the diagnostic base, run before `compute`, so no diagnostic can skip it.
-  The minimum number of usable runs and the flatness tolerance are named constants, documented in each
-  diagnostic's spec; every such threshold is dimensionless, and its spec says what it is relative to. One
-  function in `ema.numerics` makes every tolerance on a model prediction from its range, and diagnostics use
-  no absolute tolerance on model predictions. `DiagnosticResult` refuses to be built with neither estimates
-  nor a note.
-- **Tested by:** the diagnostic contract, over every diagnostic: too few runs, all runs failed, a constant
-  model prediction, and a constant plus 1e-12 noise each give counts and a note, with no estimates. A constant
+  The minimum number of usable runs is a named constant, documented in each diagnostic's spec (0035); every
+  such threshold is dimensionless, and its spec says what it is relative to. One function in `ema.numerics`
+  makes every tolerance on a model prediction from its range, and diagnostics use no absolute tolerance on
+  model predictions. `DiagnosticResult` refuses to be built with no estimates, no observations, and no note
+  (0036).
+- **Tested by:** the diagnostic contract, over every diagnostic: too few runs, all runs failed, and a
+  constant model prediction each give counts and a note, with no estimates; a constant plus a 10⁻¹² wiggle
+  (R4b) gives estimates (0035). A constant
   model among the reference models, with its expected report. Known-answer tests one run below, and at, the
   minimum number of usable runs. The diagnostic contract: y → a·y + b leaves every note unchanged, and
   transforms each estimate as the diagnostic's spec says.

@@ -53,3 +53,8 @@ Write one when a choice:
 | 0031 | Add "run directory" to the glossary, and say in P3 which files the model version covers | accepted | 2026-09-30 |
 | 0032 | Draw uniform points from numpy's PCG64, behind a sampler interface ready for others | accepted | 2026-09-30 |
 | 0033 | Let a space hold a model parameter at a value, and add design words to the glossary | accepted | 2026-09-30 |
+| 0034 | Report numbers without intervals as observations | accepted | 2026-09-30 |
+| 0035 | Call a model prediction constant only when every usable run gives the same value | accepted | 2026-09-30 |
+| 0036 | Let a diagnostic result hold observations without estimates or a note | accepted | 2026-09-30 |
+| 0037 | Show runs that aren't usable along each model parameter only; two-model-parameter plots later | accepted | 2026-09-30 |
+| 0038 | Report each coordinate line's Gram spectrum, and its decay rate as an observation | accepted | 2026-09-30 |

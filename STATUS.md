@@ -4,7 +4,18 @@
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`): steps 1–5 done; step 6 (diagnostic specs) next.
+- Writing the design documents by hand (`TODO.md`): steps 1–5 done; step 6 (diagnostic specs) in progress.
+  - Done, in draft: the reference model list (`docs/design/reference_models.md`, R1–R11, settled first); the
+    shared parts (`docs/design/diagnostics/shared.md`); the point run (`point_run.md`); scatter
+    (`scatter.md`). Records 0034 (observations) and 0035 (constant means exactly constant) and 0036 (a result
+    with observations only) accepted and applied; 0037 (no failure map of pairs) accepted and applied.
+  - Done, in draft: coordinate lines (`coordinate_lines.md`): each line's Gram spectrum (discrete Legendre
+    coefficients on its n points) and its decay rate in decades per degree, as observations with no interval;
+    n = 17 by default, n ≥ 7. Record 0038 (U2's per-line number, `designs.md`'s "Fourier spectra") accepted
+    and applied.
+  - Next: lines, the linear model, the polynomial model, each interviewed as scatter was (`scatter.md` is the
+    pattern; `shared.md` holds what they share). OD-12 is decided in each spec (the point run: none; scatter:
+    the bootstrap; coordinate lines: none), and recorded at the end of step 6.
 
 ## Done
 
@@ -90,13 +101,13 @@
 | `docs/design/use_cases.md` | accepted |
 | `docs/design/model_interface.md` | accepted |
 | `docs/design/designs.md` | accepted |
-| `docs/design/diagnostics/` | template only |
+| `docs/design/diagnostics/` | `shared.md`, `point_run.md`, `scatter.md`, `coordinate_lines.md` draft; three to write |
 | `docs/design/uncertainty.md` | empty |
 | `docs/design/contracts.md` | empty |
 | `docs/design/data_model.md` | template |
 | `docs/design/architecture.md` | draft |
 | `docs/design/trust.md` | empty |
-| `docs/design/reference_models.md` | empty |
+| `docs/design/reference_models.md` | draft (the list; expected answers at step 11) |
 
 Statuses: empty → draft → accepted. Claude Code builds only from accepted specs.
 

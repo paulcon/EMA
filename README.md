@@ -32,6 +32,8 @@ Everything that code or tests may cite has an id, so a docstring, a test, or a c
 | D | decision record (4 digits, e.g. D0007) | `docs/decisions/` |
 | M | model-interface requirement | `docs/design/model_interface.md` |
 | G | design generator requirement | `docs/design/designs.md` |
+| S | requirement shared by every diagnostic | `docs/design/diagnostics/shared.md` |
+| PT, SC, CL, LN, LM, PM | requirement of one diagnostic: point run, scatter, coordinate lines, lines, linear model, polynomial model | `docs/design/diagnostics/<name>.md` |
 | C | contract promise | `docs/design/contracts.md` |
 | T | trust-boundary rule | `docs/design/trust.md` |
 | Q, W, I | data-model question, write, invariant | `docs/design/data_model.md` |
@@ -53,6 +55,7 @@ docs/design/
   model_interface.md          M1…
   designs.md                  G1…
   diagnostics/_template.md    one spec per diagnostic, in the five-row table format
+  diagnostics/shared.md       what every diagnostic shares: report layout, precheck, figures (S1…)
   uncertainty.md              one interval method per diagnostic
   contracts.md                C1…, and the degenerate cases
   data_model.md               Q/W/I…, from the data model template
@@ -65,5 +68,6 @@ docs/guides/                  get_started.md, add_a_model.md, run_a_diagnostic.m
 docs/notes/
   decision_workflow.md        how open decisions, decision records, and specs fit together
   adding_a_use_case.md        how to add a use case, with a template
+  adding_a_reference_model.md how to add a reference model, what it can be used for, a template
   v1/                         v1's working notes and the lessons learned (not maintained)
 ```

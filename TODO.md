@@ -36,13 +36,12 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 - [ ] **6. Diagnostic specs**, one per v2.0 diagnostic, from `docs/design/diagnostics/_template.md`.
   - You: draw each mock report by hand, and fill in the expected answers.
   - Decide: the per-model-parameter estimate in scatter's report (U1: for example, a rank correlation).
-  - Decide: the per-line estimate in coordinate lines' report (U2: for example, the spectrum's decay rate).
+  - Decided (0038): the per-line number in coordinate lines' report is the decay rate of its Gram spectrum, an
+    observation with no interval.
   - Decide: the point run's measured variation (U7): which numbers, and what its tolerance for "varies" is
     relative to (P6), since one point has no range.
 - [ ] **7. Uncertainty; contracts and degenerate cases.** `docs/design/uncertainty.md`, `contracts.md`.
   - Decide: OD-12 (the interval method per diagnostic).
-  - Decide: whether every diagnostic's report adds U3's failure map (failed and usable runs in each pair of
-    model parameters) when runs fail, or only scatter's.
   - Claude can help: draft the negative control for each promise.
 
 ## How v2 is built

@@ -1,6 +1,6 @@
 # Use cases
 
-**Status:** accepted. **Updated:** 2026-09-30 (U9 added by 0016; U2's model spec follows `model_interface.md`).
+**Status:** accepted. **Updated:** 2026-09-30 (U9 added by 0016; U2's model spec follows `model_interface.md`; U3's failure map dropped by 0037; U2's per-line numbers by 0038).
 
 > Each use case is a short scenario from the analyst's side: who they are, what model they have, what they
 > want to learn, what they type (in Python or the CLI), what EMA asks them, and the report they get. Write
@@ -170,8 +170,8 @@
   - a header: the model version, the model parameter space, the design (coordinate lines, 17 points each,
     through the nominal point), and the runs (97: 56 new, 41 reused, 0 failed);
   - figures: the model prediction along each line, one panel per model parameter; the spectrum of each line;
-  - numbers: one estimate per line with its variability interval (for example, the spectrum's decay rate;
-    which one is for the coordinate lines spec, step 6);
+  - numbers: for each line, its range, the degrees of its Gram spectrum above a floor, and the spectrum's
+    decay rate, as observations, with no variability interval (0038);
   - notes, if any, and the provenance.
 - **What they do next, outside EMA:**
   - choose a method: smooth along every line, a polynomial surrogate or a spectral method (and perhaps U4);
@@ -236,9 +236,8 @@
   - `r5`: 200 new, 0 reused.
 - **What they get:**
   - `r1`: the header counts 200 runs: 34 failed (30 errors, 4 timeouts), 166 usable. Each panel marks the
-    failed runs at their model parameter values (a marker along the bottom axis). A failure map shows failed
-    and usable runs in each pair of model parameters, for a failure region that depends on two at once. A
-    note counts the failed runs by reason. Estimates come from the usable runs only.
+    failed runs at their model parameter values (a marker in a strip below the axes). A note counts the
+    failed runs by reason. Estimates come from the usable runs only.
   - `r2`: counts and a note ("68 usable runs; a degree-3 polynomial model in 6 model parameters needs at
     least 84"), and no estimates (P6).
   - `r3`: as `r1`, with a note that 34 of the reused runs had failed before, and that `retry_failed` runs
@@ -470,7 +469,7 @@ written.
   Coordinate lines through the nominal point include it, and share it (U2). U4's design sizes are
   illustrative.
 - **Diagnostic specs (step 6):** the "Decide:" lines on step 6 in `../../TODO.md` (U1, U2, U7).
-- **Contracts (step 7):** U3's failure map ("Decide:" line on step 7); failed runs reused unless retried
+- **Contracts (step 7):** failed runs reused unless retried
   (record 0010); the point run's repeats of a deterministic model (record 0011).
 - **Data model (step 8):** a retried run stored beside the failed run it replaces (0010); a model version
   recorded as measured noisy, with the point run that measured it (U7).
