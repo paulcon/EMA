@@ -25,8 +25,9 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 
 ## What v2 does
 
-- [ ] **4. Model interface.** `docs/design/model_interface.md`.
-  - Decide: OD-9 (multiple outputs), OD-10 (fixed parameters), OD-11 (isolation), OD-20 (parsers).
+- [x] **4. Model interface.** `docs/design/model_interface.md`.
+  - Decided: OD-9 (0022), OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0024, 0025, and 0028–0031
+    accepted.
   - Also: a run's three phases, and the open platform question (0015); run directories and the keep setting
     (0020); scalar output parsers, and `noisy: true` refused (0021).
 - [ ] **5. Designs.** `docs/design/designs.md`.

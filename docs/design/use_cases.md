@@ -1,6 +1,6 @@
 # Use cases
 
-**Status:** accepted. **Updated:** 2026-09-29 (U9 added by 0016).
+**Status:** accepted. **Updated:** 2026-09-30 (U9 added by 0016; U2's model spec follows `model_interface.md`).
 
 > Each use case is a short scenario from the analyst's side: who they are, what model they have, what they
 > want to learn, what they type (in Python or the CLI), what EMA asks them, and the report they get. Write
@@ -94,13 +94,14 @@
 - **Question:** along each model parameter, through the nominal point, is the model prediction smooth, or are
   there kinks, jumps, oscillations, or solver noise?
 - **Steps, as typed:** this use case is also shown in the CLI.
-  1. Write the input deck template and the model spec by hand, from the documented example. The fields are
-     provisional until `model_interface.md` (step 4) is accepted.
+  1. Write the input deck template and the model spec by hand, from the documented example. The fields follow
+     `model_interface.md` (step 4): a large mesh is marked `shared`, so it is stored once and linked into
+     each run directory (0030).
 
      ```text
      heat/plate.in.template
-       conductivity = {k}
-       heat_flux    = {q}
+       conductivity = $k
+       heat_flux    = $q
        ...
      ```
 
@@ -110,10 +111,11 @@
        "description": "2-D steady heat conduction in a plate",
        "interface": "command_line",
        "command": ["./heat_solver", "plate.in"],
-       "input_deck": {"template": "plate.in.template", "writes": "plate.in"},
-       "files": ["heat_solver", "mesh.dat"],
+       "input_decks": [{"template": "plate.in.template", "writes": "plate.in"}],
+       "files": ["heat_solver", "solver.cfg", {"path": "mesh.dat", "shared": true}],
        "parameters": [
-         {"name": "k", "units": "W/(m K)", "nominal": 45.0, "description": "thermal conductivity"},
+         {"name": "k", "units": "W/(m K)", "nominal": 45.0, "description": "thermal conductivity",
+          "limits": {"gt": 0}},
          ...
        ],
        "predictions": [
@@ -458,9 +460,10 @@ written.
   lines (random or given; U2's single line). The polynomial model's report adds the decay of the coefficients
   to U4's lean set; the active subspace and a 2-D shadow are not in v2.0. Models declared noisy are not in
   v2.0, and U7 works as written.
-- **Model interface (step 4):** U2's model spec fields (`command`, `input_deck`, `files`, `parameters`,
-  `predictions` with a regex parser, OD-20) are provisional. U6 needs the files a model copies into its run
-  directory (such as `solver.cfg`) to be part of its model version.
+- **Model interface (step 4), settled by `model_interface.md` and records 0022–0030:** U2's model spec
+  fields (`command`, `input_decks`, `files`, `parameters`, `predictions` with a regex parser, 0027) follow
+  that spec. U6's `solver.cfg` is a listed file, copied into each run directory and part of the model version
+  (0029).
 - **Designs (step 5):** uniform designs with the same seed and model parameter space are nested: the first n
   points of a larger design are the smaller design (U3, U4). A convergent design starts from the same seeded
   stream as a uniform design with the same seed, so a polynomial model reuses a scatter's runs (U5).

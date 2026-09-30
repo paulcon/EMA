@@ -1,6 +1,6 @@
 # Principles
 
-**Status:** accepted. **Updated:** 2026-09-29 (P1 clarified by 0019; P7's "Open" settled by 0021).
+**Status:** accepted. **Updated:** 2026-09-30 (P1 clarified by 0019; P7's "Open" settled by 0021; held candidate updated by 0026; P3's hash settings by 0029, and its tracked files by 0031).
 
 ## Accepted
 
@@ -60,7 +60,10 @@ The approval shows the price (how many runs are new, how many are reused, and th
   estimate before running; an approval is informed only if it shows how many runs and how long; and making
   more runs than approved spends the user's time without their yes.
 - **Enforced by:** the store keys runs by model version hash and point hash, and has no other lookup. The model
-  version hash covers the spec and the contents of every file the model reads (`model_interface.md`). The
+  version hash covers the spec, except the settings `keep`, `batch_size`, and `timeout_s` (0020, 0025,
+  0029), and the contents of every file the model spec names: the Python function's file, the input deck
+  templates, and the listed files; modules found elsewhere, installed packages, and programs outside the
+  model's files are not covered, and each run records its program's path (`model_interface.md`, 0029). The
   scheduler is the only code that runs a model: it checks the store first, and refuses a new run unless an
   approval matches its model version hash and point. One approval module, from day 1 (`trust.md`); an
   approval records the model version hash and the new points it covers. Model files are compared as files
@@ -164,7 +167,7 @@ as replicates, and the diagnostic result reports the measured variation.
 > record 0007 (`../decisions/0007-choose-the-principles.md`).
 
 - **User code runs isolated, without EMA's secrets.** Split from "Nothing runs without approval" (now P3).
-  Waits on OD-11 and `trust.md`.
+  OD-11 is decided: every Python model runs in an isolated child process (0026). Waits on `trust.md`.
 - **One-way layers.** Each layer imports only from the layers below it. The interfaces (`ema.cli`, and later
   `ema.mcp`) hold no logic, and `ema.workspace` is the one place that orchestrates. Layers 0–1 (types,
   numerics, designs) do no I/O. Held until `architecture.md` is accepted (step 9). Answers so far:

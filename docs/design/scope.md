@@ -1,6 +1,6 @@
 # Scope of v2.0
 
-**Status:** accepted. **Updated:** 2026-09-29. **Depends on:** OD-2 (0006), OD-5 (0012), OD-6 (0014),
+**Status:** accepted. **Updated:** 2026-09-30 (0022, 0025). **Depends on:** OD-2 (0006), OD-5 (0012), OD-6 (0014),
 OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
 
 > What the first release does, what it explicitly doesn't, and the size budgets that keep it small. When
@@ -12,10 +12,10 @@ OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
 |---|---|
 | Unit of work | one diagnostic evaluation, with its report (0006) |
 | Model interfaces | a Python function; a command-line simulation code with an input deck and an output parser (0014) |
-| Running | one model run at a time, on the user's computer; ready for parallel and remote runs later (0015) |
+| Running | one model call at a time (a run, or a batch of a Python function model, 0025), on the user's computer; ready for parallel and remote runs later (0015) |
 | Designs | point, uniform, convergent (nested uniform), and lines: coordinate, random, or given (0012, 0013) |
 | Diagnostics | point run, scatter, coordinate lines, lines, linear model, polynomial model (0012) |
-| Model predictions | scalars only, of models not declared noisy; how many per model is OD-9 (step 4) (0021) |
+| Model predictions | scalars only, of models not declared noisy (0021); several per model, one analyzed per diagnostic evaluation (0022) |
 | Interfaces | Python (`ema.workspace`) and a CLI that calls it |
 | Agent | an MCP server: run and read, and set up models from specs; at most 10 tools (0016) |
 | Interpretation | none (0017) |

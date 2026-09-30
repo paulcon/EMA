@@ -1,10 +1,10 @@
 # EMA v2 status
 
-**Updated:** 2026-09-29. Update this file at the end of every step, in the same commit as the work.
+**Updated:** 2026-09-30. Update this file at the end of every step, in the same commit as the work.
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`): steps 1–3 done; step 4 (model interface) next.
+- Writing the design documents by hand (`TODO.md`): steps 1–4 done; step 5 (designs) next.
 
 ## Done
 
@@ -48,9 +48,25 @@
   Size budgets set: 8,000 source lines, 20 workspace names, 15 CLI commands, 10 MCP tools. U7 and the
   use cases' asks of scope updated to match. TODO step 3 done.
 
+- 2026-09-30: model interface accepted (`docs/design/model_interface.md`), from an interview. Records
+  0022–0031 accepted: several scalar model predictions per model, each read or missing with its own reason,
+  one analyzed per diagnostic evaluation (0022, OD-9); no fixed values or constants: a model parameter a
+  space leaves out is held at its nominal value (0023, OD-10); scales in the model parameter space, limits
+  (`gt`, `ge`, `lt`, `le`) on the model parameter, checked when a design is built, continuous only (0024);
+  a batch Python function (0025); every Python model in an isolated long-lived child (0026, OD-11); regex,
+  json, and csv output parsers (0027, OD-20); runs collected from files, `keep` as all, incomplete, or none,
+  a stopped run's directory deleted (0028); the model version covers the spec but `keep`, `batch_size`, and
+  `timeout_s`, and the files the spec names, hashed before each call; 0015's platform question settled for
+  v2.0 (0029); large files stored once, read-only, and linked (0030); a glossary row for "run directory",
+  and P3's wording on tracked files (0031). Glossary rows added for limits, scale, and run directory; scope's
+  "Running" row allows a batch call; U2's model spec follows the new spec. Requirements M1–M20. TODO step 4
+  done.
+
 ## Next
 
-- Step 4: the model interface (OD-9, OD-10, OD-11, OD-20), with what records 0015, 0020, and 0021 ask of it.
+- Step 5: designs (OD-13, and a glossary row for "design generator"), with what `model_interface.md` asks of
+  them: spaces that name a subset of the model parameters, scales in the space, limits refused, and
+  zero-width ranges (0023, 0024).
 
 ## Specs
 
@@ -61,7 +77,7 @@
 | `docs/design/glossary.md` | accepted |
 | `docs/design/scope.md` | accepted |
 | `docs/design/use_cases.md` | accepted |
-| `docs/design/model_interface.md` | empty |
+| `docs/design/model_interface.md` | accepted |
 | `docs/design/designs.md` | empty |
 | `docs/design/diagnostics/` | template only |
 | `docs/design/uncertainty.md` | empty |
@@ -84,9 +100,6 @@ Statuses: empty → draft → accepted. Claude Code builds only from accepted sp
 
 | Id | Question | Options | Suggested | Blocks |
 |---|---|---|---|---|
-| OD-9 | Multiple outputs | in the schema and code from day 1; in the schema only; later | in the schema from day 1 | model interface, data model |
-| OD-10 | Fixed parameters (not design variables) | a parameter with no range; a separate mapping on the spec | <…> | model interface |
-| OD-11 | Python models isolated by default | yes; no; only models the agent writes | <…> | model interface, trust, principles (held candidate) |
 | OD-12 | The interval method for each v2.0 diagnostic | bootstrap; convergence; cross-validation; held-out error | <per diagnostic> | uncertainty, diagnostic specs |
 | OD-13 | Uniform sampling | own seeded stream; `scipy.stats.qmc`; both | <…> | designs |
 | OD-15 | Budgets | per call; per workspace; none in v2.0 | per call | workspace, data model |
@@ -94,7 +107,6 @@ Statuses: empty → draft → accepted. Claude Code builds only from accepted sp
 | OD-17 | Python version (the package stays `ema`) | 3.12, 3.13, 3.14 | <…> | setup |
 | OD-18 | Tooling | uv and a lockfile; docs in Sphinx or MkDocs; CI | uv; <…> | setup |
 | OD-19 | Monthly budget for live evals, once an agent exists | <$ …> | <…> | agent |
-| OD-20 | Output parsers for command-line models in v2.0 | from v1's five kinds | <…> | model interface |
 
 The open items in `docs/design/architecture.md` §12 and the `<…>` in `docs/design/data_model.md` join this table when
 you reach those steps.
@@ -111,4 +123,8 @@ you reach those steps.
 | OD-6 | A Python function and a command-line simulation code; no formula models | 0014 | 2026-09-29 |
 | OD-7 | An MCP server in v2.0: run and read, and set up models from specs; P1 clarified for MCP clients; use case U9 | 0016, 0019 | 2026-09-29 |
 | OD-8 | No experimental interpretation in v2.0 | 0017 | 2026-09-29 |
+| OD-9 | Several scalar model predictions per model, in the spec and code from v2.0; a missing one is NaN with its reason; a diagnostic evaluation analyzes one | 0022 | 2026-09-30 |
+| OD-10 | No fixed values or constants: a model parameter that a design's space leaves out is held at its nominal value; every point is complete | 0023 | 2026-09-30 |
+| OD-11 | Every Python model runs in an isolated child process, one long-lived child per model version, with a timeout; no in-process option; no memory or CPU limits in v2.0 | 0026 | 2026-09-30 |
 | OD-14 | Quadrature and sparse grids in a later version | 0013 | 2026-09-29 |
+| OD-20 | Three output parser kinds, each returning one scalar: regex, json, and csv; no python parser (a wrapper script writing JSON instead) | 0027 | 2026-09-30 |

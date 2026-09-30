@@ -39,5 +39,15 @@ Write one when a choice:
 | 0017 | Leave experimental interpretation out of v2.0 | accepted | 2026-09-29 |
 | 0018 | Write reports in Markdown with TeX math, and make PDFs with pandoc when it is installed | accepted | 2026-09-29 |
 | 0019 | Clarify that P1 covers what EMA produces, including its tool results | accepted | 2026-09-29 |
-| 0020 | Keep each run's model output in its run directory, for inspection outside EMA | proposed | 2026-09-29 |
+| 0020 | Keep each run's model output in its run directory, for inspection outside EMA | accepted | 2026-09-29 |
 | 0021 | Analyze scalar model predictions of models not declared noisy in v2.0 | accepted | 2026-09-29 |
+| 0022 | Let a model have several scalar model predictions, and analyze one per diagnostic evaluation | accepted | 2026-09-30 |
+| 0023 | Hold a model parameter at its nominal value when a design's space leaves it out | accepted | 2026-09-30 |
+| 0024 | Put scales in the model parameter space, and a model parameter's limits in the model spec | accepted | 2026-09-30 |
+| 0025 | Let a Python function take a batch of points in one call | accepted | 2026-09-30 |
+| 0026 | Run every Python model in an isolated child process | accepted | 2026-09-30 |
+| 0027 | Read model predictions with regex, JSON, and CSV output parsers | accepted | 2026-09-30 |
+| 0028 | Collect every run from files, and keep the run directories of incomplete runs | accepted | 2026-09-30 |
+| 0029 | Say what the model version covers, and check it before every call | accepted | 2026-09-30 |
+| 0030 | Store large model files once, read-only, and link them into run directories | accepted | 2026-09-30 |
+| 0031 | Add "run directory" to the glossary, and say in P3 which files the model version covers | accepted | 2026-09-30 |
