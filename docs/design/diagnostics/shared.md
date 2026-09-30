@@ -125,6 +125,7 @@ One precheck, in the diagnostic base, before `compute` (P6):
 | scatter | 2³² + 1 | the bootstrap's resamples (`scatter.md`) |
 | coordinate lines | none | no random draws (`coordinate_lines.md`) |
 | lines | none | no draws of its own; random lines' anchors and directions are the design's streams (`lines.md`) |
+| linear model | 2³² + 2 | the bootstrap's resamples (`linear_model.md`) |
 
 ## Bootstrap
 

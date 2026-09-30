@@ -16,9 +16,12 @@
   - Accepted: lines (`lines.md`): m random lines (5) or given lines, n = 17; each line analyzed as a
     coordinate line, plus its length; a table of each line's ends; no summary across lines. It relies on
     `coordinate_lines.md` and `shared.md`, still drafts.
-  - Next: the linear model and the polynomial model, each interviewed as scatter was (`scatter.md` is the
-    pattern; `shared.md` holds what they share). OD-12 is decided in each spec (the point run: none; scatter:
-    the bootstrap; coordinate lines and lines: none), and recorded at the end of step 6.
+  - Accepted: the linear model (`linear_model.md`): least squares in unit coordinates over a convergent
+    design (n_min 2(d + 1), alpha 0.7072, level 2); relative residual, R², leave-one-out error; bootstrap
+    intervals; the fit at each level as observations; subsampling intervals planned as a later method.
+  - Next: the polynomial model, interviewed as scatter was (`scatter.md` is the pattern; `shared.md` holds
+    what they share). OD-12 is decided in each spec (the point run: none; scatter and the linear model: the
+    bootstrap; coordinate lines and lines: none), and recorded at the end of step 6.
 
 ## Done
 
@@ -104,7 +107,7 @@
 | `docs/design/use_cases.md` | accepted |
 | `docs/design/model_interface.md` | accepted |
 | `docs/design/designs.md` | accepted |
-| `docs/design/diagnostics/` | `lines.md` accepted; `shared.md`, `point_run.md`, `scatter.md`, `coordinate_lines.md` draft; two to write |
+| `docs/design/diagnostics/` | `lines.md`, `linear_model.md` accepted; `shared.md`, `point_run.md`, `scatter.md`, `coordinate_lines.md` draft; one to write |
 | `docs/design/uncertainty.md` | empty |
 | `docs/design/contracts.md` | empty |
 | `docs/design/data_model.md` | template |
