@@ -1,8 +1,8 @@
 # Polynomial model
 
-**Status:** accepted. **Updated:** 2026-10-01. **Module:** `ema/diagnostics/polynomial_model.py`. **Depends on:**
+**Status:** accepted. **Updated:** 2026-10-01 (step 11, 0058). **Module:** `ema/diagnostics/polynomial_model.py`. **Depends on:**
 `shared.md`; `linear_model.md`; `../designs.md`; `../uncertainty.md`; records 0012, 0032, 0033, 0034, 0035,
-0039, 0041, 0042, 0044, 0048, 0049, 0051, 0052.
+0039, 0041, 0042, 0044, 0048, 0049, 0051, 0052, 0058.
 
 > A least-squares polynomial fit of the model prediction in unit coordinates, over a convergent design: how well
 > it fits, how its variance splits among the model parameters (Sobol indices), and how fast its coefficients
@@ -173,7 +173,7 @@ OD-12, for the polynomial model: **the bootstrap over the usable runs of level L
   that again, so the interval of a model parameter with no effect sits just above 0 (R3's r, total: 4.3·10⁻⁵
   [1.7·10⁻⁵, 2.2·10⁻⁴], as in the mock report below). The indices are reported as computed, the indices of the
   fitted polynomial, always in [0, 1]. Not chosen: subtracting s²·[(AᵀA)⁻¹]_αα from each c_α² (closer to the
-  limit on average, R2's x3 first-order at p = 4: 0.0042 against 0.0091, limit 0.0029; but no longer the
+  limit on average, R2's x3 first-order at p = 4: 0.0042 against 0.0091, limit 0; but no longer the
   polynomial's own index, and s² treats a deterministic model's misfit as noise).
 - **Why not the levels:** as the linear model's; the levels are observations (below).
 
@@ -265,8 +265,8 @@ edges and counts.
 U4's r2 on R3 (the borehole, 8 model parameters, as U4's lens model): p = 2 and the defaults, seed 3, after the
 linear model's mock report (`linear_model.md`), so its 72 runs are reused: n_min = 90, alpha = 0.7072, level 2,
 360 runs. The numbers are computed: the design from `default_rng(3).random((360, 8))` (the `random` sampler's
-rows, 0032), the bootstrap from the polynomial model's stream (a scratch script, 2026-09-30; step 11 checks
-them).
+rows, 0032), the bootstrap from the polynomial model's stream; checked at step 11 by
+`../../checks/polynomial_model.py`.
 
 ```markdown
 # Polynomial model: R3, y
@@ -375,9 +375,9 @@ space as above, degree 2, basis total_degree, n_min = 90, alpha = 0.7072, level 
 prediction y; runs: 360 (72 reused from the linear model's evaluation); approvals: 4b1d (288 new runs).
 ```
 
-(For comparison: the degree-2 polynomial over the space has relative residual 0.0333 and total indices 0.8672,
-0, 0, 0.0538, 0, 0.0532, 0.0518, 0.0125; the model's own, by brute force, are 0.8669, 0, 0, 0.0542, 0, 0.0542,
-0.0525, 0.0128. The tiny indices of r, Tu, and Tl sit above 0 by the bias of squared coefficients (Uncertainty).)
+(For comparison, by quadrature: the degree-2 polynomial over the space has relative residual 0.0341 and total
+indices 0.8668, 0, 0, 0.0537, 0, 0.0537, 0.0516, 0.0126; the model's own are 0.8669, 0, 0, 0.0540, 0, 0.0540,
+0.0522, 0.0128. The tiny indices of r, Tu, and Tl sit above 0 by the bias of squared coefficients (Uncertainty).)
 
 ## Expected answers
 
@@ -387,8 +387,9 @@ degree-p projection of the model, by tensor Gauss–Legendre quadrature of each 
 parameter), or analytic. The tolerance is |mean over 100 designs (seeds 1–100) − expected| + 5
 (`KNOWN_ANSWER_SDS`, `shared.md`) × the standard deviation over them, rounded up to 2 digits: the mean of a
 squared quantity sits above a zero by its bias (R11's odd degrees: 3·10⁻⁵ to 1.3·10⁻⁴), so 5 standard deviations
-alone would not cover it. Computed by a scratch script on 2026-09-30; step 11 recomputes both parts with a
-separate script.
+alone would not cover it. Recomputed, both parts, at step 11 by `../../checks/polynomial_model.py` (60 points per model
+parameter; its output: `polynomial_model.out`). R2's and R11's expected values are given to 6 digits, since 4
+would put some of them off by more than their tolerance.
 
 | Reference model | Quantity | Expected | Tolerance | Source |
 |---|---|---|---|---|
@@ -398,15 +399,15 @@ separate script.
 | R1, p = 2 | √E_1; √E_2 | √(14/3) = 2.160; 0 | 10⁻¹² | analytic |
 | R10, p = 2 | coefficients | ψ₁(a): 2; ψ₂(b): 0.5; ψ₁(a)ψ₁(c): 1.5; the rest 0 | 10⁻¹² | analytic: exact recovery (U4) |
 | R10, p = 2 | relative residual; R²; LOO | 0; 1; 0 | 10⁻¹² | analytic |
-| R10, p = 2 | first-order; total | 0.6154, 0.03846, 0, 0; 0.9615, 0.03846, 0.3462, 0 | 10⁻¹² | analytic (`../reference_models.md`) |
+| R10, p = 2 | first-order; total | 4/6.5, 0.25/6.5, 0, 0; 6.25/6.5, 0.25/6.5, 2.25/6.5, 0 (0.6154, 0.03846, 0, 0; 0.9615, 0.03846, 0.3462, 0) | 10⁻¹² | analytic (`../reference_models.md`) |
 | R10, p = 2 | √E_1; √E_2 | 2; √2.5 = 1.581 | 10⁻¹² | analytic |
-| R2, p = 10 | first-order (x1, x2, x3) | 0.3139, 0.4424, 0 | 4.1·10⁻⁵, 5.1·10⁻⁵, 10⁻⁵ | analytic (Ishigami); the degree-10 projection's agree to 10⁻⁵ |
-| R2, p = 10 | total | 0.5576, 0.4424, 0.2437 | 5.1·10⁻⁵, 5.1·10⁻⁵, 4.1·10⁻⁵ | analytic |
-| R2, p = 10 | √E_1 … √E_10 | 1.625, 0.5947, 1.884, 1.952, 1.180, 1.357, 0.3644, 0.3394, 0.05023, 0.04591 | 1.9, 2.4, 2.2, 2.4, 2.2, 2.6, 3.2, 2.7, 3.2, 3.2 (·10⁻⁴) | quadrature |
-| R11, p = 10 | first-order; total (a, b) | 0.4486, 0.4486; 0.5514, 0.5514 | 2.9·10⁻⁴, 3.3·10⁻⁴; 3.3·10⁻⁴, 2.9·10⁻⁴ | quadrature: the degree-10 projection's |
-| R11, p = 10 | √E_1 … √E_10 | 0, 0.1915, 0, 0.09529, 0, 0.04341, 0, 0.01891, 0, 0.008020 | 1.1, 2.1, 1.7, 3.2, 2.7, 4.1, 3.2, 4.6, 3.9, 5.3 (·10⁻⁴) | quadrature (`../reference_models.md`: c_j·c_k) |
-| R2, p = 10 | relative residual; LOO | 0.001371; the same | 7.5·10⁻⁵ (both) | quadrature: √(1 − V/Var y), the degree-10 truncation's error |
-| R11, p = 10 | relative residual; LOO | 0.01672; the same | 8.2·10⁻⁴ (both) | quadrature, as R2's |
+| R2, p = 10 | first-order (x1, x2, x3) | 0.313905, 0.442411, 0 | 4.1·10⁻⁵, 5.1·10⁻⁵, 10⁻⁵ | analytic (Ishigami); the degree-10 projection's agree to 10⁻⁵ |
+| R2, p = 10 | total | 0.557589, 0.442411, 0.243684 | 5.1·10⁻⁵, 5.1·10⁻⁵, 4.1·10⁻⁵ | analytic |
+| R2, p = 10 | √E_1 … √E_10 | 1.62542, 0.594723, 1.88396, 1.95229, 1.18024, 1.35741, 0.364431, 0.339391, 0.0502251, 0.0459147 | 1.9, 2.4, 2.2, 2.4, 2.2, 2.6, 3.2, 2.7, 3.2, 3.2 (·10⁻⁴) | quadrature |
+| R11, p = 10 | first-order; total (a, b) | 0.448617, 0.448617; 0.551383, 0.551383 | 2.9·10⁻⁴, 3.3·10⁻⁴; 3.3·10⁻⁴, 2.9·10⁻⁴ | quadrature: the degree-10 projection's |
+| R11, p = 10 | √E_1 … √E_10 | 0, 0.191472, 0, 0.0952851, 0, 0.0434089, 0, 0.0189107, 0, 0.00802035 | 1.1, 2.1, 1.7, 3.2, 2.7, 4.1, 3.2, 4.6, 3.9, 5.3 (·10⁻⁴) | quadrature (`../reference_models.md`: c_j·c_k) |
+| R2, p = 10 | relative residual; LOO | 0.00137138; the same | 7.5·10⁻⁵ (both) | quadrature: √(1 − V/Var y), the degree-10 truncation's error |
+| R11, p = 10 | relative residual; LOO | 0.0167170; the same | 9.6·10⁻⁴ (both; 0058) | quadrature, as R2's |
 | R4a | notes; estimates | the "constant" note; none | exact | trivial |
 | R4b | estimates | present | exact | 0035 |
 | R5, y and z | every estimate | equal to the polynomial model computed on the usable runs alone | exact | by construction (U3) |
@@ -448,8 +449,8 @@ separate script.
 
 ## What this spec asks of other documents
 
-- **Reference models (step 11):** the expected answers above, recomputed by a separate script; R11's and R2's
-  degree-10 projections by quadrature.
+- **Reference models (step 11):** the expected answers above, recomputed by `../../checks/polynomial_model.py`; R11's
+  and R2's degree-10 projections by quadrature.
 - **Architecture (step 9):** the polynomial model's row (no active subspace or shadows, 0039); the basis
   interface beside the sampler's; `on_progress` for the analysis phase, with A's size; the CLI's progress line
   and the MCP server's progress notifications.

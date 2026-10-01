@@ -1,0 +1,127 @@
+# Linear model: step 11 recomputation
+numpy 2.5.3, Python 3.14.0; N = 20000, tolerance designs: seeds 1-100
+
+## R3 by tensor Gauss-Legendre quadrature (points per model parameter: 6, 8, 10)
+
+m =  6: intercept 77.757188; slopes 71.49365, -0.15532, 0.00015, 16.08769, 0.14809, -16.08769, -15.62236, 7.72705; relative residual 0.230395; R2 0.946918 (1 s)
+m =  8: intercept 77.757188; slopes 71.49365, -0.15532, 0.00015, 16.08769, 0.14809, -16.08769, -15.62236, 7.72705; relative residual 0.230395; R2 0.946918 (6 s)
+m = 10: intercept 77.757188; slopes 71.49365, -0.15532, 0.00015, 16.08769, 0.14809, -16.08769, -15.62236, 7.72705; relative residual 0.230395; R2 0.946918 (45 s)
+brute force, 2000000 points, seed 20261001: intercept 77.7383; slopes 71.4994, -0.1525, 0.0255, 16.0976, 0.1667, -16.1013, -15.6322, 7.7405; relative residual 0.23016
+  (brute force's own standard error on a slope ~ sqrt(3) x sd(residual)/sqrt(N) = 0.013)
+Hu and Hl slopes, quadrature: 16.087694, -16.087694 (sum 3.55e-15)
+slopes in model parameter units (mock's prose): rw 1429.9 m3/yr per m; Tu 5.63e-09 per m2/yr
+
+## Expected values (limits) against the spec
+
+row        | quantity                     |        spec |    recomputed | agrees | note
+R1         | intercept                    |          10 |            10 | yes    | 
+R1         | a                            |           3 |             3 | yes    | 
+R1         | b                            |          -1 |            -1 | yes    | 
+R1         | c                            |           0 |  1.282971e-17 | yes    | 
+R1         | k                            |           2 |             2 | yes    | 
+R1         | relative residual            |           0 |  8.755195e-15 | yes    | 
+R1         | R2                           |           1 |             1 | yes    | 
+R1         | LOO                          |           0 |   8.75743e-15 | yes    | 
+R2         | expected intercept           |         3.5 |           3.5 | yes    | 
+R2         | expected x1                  |       2.815 |      2.815306 | yes    | 
+R2         | expected x2                  |           0 |             0 | yes    | 
+R2         | expected x3                  |           0 |             0 | yes    | 
+R2         | expected relative residual   |      0.8995 |      0.899538 | yes    | 
+R2         | expected R2                  |      0.1908 |     0.1908315 | yes    | 
+R2         | Var y (13.84)                |       13.84 |      13.84459 | yes    | 
+R7         | expected intercept           |       1.068 |      1.067908 | yes    | 
+R7         | expected a                   |       0.223 |       0.22295 | yes    | 
+R7         | expected b                   |        0.72 |          0.72 | yes    | 
+R7         | expected c                   |           0 |             0 | yes    | 
+R7         | expected e                   |       0.223 |       0.22295 | yes    | 
+R7         | expected relative residual   |      0.6739 |     0.6739331 | yes    | 
+R7         | expected R2                  |      0.5458 |     0.5458142 | yes    | 
+R10        | expected intercept           |           0 |             0 | yes    | 
+R10        | expected a                   |       3.464 |      3.464102 | yes    | 
+R10        | expected b                   |           0 |             0 | yes    | 
+R10        | expected c                   |           0 |             0 | yes    | 
+R10        | expected e                   |           0 |             0 | yes    | 
+R10        | expected relative residual   |      0.6202 |     0.6201737 | yes    | 
+R10        | expected R2                  |      0.6154 |     0.6153846 | yes    | 
+R3         | expected intercept           |       77.76 |      77.75719 | yes    | 
+R3         | expected rw                  |       71.49 |      71.49365 | yes    | 
+R3         | expected r                   |       -0.16 |    -0.1553198 | yes    | 
+R3         | expected Tu                  |           0 |  0.0001477465 | yes    | 
+R3         | expected Hu                  |       16.09 |      16.08769 | yes    | 
+R3         | expected Tl                  |        0.15 |     0.1480942 | yes    | 
+R3         | expected Hl                  |      -16.09 |     -16.08769 | yes    | 
+R3         | expected L                   |      -15.62 |     -15.62236 | yes    | 
+R3         | expected Kw                  |        7.73 |       7.72705 | yes    | 
+R3         | expected relative residual   |      0.2304 |     0.2303948 | yes    | 
+
+## Tolerances: 5 x standard deviation over 100 designs of 20,000 runs (spec | recomputed | ratio)
+
+R2:
+  quantity           | spec tol |     5 sd | ratio |   expected |  mean-exp |     seed 0 | seed 0 within spec tol?
+  intercept          |     0.11 |    0.107 |  0.97 |        3.5 |   -0.0011 |     3.4659 | True
+  x1                 |     0.18 |    0.177 |  0.98 |     2.8153 |   -0.0044 |     2.8179 | True
+  x2                 |     0.22 |    0.218 |  0.99 |          0 |   -0.0083 |   0.025775 | True
+  x3                 |     0.24 |    0.241 |  1.01 |          0 |   -0.0018 |  -0.087343 | True
+  relative residual  |     0.01 |   0.0101 |  1.01 |    0.89954 |   0.00025 |    0.89821 | True
+  R2                 |    0.018 |   0.0183 |  1.01 |    0.19083 |  -0.00046 |    0.19322 | True
+  LOO                |     0.01 |   0.0102 |  1.02 |    0.89954 |   0.00046 |    0.89842 | True
+R7:
+  quantity           | spec tol |     5 sd | ratio |   expected |  mean-exp |     seed 0 | seed 0 within spec tol?
+  intercept          |    0.016 |   0.0156 |  0.98 |     1.0679 |   0.00029 |     1.0712 | True
+  a                  |    0.024 |   0.0245 |  1.02 |    0.22295 |   0.00013 |    0.23241 | True
+  b                  |    0.025 |   0.0255 |  1.02 |       0.72 |  -0.00055 |    0.72338 | True
+  c                  |    0.024 |   0.0239 |  0.99 |          0 |  -0.00035 |  0.0022432 | True
+  e                  |    0.029 |   0.0292 |  1.01 |    0.22295 |  -0.00077 |    0.22256 | True
+  relative residual  |    0.014 |   0.0142 |  1.02 |    0.67393 |   4.2e-05 |    0.67247 | True
+  R2                 |    0.019 |   0.0192 |  1.01 |    0.54581 |  -6.5e-05 |    0.54778 | True
+  LOO                |    0.014 |   0.0142 |  1.02 |    0.67393 |   0.00021 |    0.67264 | True
+R10:
+  quantity           | spec tol |     5 sd | ratio |   expected |  mean-exp |     seed 0 | seed 0 within spec tol?
+  intercept          |     0.06 |   0.0602 |  1.00 |          0 |    0.0018 |  -0.026328 | True
+  a                  |     0.12 |    0.121 |  1.01 |     3.4641 |   0.00069 |      3.422 | True
+  b                  |    0.098 |   0.0988 |  1.01 |          0 |    0.0029 |   0.010505 | True
+  c                  |     0.13 |    0.128 |  0.99 |          0 |    0.0015 |  0.0048637 | True
+  e                  |      0.1 |    0.101 |  1.01 |          0 |   0.00072 | -0.0046651 | True
+  relative residual  |    0.016 |   0.0165 |  1.03 |    0.62017 |  -0.00036 |    0.62332 | True
+  R2                 |     0.02 |   0.0204 |  1.02 |    0.61538 |   0.00043 |    0.61147 | True
+  LOO                |    0.016 |   0.0165 |  1.03 |    0.62017 |  -0.00015 |    0.62352 | True
+R3:
+  quantity           | spec tol |     5 sd | ratio |   expected |  mean-exp |     seed 0 | seed 0 within spec tol?
+  intercept          |     0.32 |    0.324 |  1.01 |     77.757 |   -0.0064 |     77.835 | True
+  rw                 |     0.91 |    0.917 |  1.01 |     71.494 |    0.0025 |     71.589 | True
+  r                  |     0.68 |    0.687 |  1.01 |   -0.15532 |     0.007 |   -0.20887 | True
+  Tu                 |     0.64 |    0.643 |  1.00 | 0.00014775 |     0.014 |    0.08688 | True
+  Hu                 |     0.73 |    0.735 |  1.01 |     16.088 |   -0.0099 |      16.11 | True
+  Tl                 |     0.69 |    0.694 |  1.01 |    0.14809 |     0.012 | -0.0031829 | True
+  Hl                 |     0.87 |     0.87 |  1.00 |    -16.088 |   -0.0083 |    -16.291 | True
+  L                  |      0.7 |      0.7 |  1.00 |    -15.622 |   -0.0078 |    -15.718 | True
+  Kw                 |     0.64 |    0.647 |  1.01 |     7.7271 |     0.013 |     7.9379 | True
+  relative residual  |   0.0064 |  0.00642 |  1.00 |    0.23039 |  -8.8e-05 |    0.23255 | True
+  R2                 |      nan |  0.00296 |   nan |    0.94692 |   3.9e-05 |    0.94592 | None
+  LOO                |   0.0064 |  0.00642 |  1.00 |    0.23039 |   3.1e-05 |    0.23268 | True
+
+Runtime 64 s
+
+## Mock report: R3, defaults, seed 3 (18, 36, 72 runs); point estimates
+
+observations: min 10.24, max 181.9, (max - min)/max|y| 0.9437
+n = 18: 79.67, 69.78, 6.095, 5.239, 18.79, -4.137, -21.19, -18.25, 12.38; rel 0.1408; R2 0.9802; LOO 0.2934
+n = 36: 77.82, 71.31, 1.948, -1.636, 12.09, -5.668, -16.9, -14.83, 8.034; rel 0.2038; R2 0.9584; LOO 0.2879
+n = 72: 78.27, 69.19, 3.089, 0.7283, 9.323, -0.2023, -16.3, -11.39, 7.478; rel 0.2335; R2 0.9455; LOO 0.2716
+
+Bootstrap (tag 2^32 + 2, seed 3, 1000 resamples): undefined 0 (fit), 0 (LOO)
+  estimate           |        mock interval |  recomputed (4 digits) | agrees
+  Intercept          | [74.39, 82.02]        | [74.39, 82.02]         | yes
+  rw                 | [62.31, 77.66]        | [62.31, 77.66]         | yes
+  r                  | [-4.032, 9.424]       | [-4.032, 9.424]        | yes
+  Tu                 | [-7.785, 7.972]       | [-7.785, 7.972]        | yes
+  Hu                 | [1.944, 16.68]        | [1.944, 16.68]         | yes
+  Tl                 | [-6.665, 5.679]       | [-6.665, 5.679]        | yes
+  Hl                 | [-23.51, -10.14]      | [-23.51, -10.14]       | yes
+  L                  | [-18.83, -4.943]      | [-18.83, -4.943]       | yes
+  Kw                 | [1.701, 14.31]        | [1.701, 14.31]         | yes
+  relative residual  | [0.1631, 0.2641]      | [0.1631, 0.2641]       | yes
+  R2                 | [0.9302, 0.9734]      | [0.9302, 0.9734]       | yes
+  LOO                | [0.2168, 0.336]       | [0.2168, 0.336]        | yes
+
+Total runtime 65 s

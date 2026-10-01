@@ -35,9 +35,7 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
   Records: 0056 (OD-16; "One-way layers" as architecture rules AR1–AR7).
 - [x] **10. Trust boundary.** `docs/design/trust.md`. Records: 0057 (the held principle answered by T1–T10;
   "model" as the one word, with no glossary row).
-- [ ] **11. Reference models with expected answers.** `docs/design/reference_models.md`.
-  - Claude can help: compute reference values with v1's `testfunctions/truth.py`, or by brute force, as an
-    independent check on yours.
+- [x] **11. Reference models with expected answers.** `docs/design/reference_models.md`. Records: 0058.
 
 ## Setup
 

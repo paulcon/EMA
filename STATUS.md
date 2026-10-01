@@ -4,9 +4,8 @@
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`): steps 1–10 done; the consistency review's decisions
-  (records 0043–0052) applied.
-- Next: step 11, reference models with expected answers (`docs/design/reference_models.md`).
+- Writing the design documents by hand (`TODO.md`): steps 1–11 done.
+- Next: step 12, repository and tooling (OD-17, OD-18).
 
 ## Done
 
@@ -48,10 +47,21 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   word, with no glossary row), applied to `model_interface.md`, `principles.md`, `glossary.md`, `scope.md`,
   `architecture.md` (about 7,940 source lines), `use_cases.md`, `export.md`, `data_model.md`,
   `diagnostics/shared.md`, `contracts.md`, the guide outlines, `CLAUDE.md`, and 0029's status.
+- 2026-10-01: step 11, reference models accepted (`docs/design/reference_models.md`): every expected answer
+  in the six diagnostic specs recomputed by separate scripts (`docs/checks/`, from the specs: quadrature,
+  exact rational arithmetic, quasi-Monte Carlo, and v1 as a second source), with three independent reviews
+  (6, 2, then 2 findings, all fixed); about 20 plain errors corrected in place (brute-force values replaced by
+  quadrature, expected values printed to the digits their tolerances need, R1 along c a constant line, R3's
+  coordinate-line rates filled); record 0058 (R7's kink-line row dropped for R10's two given lines; R3's
+  rate tolerance 2·10⁻⁴; R11's 9.6·10⁻⁴).
 
 ## Next
 
-- Step 11, reference models with expected answers (`docs/design/reference_models.md`): `TODO.md` step 11.
+- Step 12, repository and tooling: `TODO.md` step 12 (OD-17, OD-18).
+- For the first plan of `ema.numerics`: the coordinate lines' Lanczos basis must be the same bit for bit on
+  every call (C7). With numpy on Accelerate (this Mac), the matrix products in its reorthogonalization gave two
+  different bases in 50 calls in one process (step 11's round 3 review). Build the basis without BLAS
+  reductions, or from the exact Gram basis rounded to doubles and cached per n, and test it.
 
 ## Specs
 
@@ -71,7 +81,7 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
 | `docs/design/architecture.md` | accepted (AR1–AR7) |
 | `docs/design/trust.md` | accepted (T1–T10) |
 | `docs/design/export.md` | accepted (E1–E7) |
-| `docs/design/reference_models.md` | draft (the list; expected answers at step 11) |
+| `docs/design/reference_models.md` | accepted (the expected answers checked by `docs/checks/`) |
 
 Statuses: empty → draft → accepted (a template is filled in to become a draft; guides are outlines until the
 code exists). Claude Code builds only from accepted specs.

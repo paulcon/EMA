@@ -1,0 +1,111 @@
+polynomial_model.py: numpy 2.5.3, Python 3.14.0
+
+R1, p = 2, seed 0, 20,000 runs: largest error against the spec's exact values (tolerance 1e-12)
+  coefficients       1.8e-14  yes
+  relative residual  8.7e-15  yes
+  R2 - 1             0.0e+00  yes
+  LOO                8.8e-15  yes
+  first-order        1.8e-15  yes
+  total              1.8e-15  yes
+  rootE              5.3e-15  yes
+
+R10, p = 2, seed 0, 20,000 runs: largest error against the spec's exact values (tolerance 1e-12)
+  coefficients       5.8e-15  yes
+  relative residual  2.7e-15  yes
+  R2 - 1             0.0e+00  yes
+  LOO                2.7e-15  yes
+  first-order        2.4e-15  yes
+  total              2.2e-15  yes
+  rootE              5.8e-15  yes
+
+R2 analytic: V = 13.844588; first [0.313905 0.442411 0.      ]; total [0.557589 0.442411 0.243684]
+  spec (polynomial_model.md): first 0.313905, 0.442411, 0; total 0.557589, 0.442411, 0.243684
+
+Known answers at 20,000 runs. 'projection' is the limit; a value 'expected differs' when the spec's differs from it beyond 4 digits.
+
+R2, p = 10: projection by 60-point Gauss-Legendre per model parameter; max |c(nq=60) - c(nq=80)| = 9.4e-14; Var f = 13.84458794; V_p = 13.8445619
+  100 designs of 20000 runs + seed 0: 58 s
+model| quantity        |  spec exp. | projection   | spec tol |  recomp. tol (bias + 5 SD)       | seed 0       | seed 0 within spec tol?
+R2   | first[1]        |     0.3139 |    0.3139058 |  4.1e-05 |  4.2e-05 (bias 5.0e-07 + 4.1e-05) |    0.3138919 | yes
+R2   | first[2]        |     0.4424 |    0.4424108 |  5.1e-05 |  4.9e-05 (bias 9.0e-07 + 4.8e-05) |    0.4424304 | yes
+R2   | first[3]        |          0 | 1.373112e-27 |    1e-05 |  4.8e-09 (bias 1.3e-09 + 3.4e-09) | 2.090126e-09 | yes
+R2   | total[1]        |     0.5576 |    0.5575892 |  5.1e-05 |  4.9e-05 (bias 8.9e-07 + 4.8e-05) |    0.5575696 | yes
+R2   | total[2]        |     0.4424 |    0.4424108 |  5.1e-05 |  4.9e-05 (bias 8.6e-07 + 4.8e-05) |    0.4424304 | yes
+R2   | total[3]        |     0.2437 |    0.2436834 |  4.1e-05 |  4.4e-05 (bias 4.0e-07 + 4.3e-05) |    0.2436777 | yes
+R2   | rootE[1]        |      1.625 |     1.625418 |  0.00019 |   0.0002 (bias 3.9e-06 + 1.9e-04) |     1.625389 | yes
+R2   | rootE[2]        |     0.5947 |    0.5947228 |  0.00024 |  0.00024 (bias 1.3e-05 + 2.3e-04) |    0.5948118 | yes
+R2   | rootE[3]        |      1.884 |     1.883955 |  0.00022 |  0.00021 (bias 4.6e-07 + 2.0e-04) |     1.883946 | yes
+R2   | rootE[4]        |      1.952 |     1.952291 |  0.00024 |  0.00023 (bias 1.7e-05 + 2.1e-04) |     1.952307 | yes
+R2   | rootE[5]        |       1.18 |     1.180244 |  0.00022 |  0.00023 (bias 4.6e-06 + 2.2e-04) |     1.180216 | yes
+R2   | rootE[6]        |      1.357 |     1.357408 |  0.00026 |  0.00026 (bias 2.1e-05 + 2.4e-04) |     1.357471 | yes
+R2   | rootE[7]        |     0.3644 |    0.3644311 |  0.00032 |  0.00033 (bias 3.1e-05 + 2.9e-04) |    0.3644089 | yes
+R2   | rootE[8]        |     0.3394 |    0.3393905 |  0.00027 |  0.00027 (bias 1.8e-05 + 2.4e-04) |     0.339355 | yes
+R2   | rootE[9]        |    0.05023 |   0.05022506 |  0.00032 |  0.00032 (bias 5.2e-05 + 2.6e-04) |   0.05030428 | yes
+R2   | rootE[10]       |    0.04591 |   0.04591473 |  0.00032 |  0.00031 (bias 4.5e-05 + 2.6e-04) |   0.04600986 | yes
+R2   | rel[1]          |   0.001371 |  0.001371384 |  7.5e-05 |  7.4e-05 (bias 2.0e-05 + 5.4e-05) |  0.001351975 | yes
+R2   | loo[1]          |   0.001371 |  0.001371384 |  7.5e-05 |  7.8e-05 (bias 2.1e-05 + 5.6e-05) |  0.001392662 | yes
+  R2 degree-10 projection vs analytic: first-order differs by 5.9e-07, total by 3.0e-07
+
+R11, p = 10: projection by 60-point Gauss-Legendre per model parameter; max |c(nq=60) - c(nq=80)| = 2.8e-15; Var f = 0.04806030361; V_p = 0.04804687282
+  100 designs of 20000 runs + seed 0: 9 s
+model| quantity        |  spec exp. | projection   | spec tol |  recomp. tol (bias + 5 SD)       | seed 0       | seed 0 within spec tol?
+R11  | first[1]        |     0.4486 |    0.4486165 |  0.00029 |   0.0003 (bias 6.8e-06 + 2.9e-04) |    0.4486948 | yes
+R11  | first[2]        |     0.4486 |    0.4486165 |  0.00033 |  0.00034 (bias 8.1e-07 + 3.3e-04) |     0.448598 | yes
+R11  | total[1]        |     0.5514 |    0.5513835 |  0.00033 |  0.00034 (bias 8.1e-07 + 3.3e-04) |     0.551402 | yes
+R11  | total[2]        |     0.5514 |    0.5513835 |  0.00029 |   0.0003 (bias 6.8e-06 + 2.9e-04) |    0.5513052 | yes
+R11  | rootE[1]        |          0 | 1.869809e-18 |  0.00011 |  0.00012 (bias 3.1e-05 + 8.0e-05) | 1.960923e-05 | yes
+R11  | rootE[2]        |     0.1915 |    0.1914715 |  0.00021 |   0.0002 (bias 7.1e-06 + 1.9e-04) |    0.1915193 | yes
+R11  | rootE[3]        |          0 | 1.686687e-17 |  0.00017 |  0.00018 (bias 5.8e-05 + 1.2e-04) | 0.0001046208 | yes
+R11  | rootE[4]        |    0.09529 |   0.09528511 |  0.00032 |  0.00031 (bias 1.3e-05 + 2.9e-04) |   0.09525575 | yes
+R11  | rootE[5]        |          0 | 1.749117e-17 |  0.00027 |  0.00027 (bias 8.7e-05 + 1.8e-04) | 7.146324e-05 | yes
+R11  | rootE[6]        |    0.04341 |   0.04340891 |  0.00041 |   0.0004 (bias 1.7e-05 + 3.8e-04) |   0.04347523 | yes
+R11  | rootE[7]        |          0 | 6.639375e-18 |  0.00032 |  0.00033 (bias 1.1e-04 + 2.1e-04) | 8.017928e-05 | yes
+R11  | rootE[8]        |    0.01891 |   0.01891067 |  0.00046 |  0.00047 (bias 2.1e-05 + 4.4e-04) |   0.01891336 | yes
+R11  | rootE[9]        |          0 | 7.134115e-18 |  0.00039 |   0.0004 (bias 1.3e-04 + 2.6e-04) | 0.0001795559 | yes
+R11  | rootE[10]       |    0.00802 |  0.008020352 |  0.00053 |  0.00052 (bias 2.8e-05 + 4.9e-04) |  0.008150189 | yes
+R11  | rel[1]          |    0.01672 |   0.01671696 |  0.00096 |  0.00094 (bias 6.5e-05 + 8.7e-04) |   0.01646395 | yes
+R11  | loo[1]          |    0.01672 |   0.01671696 |  0.00096 |  0.00096 (bias 7.3e-05 + 8.8e-04) |    0.0165854 | yes
+
+R11 1-D coefficients c_0..c_6 (even): 0.55357, -0.24458, 0.094741, -0.036366 (spec 0.5536, -0.2446, 0.09474, -0.03637); c_0 = arctan(2)/2 = 0.553574
+  sqrt(E_k) from c_j c_k: 1.454e-18, 0.1915, 1.277e-18, 0.09529, 7.622e-19, 0.04341, 1.92e-18, 0.01891, 9.092e-19, 0.00802
+
+Mock report: R3, p = 2, seed 3, levels 90, 180, 360 (n_min = 90, alpha = 0.7072)
+  level sizes, exact: [90, 180, 360]
+  undefined resamples: fit 0, LOO 0
+  rel  spec 0.03526 [0.02607, 0.03786]   recomputed 0.03526 [0.02607, 0.03786]
+  r2   spec 0.9988 [0.9986, 0.9993]   recomputed 0.9988 [0.9986, 0.9993]
+  loo  spec 0.04192 [0.03645, 0.05058]   recomputed 0.04192 [0.03645, 0.05058]
+  rw  spec (0.8304, 0.8248, 0.8361, 0.8673, 0.8625, 0.8721)
+      got  (0.8304, 0.8248, 0.8361, 0.8673, 0.8625, 0.8721)  same
+  r   spec (5.622e-06, 1.007e-07, 6.983e-05, 4.257e-05, 1.703e-05, 0.0002161)
+      got  (5.622e-06, 1.007e-07, 6.983e-05, 4.257e-05, 1.703e-05, 0.0002161)  same
+  Tu  spec (3.38e-06, 1.725e-07, 8.413e-05, 4.465e-05, 1.64e-05, 0.0002891)
+      got  (3.38e-06, 1.725e-07, 8.413e-05, 4.465e-05, 1.64e-05, 0.0002891)  same
+  Hu  spec (0.04188, 0.03938, 0.04421, 0.05421, 0.05085, 0.05717)
+      got  (0.04188, 0.03938, 0.04421, 0.05421, 0.05085, 0.05717)  same
+  Tl  spec (1.369e-06, 3.161e-08, 5.496e-05, 1.397e-05, 8.325e-06, 0.0002055)
+      got  (1.369e-06, 3.161e-08, 5.496e-05, 1.397e-05, 8.325e-06, 0.0002055)  same
+  Hl  spec (0.04149, 0.03906, 0.04369, 0.05415, 0.05143, 0.0564)
+      got  (0.04149, 0.03906, 0.04369, 0.05415, 0.05143, 0.0564)  same
+  L   spec (0.03857, 0.03655, 0.04051, 0.05012, 0.04713, 0.05265)
+      got  (0.03857, 0.03655, 0.04051, 0.05012, 0.04713, 0.05265)  same
+  Kw  spec (0.009238, 0.00811, 0.01044, 0.01251, 0.01103, 0.01412)
+      got  (0.009238, 0.00811, 0.01044, 0.01251, 0.01103, 0.01412)  same
+  rootE spec 44.67 [44.22, 45.08], 10.37 [9.843, 10.96]; got 44.67 [44.22, 45.08], 10.37 [9.843, 10.96]
+  observations: min 10.24 (spec 10.24), max 225.2 (spec 225.2), (max - min)/max|y| 0.9545 (spec 0.9545)
+  level n = 90: all 11 agree to 4 digits
+  level n = 180: all 11 agree to 4 digits
+  level n = 360: all 11 agree to 4 digits
+
+Under the mock (line ~378): the degree-2 projection of R3 by quadrature
+  relative residual 0.0341 (spec 0.0341); nq 6/8: 0.034085, 0.034085
+  totals 0.8668, 0.0000, 0.0000, 0.0537, 0.0000, 0.0537, 0.0516, 0.0126
+  spec   0.8668, 0, 0, 0.0537, 0, 0.0537, 0.0516, 0.0126
+  sqrt(E_1), sqrt(E_2) of the projection: 44.4701, 10.4131
+  degree-3 projection's sqrt(E_1..3): 44.4701, 10.4131, 1.5478 (spec line ~128: 44.47, 10.41, 1.549, means of fits)
+
+'limit 0.0029' (Uncertainty): R2's x3 first-order at p = 4
+  degree-4 projection: first-order x3 = 6.53e-28, total x3 = 0.1819
+  fitted at 280 runs (8P), mean over seeds 1-30: plain 0.0092 (spec 0.0091), bias-corrected, clipped at 0 0.0062, unclipped 0.0042 (spec 0.0042)
+
+seed-0 tests within the spec's tolerances, and R1/R10 exact: all; mock Sobol rows differing: 0. Total 137 s.

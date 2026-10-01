@@ -1,8 +1,8 @@
 # Lines
 
-**Status:** accepted. **Updated:** 2026-10-01. **Module:** `ema/diagnostics/lines.py`. **Depends on:**
+**Status:** accepted. **Updated:** 2026-10-01 (step 11, 0058). **Module:** `ema/diagnostics/lines.py`. **Depends on:**
 `shared.md`; `coordinate_lines.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0049,
-0051, 0052.
+0051, 0052, 0058.
 
 > The model prediction along m random lines, or along lines the analyst gives, and the spectrum of each line
 > (0012; U2's finer line through a kink). Written from an interview on 2026-09-30 (TODO step 6). Each line is
@@ -102,8 +102,8 @@ and there is no estimate across lines (above). A rerun at 2n − 1 points per li
 - **All runs failed:** counts by kind and the note; no observations (`shared.md`).
 - **Constant** (every usable run of the diagnostic the same double; 0035): the shared note and observations;
   each line "none: constant"; no per-line notes.
-- **A constant line,** when others vary: its note. R7's given line along the kink (through a = e = 0.3, direction
-  (a, e) = (1, −1)) is one: a + e − 0.6 is 0 or 2⁻⁵³ in doubles, and R7's sum rounds 1 + 2⁻⁵³ to 1.
+- **A constant line,** when others vary: its note. On R10, given lines through the nominal point with
+  directions (a, e) = (1, 1) and e: the second is constant, since e has no effect (0058).
 - **A short line:** any length > 0 is analyzed; its length is in the table. A line always has length > 0: it is
   a line, not a ray, through an anchor inside the space, in a nonzero direction.
 - **Given lines that coincide:** their points are the same, and so are their runs; each is still its own row.
@@ -134,9 +134,9 @@ and there is no estimate across lines (above). A rerun at 2n − 1 points per li
 
 ## Mock report
 
-Random lines on R7 with the defaults: m = 5, n = 17, seed 0. The numbers are computed (a scratch script,
-2026-09-30, drawing each line from `SeedSequence(0, spawn_key=(j,))` as `../designs.md` says; step 11 checks
-them); the hashes are placeholders.
+Random lines on R7 with the defaults: m = 5, n = 17, seed 0. The numbers are computed, drawing each line from
+`SeedSequence(0, spawn_key=(j,))` as `../designs.md` says, and checked at step 11 by
+`../../checks/gram_rates.py`; the hashes are placeholders.
 
 ```markdown
 # Lines: R7, y
@@ -198,16 +198,17 @@ What the lines cross, for the reader of this spec (not in the report, P2): line 
 ## Expected answers
 
 "Exact rational arithmetic" is the independent computation of `coordinate_lines.md`'s Expected answers (the
-Gram coefficients in `fractions`, then the rate in doubles). The points of random lines are pinned by
+Gram coefficients in `fractions`, then the rate in doubles; `../../checks/gram_rates.py`). Rates with a
+tolerance of 10⁻⁶ are given to 7 digits. The points of random lines are pinned by
 `../designs.md`'s golden-points test.
 
 | Reference model | Quantity | Expected | Tolerance | Source |
 |---|---|---|---|---|
-| R7, random, m = 5, n = 17, seed 0 | rate, lines 0–4 | 0.8166, 0.6447, 0.2184, 0.07052, 0.1891 | 10⁻⁶ | exact rational arithmetic |
+| R7, random, m = 5, n = 17, seed 0 | rate, lines 0–4 | 0.8166077, 0.6447274, 0.2184303, 0.07051713, 0.1891380 | 10⁻⁶ | exact rational arithmetic |
 | R7, random, m = 5, n = 17, seed 0 | the report | the mock report above | golden report (`shared.md`: structure, and numbers within one unit in the 4th digit) and data cards | this spec |
-| R11, random, m = 10, seed 0, n = 33, 65, 129 | each line's rate | log₁₀ ρ, ρ the Bernstein ellipse parameter of the line's segment through its nearest pole (a or b = ±i/2): 0.2090 for lines 0, 1, 3, 4, 5, 6, 9; 0.7532, 0.2555, 0.3568 for lines 2, 7, 8 | 0.02 (computed at n = 33, 65, 129: within 0.005 for the long lines, 0.012 for line 2) | analytic |
-| R7, given: through the nominal point, direction (a, e) = (1, 1) | length; rate at n = 17, 33, 65 | 2.828 (2√2); 0.2026, 0.1082, 0.05903 | exact; 10⁻⁶ | analytic; exact rational arithmetic |
-| R7, given: through a = e = 0.3, direction (a, e) = (1, −1), n = 17 | the line's note; rate | "y is the same in all 17 usable runs along line 0: 1."; none: constant | exact | by construction, with R7 summed in the order listed in `../reference_models.md` |
+| R11, random, m = 10, seed 0, n = 33, 65, 129 | each line's rate | log₁₀ ρ, ρ the Bernstein ellipse parameter of the line's segment through its nearest pole (a or b = ±i/2): 0.2090 for lines 0, 1, 3, 4, 5, 6, 9; 0.7532, 0.2555, 0.3568 for lines 2, 7, 8 | 0.02 (computed at n = 33, 65, 129: within 0.006 for the long lines, 0.012 for line 2) | analytic |
+| R7, given: through the nominal point, direction (a, e) = (1, 1) | length; rate at n = 17, 33, 65 | 2√2 = 2.828; 0.2025713, 0.1082395, 0.05902797 | exact; 10⁻⁶ | analytic; exact rational arithmetic |
+| R10, given: through the nominal point, directions (a, e) = (1, 1) and e, n = 17 | notes; k* and rate of each line | one note, "y is the same in all 17 usable runs along line 1: -0.559."; line 0: k* = 1, none; line 1: none: constant | exact | analytic: along line 0, y is linear; e has no effect, and y = 0.5·ψ₂(0) = −√5/4 (0058) |
 | R1 and R10, random, m = 5, seed 0 | k*; rate | 1 (R1) and 2 (R10) on every line; none | exact | analytic: degree 1 and 2 along any line |
 | R4a | notes; each line | the shared "constant" note only; none: constant | exact | trivial |
 | R5, random, m = 5, n = 17, seed 0 | runs not usable, by kind; lines with no rate | the points in each region (`../reference_models.md`); "none: k runs not usable" on each line that has any | exact | by construction |
@@ -232,7 +233,7 @@ The rate's constants (`LINE_RATE_FLOOR`, `LINE_RATE_WINDOW`, `LINE_RATE_MIN_DEGR
 | LN2 | Each line's spectrum, degrees, and rate are computed as coordinate lines' (CL2, CL3), in the line's own parameter s. | R7's given line across the kink at n = 17, 33, 65. |
 | LN3 | One observations row per line, in line order: usable, length, range, k* of K, rate; no summary across lines. | R7 random at the defaults (the mock report). |
 | LN4 | The ends table: one row per varied model parameter in the model spec's order, one column per line, "from → to" in model parameter units, at most 5 lines per table. | R3 with m = 7: two tables, of 5 and 2 lines, 8 rows each. |
-| LN5 | A line with any run not usable has no spectrum or rate; a constant line has a note; a constant diagnostic result has the shared note only. | R5 random at seed 0; R7's given line along the kink; R4a. |
+| LN5 | A line with any run not usable has no spectrum or rate; a constant line has a note; a constant diagnostic result has the shared note only. | R5 random at seed 0; R10's two given lines (0058); R4a. |
 | LN6 | One PNG per line; the x axis is the distance along it, 0 to its length; a given line's anchor is marked, a random line's isn't. | R7 random: 5 PNGs, no anchor marks; R7's given line across the kink: a mark at distance √2. |
 | LN7 | y → a·y + b (a a power of 2) leaves the rates within `RATE_SHIFT_TOL` = 10⁻⁵ under the shift, 10⁻¹² under a·y alone (0048), and k* and the notes unchanged, and scales the ranges by a. | R2 with a = 2⁻¹⁰, b = 3. |
 | LN8 | Random lines nest in m, and every line in n → 2n − 1: the runs are reused. | R7: m = 6 after m = 5 makes 17 new runs; n = 33 after n = 17 makes 16 new runs per line. |
@@ -246,7 +247,7 @@ The rate's constants (`LINE_RATE_FLOOR`, `LINE_RATE_WINDOW`, `LINE_RATE_MIN_DEGR
 
 ## What this spec asks of other documents
 
-- **`../reference_models.md` (step 11):** R7's given lines' expected answers; R7 summed in the listed order, so
-  the line along the kink is exactly constant; R11's per-line rates from the nearest pole.
+- **`../reference_models.md` (step 11):** R7's given line's expected answers; R11's per-line rates from the nearest pole
+  (done at step 11).
 - **Architecture (step 9):** `random_lines.py` becomes `lines.py`, one diagnostic with two modes; the per-line
   computation shared with coordinate lines.

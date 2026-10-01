@@ -1,0 +1,19 @@
+# point_run.py: step 11 check of diagnostics/point_run.md, Expected answers
+numpy 2.5.3, Python 3.14.0
+
+| Row | Quantity | Spec | Recomputed | Agrees? |
+|---|---|---|---|---|
+| R1, nominal, repeats 4 | replicate 0; mean; sd; distinct | 10; 10; 0; 1 | 10.0; 10.0; 0.0; 1 | yes |
+| R1, nominal, repeats 4 | varies | no | no | yes |
+(log10(10) == 1.0 in doubles: True; np.log10: True)
+| R4a, repeats 4 | distinct values | 1 | 1 | yes |
+| R6a, R6b, repeats 100 (101 runs) | bounds on s/sigma, two-sided 1e-6, 100 df | [0.6735, 1.360] | [0.6735, 1.3603] | yes |
+(for comparison, 99 df, if repeats 100 meant 100 runs: [0.6719, 1.3621])
+| R6a, nominal, repeats 100 | sd / 0.05 within the bounds, 20000 simulated point runs | inside (fails with probability 1e-6) | outside in 0; s/sigma from 0.749 to 1.291 | yes |
+| R6a, nominal, repeats 4 | varies (all 5 distinct), 20000 simulated | yes | two equal doubles in 0 | yes |
+| R6b, nominal, repeats 100 | sd / 1e-07 within the bounds, 20000 simulated point runs | inside (fails with probability 1e-6) | outside in 0; s/sigma from 0.711 to 1.268 | yes |
+| R6b, nominal, repeats 4 | varies (all 5 distinct), 20000 simulated | yes | two equal doubles in 0 | yes |
+| R5, {a: 0.9, b: 0.9}, repeats 4 | runs | 5 failed (error) | 5 error, 0 timeout | yes |
+| R5, nominal, prediction z, repeats 4 | runs usable for z | 5 | 5 | yes |
+
+Simulations: 20000 point runs of each, fresh entropy. Runtime: 0.4 s

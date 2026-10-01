@@ -1,0 +1,104 @@
+# scatter.py: step 11 check of diagnostics/scatter.md, Expected answers
+numpy 2.5.3, Python 3.14.0
+
+## Known answers: n = 20000, seed 0; tolerance = 5 x SD over seeds 1-100 at n = 20000
+Brute-force rank correlations: 2000000 points, seed 20261001 (its standard error is about (1 - rho^2)/sqrt(n) = 7e-4, so it agrees within 3 x that); and by quasi-Monte Carlo: 8 scrambled Sobol designs of 2^22 points (seeds 1000-1007), which must round to the spec's 4 digits.
+
+| Row | Quantity | Spec expected | Recomputed | Spec tol | Recomputed tol | Agrees? |
+|---|---|---|---|---|---|---|
+| R1 | mean: truth vs spec | 10 | 10 | 1e-12 | - | yes  |
+| R1 | sd: truth vs spec | 2.16025 | 2.16025 | 0.0005 | - | yes  |
+| R1 | mean at seed 0 | 10 | 10.0016 | 0.089 | 0.089 | yes tol ok |
+| R1 | sd at seed 0 | 2.16025 | 2.15648 | 0.045 | 0.045 | yes tol ok |
+| R1 | rho a: brute force vs spec | 0.8073 | 0.807026 | 0.00074 | - | yes  |
+| R1 | rho a: QMC (to 4 digits) vs spec | 0.8073 | 0.807319 | 5e-05 | - | yes  |
+| R1 | rho a at seed 0 | 0.8073 | 0.808412 | 0.012 | 0.011 | yes tol ok |
+| R1 | rho b: brute force vs spec | -0.2525 | -0.251829 | 0.002 | - | yes  |
+| R1 | rho b: QMC (to 4 digits) vs spec | -0.2525 | -0.252513 | 5e-05 | - | yes  |
+| R1 | rho b at seed 0 | -0.2525 | -0.251515 | 0.034 | 0.034 | yes tol ok |
+| R1 | rho c: brute force vs spec | 0 | -0.00107929 | 0.0021 | - | yes  |
+| R1 | rho c: QMC (to 4 digits) vs spec | 0 | -1.6524e-08 | 5e-05 | - | yes  |
+| R1 | rho c at seed 0 | 0 | -0.0100936 | 0.036 | 0.036 | yes tol ok |
+| R1 | rho k: brute force vs spec | 0.5156 | 0.514637 | 0.0016 | - | yes  |
+| R1 | rho k: QMC (to 4 digits) vs spec | 0.5156 | 0.515608 | 5e-05 | - | yes  |
+| R1 | rho k at seed 0 | 0.5156 | 0.510369 | 0.027 | 0.026 | yes tol ok |
+| R1 | S a: truth vs spec | 0.642857 | 0.642857 | 0.0005 | - | yes  |
+| R1 | S a at seed 0 | 0.642857 | 0.644027 | 0.017 | 0.017 | yes tol ok |
+| R1 | S b: truth vs spec | 0.0714286 | 0.0714286 | 0.0005 | - | yes  |
+| R1 | S b at seed 0 | 0.0714286 | 0.0706073 | 0.018 | 0.018 | yes tol ok |
+| R1 | S c: truth vs spec | 0 | 0 | 0.0005 | - | yes  |
+| R1 | S c at seed 0 | 0 | -4.17852e-05 | 0.004 | 0.0041 | yes tol ok |
+| R1 | S k: truth vs spec | 0.285714 | 0.285714 | 0.0005 | - | yes  |
+| R1 | S k at seed 0 | 0.285714 | 0.279822 | 0.026 | 0.026 | yes tol ok |
+| R1 | brute-force rho, all digits | | 0.80703, -0.25183, -0.00108, 0.51464 | | | |
+| R1 | QMC rho, all digits (standard error) | | 0.807319 (1e-08), -0.252513 (2e-08), -0.000000 (2e-08), 0.515608 (8e-09) | | | |
+| R2 | mean: truth vs spec | 3.5 | 3.5 | 1e-12 | - | yes  |
+| R2 | sd: truth vs spec | 3.721 | 3.72083 | 0.0005 | - | yes  |
+| R2 | mean at seed 0 | 3.5 | 3.4887 | 0.12 | 0.12 | yes tol ok |
+| R2 | sd at seed 0 | 3.721 | 3.70387 | 0.11 | 0.11 | yes tol ok |
+| R2 | rho x1: brute force vs spec | 0.4374 | 0.437643 | 0.0017 | - | yes  |
+| R2 | rho x1: QMC (to 4 digits) vs spec | 0.4374 | 0.437365 | 5e-05 | - | yes  |
+| R2 | rho x1 at seed 0 | 0.4374 | 0.44276 | 0.026 | 0.026 | yes tol ok |
+| R2 | rho x2: brute force vs spec | 0 | 0.000740908 | 0.0021 | - | yes  |
+| R2 | rho x2: QMC (to 4 digits) vs spec | 0 | -1.21273e-07 | 5e-05 | - | yes  |
+| R2 | rho x2 at seed 0 | 0 | 0.00722499 | 0.038 | 0.038 | yes tol ok |
+| R2 | rho x3: brute force vs spec | 0 | -0.00092599 | 0.0021 | - | yes  |
+| R2 | rho x3: QMC (to 4 digits) vs spec | 0 | -1.9202e-07 | 5e-05 | - | yes  |
+| R2 | rho x3 at seed 0 | 0 | -0.00758207 | 0.043 | 0.043 | yes tol ok |
+| R2 | S x1: truth vs spec | 0.3139 | 0.313905 | 0.0005 | - | yes  |
+| R2 | S x1 at seed 0 | 0.3139 | 0.313146 | 0.022 | 0.022 | yes tol ok |
+| R2 | S x2: truth vs spec | 0.4424 | 0.442411 | 0.0005 | - | yes  |
+| R2 | S x2 at seed 0 | 0.4424 | 0.442417 | 0.027 | 0.027 | yes tol ok |
+| R2 | S x3: truth vs spec | 0 | 0 | 0.0005 | - | yes  |
+| R2 | S x3 at seed 0 | 0 | 0.000679767 | 0.006 | 0.0058 | yes tol ok |
+| R2 | brute-force rho, all digits | | 0.43764, 0.00074, -0.00093 | | | |
+| R2 | QMC rho, all digits (standard error) | | 0.437365 (1e-07), -0.000000 (1e-07), -0.000000 (1e-07) | | | |
+| R10 | mean: truth vs spec | 0 | 0 | 1e-12 | - | yes  |
+| R10 | sd: truth vs spec | 2.54951 | 2.54951 | 0.0005 | - | yes  |
+| R10 | mean at seed 0 | 0 | -0.0244074 | 0.094 | 0.094 | yes tol ok |
+| R10 | sd at seed 0 | 2.54951 | 2.53327 | 0.07 | 0.071 | yes tol ok |
+| R10 | rho a: brute force vs spec | 0.798 | 0.798032 | 0.00077 | - | yes  |
+| R10 | rho a: QMC (to 4 digits) vs spec | 0.798 | 0.797961 | 5e-05 | - | yes  |
+| R10 | rho a at seed 0 | 0.798 | 0.796383 | 0.017 | 0.017 | yes tol ok |
+| R10 | rho b: brute force vs spec | 0 | 0.000547694 | 0.0021 | - | yes  |
+| R10 | rho b: QMC (to 4 digits) vs spec | 0 | -2.55732e-08 | 5e-05 | - | yes  |
+| R10 | rho b at seed 0 | 0 | 0.00437732 | 0.036 | 0.036 | yes tol ok |
+| R10 | rho c: brute force vs spec | 0 | -0.000864047 | 0.0021 | - | yes  |
+| R10 | rho c: QMC (to 4 digits) vs spec | 0 | -1.94234e-08 | 5e-05 | - | yes  |
+| R10 | rho c at seed 0 | 0 | -0.00966429 | 0.04 | 0.04 | yes tol ok |
+| R10 | rho e: brute force vs spec | 0 | -0.000657643 | 0.0021 | - | yes  |
+| R10 | rho e: QMC (to 4 digits) vs spec | 0 | 1.16385e-08 | 5e-05 | - | yes  |
+| R10 | rho e at seed 0 | 0 | -0.00199891 | 0.034 | 0.033 | yes tol ok |
+| R10 | S a: truth vs spec | 0.6154 | 0.615385 | 0.0005 | - | yes  |
+| R10 | S a at seed 0 | 0.6154 | 0.611145 | 0.021 | 0.021 | yes tol ok |
+| R10 | S b: truth vs spec | 0.0385 | 0.0384615 | 0.0005 | - | yes  |
+| R10 | S b at seed 0 | 0.0385 | 0.038076 | 0.013 | 0.013 | yes tol ok |
+| R10 | S c: truth vs spec | 0 | 0 | 0.0005 | - | yes  |
+| R10 | S c at seed 0 | 0 | 0.000298036 | 0.006 | 0.006 | yes tol ok |
+| R10 | S e: truth vs spec | 0 | 0 | 0.0005 | - | yes  |
+| R10 | S e at seed 0 | 0 | -0.000201184 | 0.004 | 0.0039 | yes tol ok |
+| R10 | brute-force rho, all digits | | 0.79803, 0.00055, -0.00086, -0.00066 | | | |
+| R10 | QMC rho, all digits (standard error) | | 0.797961 (8e-09), -0.000000 (1e-08), -0.000000 (1e-08), 0.000000 (1e-08) | | | |
+
+## R4b, n = 20000, seed 0
+distinct values: 4353 (constant only if 1); relative spread 8.00071e-13; spec about 8e-13, within 1%: yes; the limit 2e-12/2.5 = 8e-13
+
+## R5, n = 200, seed 0 (by construction)
+failed (error, a + b > 1): 29; failed (timeout, a, b < -0.8): 3; usable for y: 168; missing z (b > 0.8, not failed): 13; usable for z: 155
+Expected over the space: error 1/8 (25 of 200), timeout 1/100 (2 of 200).
+
+## Mock report: R2, n = 200, seed 1 (4 significant digits)
+| Estimate | Mock | Recomputed | Agrees? |
+|---|---|---|---|
+| mean | ('3.582', '2.906', '4.232') | ('3.582', '2.906', '4.232') | yes |
+| sd | ('3.826', '3.275', '4.299') | ('3.826', '3.275', '4.299') | yes |
+| rho0 | ('0.4185', '0.2651', '0.5489') | ('0.4185', '0.2651', '0.5489') | yes |
+| rho1 | ('0.02173', '-0.1663', '0.1955') | ('0.02173', '-0.1663', '0.1955') | yes |
+| rho2 | ('-0.009447', '-0.2193', '0.1803') | ('-0.009447', '-0.2193', '0.1803') | yes |
+| S0 | ('0.2944', '0.1888', '0.4248') | ('0.2944', '0.1888', '0.4248') | yes |
+| S1 | ('0.4068', '0.2816', '0.5257') | ('0.4068', '0.2816', '0.5257') | yes |
+| S2 | ('-0.004922', '-0.07658', '0.103') | ('-0.004922', '-0.07658', '0.103') | yes |
+| observations min, max, spread | ('-9.094', '12.85', '1.708') | ('-9.094', '12.85', '1.708') | yes |
+| bins | 14 | 14 | |
+
+Runtime: 192 s

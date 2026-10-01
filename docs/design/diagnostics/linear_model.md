@@ -1,6 +1,6 @@
 # Linear model
 
-**Status:** accepted. **Updated:** 2026-10-01. **Module:** `ema/diagnostics/linear_model.py`. **Depends on:**
+**Status:** accepted. **Updated:** 2026-10-01 (step 11). **Module:** `ema/diagnostics/linear_model.py`. **Depends on:**
 `shared.md`; `../designs.md`; `../uncertainty.md`; records 0012, 0032, 0033, 0034, 0035, 0041, 0042, 0044,
 0048, 0049, 0051, 0052.
 
@@ -52,7 +52,7 @@ u_k ∈ [−1, 1]^d (`../designs.md`: through the logarithm for a log range).
   A = [1, U] (n_u × (d + 1)).
 - **In unit coordinates:** a slope βᵢ is half the change in y across model parameter i's range, in y's units, so
   slopes compare across model parameters. R1's are exact (10; 3, −1, 0, 2) only when k's log scale is honored
-  (0024). In model parameter units the slopes wouldn't compare (R3: 1430 m³/yr per meter of rw, 1.4·10⁻⁷ per
+  (0024). In model parameter units the slopes wouldn't compare (R3: 1430 m³/yr per meter of rw, 5.6·10⁻⁹ per
   m²/yr of Tu).
 - **Its limit** as n grows is the least-squares fit over the space, under the uniform distribution in unit
   coordinates: βᵢ → 3·E[y·uᵢ], β₀ → E[y] (the expected answers use this).
@@ -175,8 +175,8 @@ estimates.
 
 On R3 (the borehole, 8 model parameters, as U4's lens model) with the defaults and U4's seed 3: n_min = 18,
 alpha = 0.7072, level 2, 72 runs. The numbers are computed: the design from `default_rng(3).random((72, 8))`
-(the `random` sampler's rows, 0032), the bootstrap from the linear model's stream (a scratch script,
-2026-09-30; step 11 checks them).
+(the `random` sampler's rows, 0032), the bootstrap from the linear model's stream; checked at step 11 by
+`../../checks/linear_model.py`.
 
 ```markdown
 # Linear model: R3, y
@@ -272,15 +272,14 @@ as above, n_min = 18, alpha = 0.7072, level 2, sampler random 1, seed 3, predict
 e810 (72 new runs).
 ```
 
-(For comparison, over the space: intercept 77.75; slopes 71.50, −0.15, 0.01, 16.08, 0.16, −16.10, −15.63,
-7.74; relative residual 0.2303. The small slopes of r, Tu, and Tl are within their intervals of 0.)
+(For comparison, over the space: intercept 77.76; slopes 71.49, −0.16, 0.00, 16.09, 0.15, −16.09, −15.62,
+7.73; relative residual 0.2304. The small slopes of r, Tu, and Tl are within their intervals of 0.)
 
 ## Expected answers
 
 Each at n_min = 5000, alpha = 0.5, level 1 (20,000 runs, `KNOWN_ANSWER_N`, `shared.md`), seed 0, `random`
 sampler. The tolerance is 5 (`KNOWN_ANSWER_SDS`, `shared.md`) × the estimate's standard deviation over 100
-designs (seeds 1–100) at 20,000 runs, computed by a scratch script on 2026-09-30; step 11 recomputes it with a
-separate script.
+designs (seeds 1–100) at 20,000 runs, recomputed at step 11 by `../../checks/linear_model.py` (its output: `linear_model.out`).
 
 | Reference model | Quantity | Expected | Tolerance | Source |
 |---|---|---|---|---|
@@ -292,7 +291,7 @@ separate script.
 | R7 | relative residual; R² | 0.6739; 0.5458 | 0.014; 0.019 | analytic |
 | R10 | intercept; slopes a, b, c, e | 0; 2√3 = 3.464, 0, 0, 0 | 0.060; 0.12, 0.098, 0.13, 0.10 | analytic |
 | R10 | relative residual; R² | √(2.5/6.5) = 0.6202; 4/6.5 = 0.6154 | 0.016; 0.020 | analytic |
-| R3 | intercept; slopes; relative residual | 77.75; 71.50, −0.15, 0.01, 16.08, 0.16, −16.10, −15.63, 7.74; 0.2303 | 0.32; 0.91, 0.68, 0.64, 0.73, 0.69, 0.87, 0.70, 0.64; 0.0064 | brute force (2·10⁶ points; step 11 recomputes) |
+| R3 | intercept; slopes; relative residual | 77.76; 71.49, −0.16, 0.00, 16.09, 0.15, −16.09, −15.62, 7.73; 0.2304 | 0.32; 0.91, 0.68, 0.64, 0.73, 0.69, 0.87, 0.70, 0.64; 0.0064 | quadrature (tensor Gauss–Legendre, 6 points per model parameter; brute force at 2·10⁶ points agrees within its error, about 0.013) |
 | each of R2, R3, R7, R10 | LOO error | the relative residual's value | the relative residual's tolerance | its limit as n grows |
 | R4a | notes; estimates | the "constant" note; none | exact | trivial |
 | R4b | estimates | present | exact | 0035 |
@@ -326,5 +325,5 @@ separate script.
 
 ## What this spec asks of other documents
 
-- **Reference models (step 11):** the expected answers above; R3's by a separate brute-force script.
+- **Reference models (step 11):** the expected answers above, recomputed by `../../checks/linear_model.py`; R3's by quadrature.
 - **Architecture (step 9):** the interval-method interface; estimators as functions of run indices.

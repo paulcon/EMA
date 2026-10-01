@@ -1,6 +1,6 @@
 # Reference models
 
-**Status:** draft. **Updated:** 2026-10-01 (0052). **Depends on:** records 0009, 0021, 0022, 0024, 0027, 0030.
+**Status:** accepted. **Updated:** 2026-10-01 (step 11: the expected answers checked; 0058). **Depends on:** records 0009, 0021, 0022, 0024, 0027, 0030, 0058.
 
 > The models v2 is developed and verified against, each with the answers a correct diagnostic must give. With
 > these, "done" means "matches what was worked out independently", not "the tests Claude wrote pass". Each
@@ -15,7 +15,7 @@
 |---|---|---|---|---|---|---|
 | R1 | linear, with a log range | Python | 4 | exactly linear in unit coordinates; one model parameter with no effect | the linear model's exact coefficients; a deterministic point run | analytic |
 | R2 | Ishigami | Python | 3 | interactions; one model parameter with no first-order effect | the standard sensitivity test (U1, U4) | analytic Sobol indices |
-| R3 | borehole, with a log range | Python | 8 | a few important model parameters; smooth; units | a realistic engineering formula | brute force |
+| R3 | borehole, with a log range | Python | 8 | a few important model parameters; smooth; units | a realistic engineering formula | quadrature; exact rational arithmetic |
 | R4a, R4b | constant; constant with a 10⁻¹² wiggle | Python | 3 | none | no data, no estimates (P6) | trivial |
 | R5 | fails in known regions | Python | 2 | errors, timeouts, and one missing model prediction, in known regions | failed runs (U3) | by construction |
 | R6a, R6b | R1 with noise, declared deterministic | Python | 4 | known noise: visible, and at a solver tolerance | the point run's measured variation (U7, P7) | by construction |
@@ -85,8 +85,9 @@ units:
 
 - r spans 2.7 decades, so it has a log range, with its nominal at the geometric center, √(100 · 50000).
 - A design uniform in log r puts a different distribution on r than the literature's (uniform in r), so the
-  literature's Sobol indices don't apply: R3's answers come from brute force, by v1's `truth.py` method, under
-  the uniform distribution in unit coordinates.
+  literature's Sobol indices don't apply. R3's answers are under the uniform distribution in unit coordinates:
+  the linear model's by tensor Gauss–Legendre quadrature, the coordinate lines' by exact rational arithmetic;
+  none of its Sobol indices is an expected answer (`diagnostics/polynomial_model.md`).
 
 ### R4a, R4b Constant
 
@@ -141,8 +142,7 @@ f = max(0, a + e − 0.6) + 1[b > 0.2] + 1/(1 + 4c²); a, b, c, e in [−1, 1], 
 | e (a = 0) | a kink at e = 0.6 |
 
 - **Given lines:** the line through the nominal point with direction (a, e) = (1, 1) crosses the kink at
-  a = e = 0.3. The line through a = e = 0.3 with direction (1, −1) lies on the kink, so f is constant along it
-  (to rounding).
+  a = e = 0.3.
 - **Off the grids:** 0.6 and 0.2 are not multiples of 1/8, 1/16, or 1/32, so no point of a coordinate line
   with n = 17, 33, or 65 falls on a feature.
 - The expected spectra along each line are Gram spectra (0038); their decay rates are in
@@ -200,6 +200,46 @@ f = g(a)·g(b), g(u) = 1/(1 + 4u²); a, b in [−1, 1], linear, nominal 0.
 > and tolerances, citing the model's truths (formulas, analytic values) in "The models" above, their one
 > home. Step 11 fills one row per model and diagnostic, and checks each value against an independent source.
 
+Checked at step 11 (2026-10-01) by the scripts in `../checks/`, written from the specs: no EMA code, and no v1
+code except in `truths_v1.py`, which is v1 as a second source; only numpy, scipy, and `refmodels.py` (the
+models above). Each prints spec value, recomputed value, and tolerance, and its output is saved beside it
+(`<name>.out`). They run in about 7 minutes in all, with any Python ≥ 3.12 that has numpy and scipy. "Agrees"
+means every number in the spec's table matched the recomputation within its tolerance, and every tolerance
+"5 × the standard deviation over 100 designs" recomputed within 15% (an SD from 100 designs is uncertain by
+about 7%), or is looser than needed (the polynomial model's R2 x3 first-order: 10⁻⁵, against 4.8·10⁻⁹),
+after step 11's corrections (0052's plain errors, and 0058).
+
+- **The models' own truths** (above): `truths.py`, 59 checks (Monte Carlo cross-checks: N = 2²⁰, seed
+  20261001); `truths_v1.py` runs v1's functions and Sobol estimator in v1's environment: v1's `ishigami` and
+  `borehole` are R2 and R3 bit for bit (v1's r is linear), `linear` and `legendre_sparse` are R1 and R10 without
+  k and without the a·c term, and its indices agree with the analytic ones to 0.005.
+- **Tolerances "5 × the standard deviation over 100 designs"** are recomputed at seeds 1–100, 20,000 runs each;
+  the expected values at seed 0 pass them.
+- **Rows with no number** (notes, "estimates present", "equal to the diagnostic on the usable runs alone") are
+  checked by EMA's tests, not here; their inputs (R4b's spread, R5's regions) are in `truths.py`.
+
 | Model | Diagnostic spec table | Independent check (script, seed, result) |
 |---|---|---|
-| <R…> | <`diagnostics/<name>.md`, Expected answers> | <…> |
+| R1 | `diagnostics/point_run.md` | `point_run.py`: R1(nominal) = 10 exactly; agrees |
+| R1 | `diagnostics/scatter.md` | `scatter.py`: analytic S; ρ by quasi-Monte Carlo (8 × 2²² scrambled Sobol points, seeds 1000–1007), and brute force (2·10⁶, seed 20261001); agrees |
+| R1 | `diagnostics/coordinate_lines.md`, `diagnostics/lines.md` | `gram_rates.py`: k* by exact rational arithmetic; random lines at seed 0; agrees |
+| R1 | `diagnostics/linear_model.md`, `diagnostics/polynomial_model.md` | `linear_model.py`, `polynomial_model.py`: exact to 10⁻¹⁴; agrees |
+| R2 | `diagnostics/scatter.md` | `scatter.py`: analytic; ρ as R1's; the mock report (n = 200, seed 1); agrees |
+| R2 | `diagnostics/coordinate_lines.md`, `diagnostics/lines.md` | `gram_rates.py`: along x3; the shift 2⁻¹⁰·y + 3 (worst 1.6·10⁻⁶); agrees |
+| R2 | `diagnostics/linear_model.md` | `linear_model.py`: analytic; agrees |
+| R2 | `diagnostics/polynomial_model.md` | `polynomial_model.py`: the degree-10 projection by Gauss–Legendre (60 points per model parameter; 80 agree to 10⁻¹³), and analytic Sobol indices; agrees |
+| R3 | `diagnostics/coordinate_lines.md` | `gram_rates.py`: the eight rates at n = 17 by exact rational arithmetic, and by Lanczos in doubles (within 5.5·10⁻⁶); one ulp in each y moves r's rate by up to 7.5·10⁻⁵, two by 1.5·10⁻⁴ (worst signs); agrees |
+| R3 | `diagnostics/linear_model.md` | `linear_model.py`: tensor Gauss–Legendre at 6, 8, 10 points per model parameter (equal to every digit), and brute force (2·10⁶, seed 20261001); the mock report (seed 3) with its bootstrap intervals; agrees |
+| R3 | `diagnostics/polynomial_model.md` | `polynomial_model.py`: the mock report (seed 3), and the degree-2 comparison by quadrature; `truths.py`: the model's own total indices by Gauss–Legendre (7 and 8 points per model parameter); agrees (a golden report only, no known answer) |
+| R4a, R4b | every diagnostic spec | `truths.py`, `scatter.py`: R4b's relative spread 8.000·10⁻¹³ analytically, 8.0007·10⁻¹³ at n = 20,000, seed 0; the rest has no number |
+| R5 | every diagnostic spec | `truths.py`: the regions' measures 1/8 and 1/100, disjoint; z missing on 0.055 of the space; `scatter.py`: at n = 200, seed 0, 29 errors, 3 timeouts, 13 more missing z; `gram_rates.py`: z along b at n = 17 (15 of 17 usable), and random lines at seed 0 (line 3: 2 errors, 2 timeouts; line 4: 2 missing z) |
+| R6a, R6b | `diagnostics/point_run.md` | `point_run.py`: the χ² bounds with 100 degrees of freedom, [0.6735, 1.3603]; 20,000 simulated point runs each, none outside; agrees |
+| R7 | `diagnostics/coordinate_lines.md` | `gram_rates.py`: exact rational arithmetic, n = 17 … 129, and the features off the grids; agrees |
+| R7 | `diagnostics/lines.md` | `gram_rates.py`: random lines at seed 0, the given (1, 1) line, the mock report; agrees |
+| R7 | `diagnostics/linear_model.md` | `linear_model.py`: Gauss–Legendre with the kink split out; agrees |
+| R8 | `diagnostics/coordinate_lines.md` | `gram_rates.py`: R7's rates, 97 distinct points, f and g constant, the mock report; agrees |
+| R10 | `diagnostics/scatter.md` | `scatter.py`: analytic; ρ as R1's; agrees |
+| R10 | `diagnostics/coordinate_lines.md`, `diagnostics/lines.md` | `gram_rates.py`: k*; the two given lines (0058); agrees |
+| R10 | `diagnostics/linear_model.md`, `diagnostics/polynomial_model.md` | `linear_model.py`, `polynomial_model.py`: analytic, exact to 10⁻¹⁴; agrees |
+| R11 | `diagnostics/coordinate_lines.md` (R7 along c), `diagnostics/lines.md` | `gram_rates.py`: rates against the Bernstein ellipses, n = 33, 65, 129; agrees |
+| R11 | `diagnostics/polynomial_model.md` | `polynomial_model.py`, `truths.py`: c_k by Gauss–Legendre (200 points) and scipy's `quad`; agrees |

@@ -1,6 +1,6 @@
 # Scatter
 
-**Status:** accepted. **Updated:** 2026-10-01. **Module:** `ema/diagnostics/scatter.py`. **Depends on:**
+**Status:** accepted. **Updated:** 2026-10-01 (step 11). **Module:** `ema/diagnostics/scatter.py`. **Depends on:**
 `shared.md`; `../designs.md`; records 0012, 0032, 0034, 0035, 0037, 0042, 0044, 0048, 0049, 0051, 0052.
 
 > The model prediction against each model parameter, over a uniform design (U1). Written from an interview on
@@ -121,7 +121,7 @@ OD-12, for scatter: **the bootstrap over the usable runs** (`../uncertainty.md`,
 
 On R2 (Ishigami), U1's request: n = 200, seed 1. The numbers are computed: the design from
 `default_rng(1).random((200, 3))`, which is the `random` sampler's rows (0032), and the bootstrap from the
-stream above (a scratch script, 2026-09-30; step 11 checks them).
+stream above; checked at step 11 by `../../checks/scatter.py`.
 
 ```markdown
 # Scatter: R2, y
@@ -191,26 +191,25 @@ EMA 2.0.0; numpy 2.3.1, scipy 1.16.0, matplotlib 3.10.0; model version R2@8e41; 
 space as above, n = 200, sampler random 1, seed 1, prediction y; runs: 200; approvals: 5b7e (200 new runs).
 ```
 
-(For comparison, the true values: mean 3.5, standard deviation 3.721; ρ 0.4371, 0, 0; first-order indices
+(For comparison, the true values: mean 3.5, standard deviation 3.721; ρ 0.4374, 0, 0; first-order indices
 0.3139, 0.4424, 0.)
 
 ## Expected answers
 
 Each at n = 20,000 (`KNOWN_ANSWER_N`, `shared.md`), seed 0, `random` sampler. The tolerance is 5
 (`KNOWN_ANSWER_SDS`, `shared.md`) × the estimate's standard deviation over 100 designs (seeds 1–100) at that n,
-computed by a scratch script on 2026-09-30; step 11 recomputes it with a separate script, and records its size
-and seed.
+recomputed at step 11 by `../../checks/scatter.py` (its output, with sizes and seeds: `scatter.out`).
 
 | Reference model | Quantity | Expected | Tolerance | Source |
 |---|---|---|---|---|
 | R1 | mean; standard deviation | 10; 2.160 (√(14/3)) | 0.089; 0.045 | analytic |
-| R1 | ρ: a, b, c, k | 0.8075, −0.2530, 0, 0.5158 | 0.012, 0.034, 0.036, 0.027 | brute force (2·10⁶ points; c: 0 by symmetry) |
+| R1 | ρ: a, b, c, k | 0.8073, −0.2525, 0, 0.5156 | 0.012, 0.034, 0.036, 0.027 | quasi-Monte Carlo (8 × 2²² scrambled Sobol points; c: 0 by symmetry) |
 | R1 | S: a, b, c, k | 9/14, 1/14, 0, 4/14 | 0.017, 0.018, 0.004, 0.026 | analytic |
 | R2 | mean; standard deviation | 3.5; 3.721 | 0.12; 0.11 | analytic |
-| R2 | ρ: x1, x2, x3 | 0.4371, 0, 0 | 0.026, 0.038, 0.043 | brute force (x2, x3: 0 by symmetry) |
+| R2 | ρ: x1, x2, x3 | 0.4374, 0, 0 | 0.026, 0.038, 0.043 | quasi-Monte Carlo, as R1's (x2, x3: 0 by symmetry) |
 | R2 | S: x1, x2, x3 | 0.3139, 0.4424, 0 | 0.022, 0.027, 0.006 | analytic |
 | R10 | mean; standard deviation | 0; 2.550 (√6.5) | 0.094; 0.070 | analytic |
-| R10 | ρ: a, b, c, e | 0.7978, 0, 0.000, 0 | 0.017, 0.036, 0.040, 0.034 | brute force (b, e: 0 by symmetry) |
+| R10 | ρ: a, b, c, e | 0.7980, 0, 0.000, 0 | 0.017, 0.036, 0.040, 0.034 | quasi-Monte Carlo, as R1's (b, e: 0 by symmetry) |
 | R10 | S: a, b, c, e | 0.6154, 0.0385, 0, 0 | 0.021, 0.013, 0.006, 0.004 | analytic |
 | R4a | notes; estimates | the "constant" note; none | exact | trivial |
 | R4b | estimates; relative spread | present; about 8·10⁻¹³ | the spread within 1% | analytic (0035) |
@@ -248,4 +247,4 @@ and seed.
 
 ## What this spec asks of other documents
 
-- **Reference models (step 11):** the expected answers above, recomputed by a separate script.
+- **Reference models (step 11):** the expected answers above, recomputed by `../../checks/scatter.py`.

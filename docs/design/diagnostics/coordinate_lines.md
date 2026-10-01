@@ -1,8 +1,8 @@
 # Coordinate lines
 
-**Status:** accepted. **Updated:** 2026-10-01 (the mock's Provenance, 0054). **Module:**
+**Status:** accepted. **Updated:** 2026-10-01 (the mock's Provenance, 0054; step 11, 0058). **Module:**
 `ema/diagnostics/coordinate_lines.py`. **Depends on:**
-`shared.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0051, 0052.
+`shared.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0051, 0052, 0058.
 
 > The model prediction along one line per varied model parameter, through an anchor, and the spectrum of each
 > line (U2). Written from an interview on 2026-09-30 (TODO step 6). Everything not stated here
@@ -68,8 +68,8 @@ values y_j.
   points, which EMA never does.
 - **Computed** by the Lanczos process on the n points with full reorthogonalization, from the start vector of
   ones. Not by the Gram polynomials' three-term recurrence: in doubles it loses orthonormality (10⁻⁸ at
-  n = 33, 10³ at n = 65). Lanczos agrees with exact rational arithmetic to 10⁻¹⁶ of the line's range at
-  n = 17, 65, and 129 (a scratch script, 2026-09-30).
+  n = 33, 0.4 at n = 65). On R7's lines, Lanczos agrees with exact rational arithmetic within 4·10⁻¹⁶ of the line's
+  range at n = 17, 65, and 129 (`../../checks/gram_rates.py`).
 - **Why Gram:** the coefficients' decay tells a polynomial approximation's convergence along the line: geometric
   for an analytic line, algebraic for a kink or a jump, flat at the level of noise, and zero past the degree
   of a polynomial. It is the same spectrum, in one dimension, as the polynomial model's decay of its
@@ -92,7 +92,7 @@ values y_j.
    (`LINE_RATE_MIN_DEGREES`). With k* < 3 there is no rate, and k* says why: an exactly linear line (R1) has
    k* = 1, a quadratic one (R10 along b) k* = 2, each a polynomial of that degree to 10⁻¹⁰ of its range.
 
-What it gives on the reference models (a scratch script, 2026-09-30; n = 9, 17, 33, 65, 129; in brackets,
+What it gives on the reference models (checked at step 11 by `../../checks/gram_rates.py`; n = 9, 17, 33, 65, 129; in brackets,
 k*/K at n = 33; R6a and R6b from one draw of their noise):
 
 | Line, through the nominal point | 9 | 17 | 33 | 65 | 129 |
@@ -194,7 +194,7 @@ points per line reuses every run (G11), and its rates show whether they converge
 ## Mock report
 
 U2 on R8 (R7 as a command-line program), n = 17, after the interrupted evaluation and its rerun. The numbers
-are computed (a scratch script, 2026-09-30; step 11 checks them); the hashes are placeholders.
+are computed (checked at step 11 by `../../checks/gram_rates.py`); the hashes are placeholders.
 
 ```markdown
 # Coordinate lines: R8, y
@@ -257,22 +257,24 @@ jump halve, and the analytic line moves toward log₁₀ φ = 0.2090.
 
 Through the nominal point unless stated. "Exact rational arithmetic" is an independent computation of the
 Gram coefficients from the runs' doubles, in Python's `fractions` with the monic three-term recurrence
-(β_k = k²(n² − k²)/((n − 1)²(4k² − 1)) on s_j), then the rate in doubles; it agreed with Lanczos to 10⁻¹⁶ of the
-range (scratch script, 2026-09-30). Step 11 recomputes every value with it.
+(β_k = k²(n² − k²)/((n − 1)²(4k² − 1)) on s_j), then the rate in doubles; it agreed with Lanczos within 4·10⁻¹⁶ of the
+range on R7's lines (2·10⁻¹⁴ on R3's r). Step 11 recomputed every value with it, and by Lanczos: `../../checks/gram_rates.py` (its output:
+`gram_rates.out`). Rates with a tolerance of 10⁻⁶ are given to 7 digits.
 
 | Reference model | Quantity | Expected | Tolerance | Source |
 |---|---|---|---|---|
-| R7 and R8, n = 17 | rate along a, b, c, e | 0.1811, 0.06916, 0.1957, 0.1811 | 10⁻⁶ | exact rational arithmetic |
-| R7 and R8, n = 33 | rate along a, b, c, e | 0.1103, 0.0375, 0.2088, 0.1103 | 10⁻⁶ | exact rational arithmetic |
+| R7 and R8, n = 17 | rate along a, b, c, e | 0.1811111, 0.06916461, 0.1957442, 0.1811111 | 10⁻⁶ | exact rational arithmetic |
+| R7 and R8, n = 33 | rate along a, b, c, e | 0.1103366, 0.03749946, 0.2088262, 0.1103366 | 10⁻⁶ | exact rational arithmetic |
 | R7 along c (R11's g), n = 33, 65, 129 | rate | log₁₀ φ = 0.2090 | 0.01 | analytic: the Bernstein ellipse through the poles ±i/2 (computed: 0.2088, 0.2136, 0.2112) |
-| R7 along a and b, n = 17 → 33 → 65 → 129 | each rate over the one before | 0.61, 0.51, 0.55 (a); 0.54, 0.52, 0.52 (b) | within [0.45, 0.65] | brute force (scratch script) |
+| R7 along a and b, n = 17 → 33 → 65 → 129 | each rate over the one before | 0.61, 0.51, 0.55 (a); 0.54, 0.52, 0.52 (b) | within [0.45, 0.65] | brute force (`../../checks/gram_rates.py`) |
 | R7 along c, n = 17 → 33 → 65 → 129 | each rate over the one before | 1.07, 1.02, 0.99 | within [0.95, 1.1] | brute force |
 | R8 along f and g | notes; rate | one note each; none: constant | exact | by construction |
 | R8, n = 17 | the report | the mock report above | golden report (`shared.md`: structure, and numbers within one unit in the 4th digit) and data cards | this spec |
-| R1, every line (k on a log range) | k*; rate | 1; none | exact | analytic: linear in unit coordinates |
+| R1 along a, b, k (k on a log range) | k*; rate | 1; none | exact | analytic: linear in unit coordinates |
+| R1 along c | note; rate | one note; none: constant | exact | analytic: c has no effect |
 | R10 along a, b, c, e | k* | 1, 2, 0, 0 (c and e constant: notes) | exact | analytic |
 | R2 along x3 | note | "y is the same in all 17 usable runs along x3: 0" | exact | analytic (sin 0 = 0) |
-| R3, n = 17 | rate along each line | from exact rational arithmetic (step 11) | 10⁻⁶ | exact rational arithmetic |
+| R3, n = 17 | rate along rw, r, Tu, Hu, Tl, Hl, L, Kw; k* | 1.642241, 3.143281, 0.8161252, none, 0.8160101, none, 0.9904442, 3.630201; 7, 4, 8, 1, 8, 1, 8, 3 | 2·10⁻⁴ (0058: along r, y varies by only 10⁻³ of itself, so y differing in its last bit between machines (the model's `log`; P4 covers the same runs only) moves the rate: by up to 7.5·10⁻⁵ for one ulp in each y, 1.5·10⁻⁴ for two); k* exact | exact rational arithmetic (Hu, Hl: y is linear in Hu − Hl) |
 | R4a | notes; each line | the shared "constant" note only; none: constant | exact | trivial |
 | R4b | each line | a rate with k* ≥ 3; no note | exact | 0035 |
 | R5, prediction z, n = 17 | line along b | 15 of 17 usable (b = 0.875 and 1 missing); none: 2 runs not usable | exact | by construction |
@@ -283,12 +285,12 @@ range (scratch script, 2026-09-30). Step 11 recomputes every value with it.
 | Name | Value | Meaning | Why this value |
 |---|---|---|---|
 | `LINE_RATE_FLOOR` | 10⁻¹⁰ | the tail T(k) is fitted while above this fraction of the line's range | ten decades to fit; keeps rounding out unless the line's range is below about 10⁻⁶ of \|y\|; at 10⁻¹³, R3's r line lets rounding in |
-| `LINE_RATE_WINDOW` | ½ | the fit uses degrees 1 … ⌊(n − 1)/2⌋ | analytic lines converge (0.196, 0.209, 0.214), and kinks halve with each refinement; with every degree, R7's analytic line doesn't converge (0.246, 0.255, 0.225) |
+| `LINE_RATE_WINDOW` | ½ | the fit uses degrees 1 … ⌊(n − 1)/2⌋ | analytic lines converge (0.196, 0.209, 0.214), and kinks halve with each refinement; with every degree, R7's analytic line wanders (0.246, 0.255, 0.223 at n = 17, 33, 65) |
 | `LINE_RATE_MIN_DEGREES` | 3 | the fewest degrees a rate is fitted to | a slope from at least 3 points |
 | `COORD_N` | 17 | the default number of points per line | U2's; 2⁴ + 1, so reruns at 33 and 65 reuse every run |
 | `COORD_MIN_N` | 7 | the smallest n accepted | K = ⌊(n − 1)/2⌋ ≥ `LINE_RATE_MIN_DEGREES` |
 | `SPECTRUM_YMIN` | 10⁻¹⁷ | the spectrum panel's lower y limit; a value below it is an open marker on the bottom edge (0048) | below double rounding of \|c_k\| / range for a line at the scale of its values |
-| `RATE_SHIFT_TOL` | 10⁻⁵ | how far a decay rate may move under y → a·y + b; under a·y alone, 10⁻¹² (`UNITS_LOG_TOL`, `../contracts.md`) | where a line's tail reaches the floor before the window ends, a shift's lost bits are a large share of the smallest tail values: the worst change measured on R2's and R7's lines (n = 17 to 65) was 1.2·10⁻⁶ (0048) |
+| `RATE_SHIFT_TOL` | 10⁻⁵ | how far a decay rate may move under y → a·y + b; under a·y alone, 10⁻¹² (`UNITS_LOG_TOL`, `../contracts.md`) | where a line's tail reaches the floor before the window ends, a shift's lost bits are a large share of the smallest tail values: the worst change measured on R2's and R7's lines (n = 17 to 65) was 1.2·10⁻⁶ (0048), and 1.6·10⁻⁶ at step 11 (R2 along x1, n = 33) |
 | `COORD_MIN_RUNS` | 1 | the fewest usable runs for a diagnostic result with observations | the shared observations need one; there are no estimates |
 
 ## Requirements
@@ -315,4 +317,4 @@ range (scratch script, 2026-09-30). Step 11 recomputes every value with it.
 
 - **Architecture (step 9):** `fourier.py` becomes the Gram spectrum (`gram.py`); the diagnostics table's
   coordinate lines row.
-- **Reference models (step 11):** step 11 recomputes the rates in "Expected answers".
+- **Reference models (step 11):** the rates in "Expected answers", recomputed (done: `../../checks/gram_rates.py`).

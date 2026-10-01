@@ -1,0 +1,63 @@
+| Model | Quantity | Stated | Computed | |
+|---|---|---|---|---|
+| R1 | unit-coordinate coefficients (1, a, b, c, k) | 10; 3, -1, 0, 2 | 10, 3, -1, 8.84788776795259e-16, 2 (max residual 1.2e-14) | ok |
+| R1 | R1(nominal) in doubles | 10 exactly | 10.0 | ok |
+| R1 | log10(10) in doubles | 1 exactly | 1.0 | ok |
+| R2 | variance (closed form) | 13.84 (linear_model.md) | 13.844588 | ok |
+| R2 | x1 first-order; total (closed form) | 0.3139; 0.5576 | 0.313905; 0.557589 | ok |
+| R2 | x2 first-order; total (closed form) | 0.4424; 0.4424 | 0.442411; 0.442411 | ok |
+| R2 | x3 first-order; total (closed form) | 0.0; 0.2437 | 0.000000; 0.243684 | ok |
+| R2 | mean (closed form: 7/2) | 3.5 | 3.5 | ok |
+| R2 | x1 first-order; total (Monte Carlo, N = 2^20, seed 20261001) | 0.3139; 0.5576 | 0.3133; 0.5564 | ok |
+| R2 | x2 first-order; total (Monte Carlo, N = 2^20, seed 20261001) | 0.4424; 0.4424 | 0.4429; 0.4425 | ok |
+| R2 | x3 first-order; total (Monte Carlo, N = 2^20, seed 20261001) | 0.0; 0.2437 | 0.0000; 0.2429 | ok |
+| R3 | rw: nominal at the center | 0.1 | center 0.1; unit coordinate 2.2e-16 | ok |
+| R3 | r: nominal at the geometric center | 2236.06797749979 | center 2236.06797749979; unit coordinate 0.0e+00 | ok |
+| R3 | Tu: nominal at the center | 89335 | center 89335.0; unit coordinate 0.0e+00 | ok |
+| R3 | Hu: nominal at the center | 1050 | center 1050.0; unit coordinate 0.0e+00 | ok |
+| R3 | Tl: nominal at the center | 89.55 | center 89.55; unit coordinate -1.1e-16 | ok |
+| R3 | Hl: nominal at the center | 760 | center 760.0; unit coordinate 0.0e+00 | ok |
+| R3 | L: nominal at the center | 1400 | center 1400.0; unit coordinate 0.0e+00 | ok |
+| R3 | Kw: nominal at the center | 10950 | center 10950.0; unit coordinate 0.0e+00 | ok |
+| R4b | relative spread (max - min)/max|y|, analytic | about 8e-13 | 8.0000e-13 | ok |
+| R4b | relative spread at n = 20,000, seed 0 | about 8e-13 | 8.0007e-13 (4353 distinct doubles) | ok |
+| R4a | distinct values at n = 20,000 | 1 | 1 | ok |
+| R5 | error region a + b > 1: share of the space | 1/8 | 1/8 | ok |
+| R5 | timeout region a, b < -0.8: share | 1/100 | 1/100 | ok |
+| R5 | error and timeout regions overlap | no (implied) | 0 of 4e6 points in both | ok |
+| R5 | z missing (b > 0.8, not failed): share | not stated | 11/200 = 0.055; Monte Carlo (4e6, seed 5) 0.0549 | ok |
+| R5 | error and timeout shares, Monte Carlo (4e6, seed 5) | 0.125; 0.01 | 0.1251; 0.0101 | ok |
+| R6b | standard deviation 1e-8 * R1(nominal) | 1e-7 | 1e-07 | ok |
+| R7 | (1, 1) line through nominal crosses the kink at | a = e = 0.3 | a = e = 0.3 (a + e - 0.6 = 0.0e+00) | ok |
+| R7 | kink z = 0.6 (a, e), jump z = 0.2 (b), diagonal kink 0.3: on the grid at n = 17 | none | none | ok |
+| R7 | kink z = 0.6 (a, e), jump z = 0.2 (b), diagonal kink 0.3: on the grid at n = 33 | none | none | ok |
+| R7 | kink z = 0.6 (a, e), jump z = 0.2 (b), diagonal kink 0.3: on the grid at n = 65 | none | none | ok |
+| R7 | kink z = 0.6 (a, e), jump z = 0.2 (b), diagonal kink 0.3: on the grid at n = 129 | none | none | ok |
+| R3 | rw total index (Gauss-Legendre, 7 and 8 points per model parameter) | 0.8669 | 0.86694 (5e-13 from 7 points) | ok |
+| R3 | r total index (Gauss-Legendre, 7 and 8 points per model parameter) | 0 | 0.00001 (5e-16 from 7 points) | ok |
+| R3 | Tu total index (Gauss-Legendre, 7 and 8 points per model parameter) | 0 | 0.00000 (1e-20 from 7 points) | ok |
+| R3 | Hu total index (Gauss-Legendre, 7 and 8 points per model parameter) | 0.054 | 0.05404 (3e-14 from 7 points) | ok |
+| R3 | Tl total index (Gauss-Legendre, 7 and 8 points per model parameter) | 0 | 0.00001 (1e-14 from 7 points) | ok |
+| R3 | Hl total index (Gauss-Legendre, 7 and 8 points per model parameter) | 0.054 | 0.05404 (3e-14 from 7 points) | ok |
+| R3 | L total index (Gauss-Legendre, 7 and 8 points per model parameter) | 0.0522 | 0.05217 (7e-13 from 7 points) | ok |
+| R3 | Kw total index (Gauss-Legendre, 7 and 8 points per model parameter) | 0.0128 | 0.01275 (8e-15 from 7 points) | ok |
+| R8 | distinct points of its coordinate lines, n = 17 | 97 (102 rows) | 97 (102 rows) | ok |
+| R10 | variance | 6.5 | 6.5 | ok |
+| R10 | a first-order; total | 0.6154; 0.9615 | 0.615385; 0.961538 | ok |
+| R10 | b first-order; total | 0.0385; 0.0385 | 0.038462; 0.038462 | ok |
+| R10 | c first-order; total | 0; 0.3462 | 0.000000; 0.346154 | ok |
+| R10 | e first-order; total | 0; 0 | 0.000000; 0.000000 | ok |
+| R10 | first-order; total, Monte Carlo (N = 2^20, seed 20261001) | as above | 0.6146; 0.0385; -0.0003; 0.0000 | 0.9612; 0.0385; 0.3463; 0.0000 | ok |
+| R11 | c_0 (Gauss-Legendre, 200 points; scipy quad) | 0.5536 | 0.5535744; 0.5535744 | ok |
+| R11 | c_2 (Gauss-Legendre, 200 points; scipy quad) | -0.2446 | -0.2445757; -0.2445757 | ok |
+| R11 | c_4 (Gauss-Legendre, 200 points; scipy quad) | 0.09474 | 0.0947405; 0.0947405 | ok |
+| R11 | c_6 (Gauss-Legendre, 200 points; scipy quad) | -0.03637 | -0.0363657; -0.0363657 | ok |
+| R11 | c_0 analytic, arctan(2)/2 | 0.5536 | 0.5535743589 | ok |
+| R11 | odd coefficients | zero | max |c_odd| = 2.8e-17 | ok |
+| R11 | c_2 / c_4 | -2.58 | -2.58153 | ok |
+| R11 | c_18 / c_20 | -2.617 | -2.61719 | ok |
+| R11 | limit of c_k / c_(k+2) | -phi^2 = -2.61803 | c_38/c_40 = -2.61785 | ok |
+| R11 | first-order; total (a, b), the full function (for the record) | not stated (polynomial_model.md's 0.4486 is the degree-10 projection's) | 0.448522; 0.551478 | ok |
+| R11 | first-order; total (a, b), the degree-10 projection | 0.448617; 0.551383 (polynomial_model.md) | 0.448617; 0.551383 | ok |
+
+59 ok, 0 differ; numpy 2.5.3; 8.4 s

@@ -83,3 +83,4 @@ Write one when a choice:
 | 0055 | Replay a diagnostic result from a provenance that survives its deletion; write ids in reports at a fixed length; correct 0054's example | accepted | 2026-10-01 |
 | 0056 | Make the layers architecture rules, use a Workspace object, serve figures as MCP resources, type the use cases against the workspace, add three store reads, and allow a Store per thread | accepted | 2026-10-01 |
 | 0057 | Give a model an allowlisted environment, confine the MCP server to a root, and check a spec's paths | accepted | 2026-10-01 |
+| 0058 | Drop the kink-line known answer, and set two tolerances from step 11's checks | accepted | 2026-10-01 |
