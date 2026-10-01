@@ -20,6 +20,8 @@ One report per diagnostic evaluation, in Markdown with TeX math and PNG figures 
    - **Held:** each held model parameter and its value, marked "held value" or "nominal" (0023, 0033).
    - **Design:** the design generator and its parameters, with the sampler, its version, and the seed where
      the design has them.
+   - **The diagnostic's own rows,** only where its spec adds them, after Design: the polynomial model's Fit
+     (degree, basis, and number of terms).
    - **Runs:** the total; new and reused; failed, by kind (error, timeout, unread); missing this model
      prediction; usable.
 3. **Notes,** only if there are any.
@@ -126,6 +128,7 @@ One precheck, in the diagnostic base, before `compute` (P6):
 | coordinate lines | none | no random draws (`coordinate_lines.md`) |
 | lines | none | no draws of its own; random lines' anchors and directions are the design's streams (`lines.md`) |
 | linear model | 2³² + 2 | the bootstrap's resamples (`linear_model.md`) |
+| polynomial model | 2³² + 3 | the bootstrap's resamples (`polynomial_model.md`) |
 
 ## Bootstrap
 

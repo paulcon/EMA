@@ -19,9 +19,15 @@
   - Accepted: the linear model (`linear_model.md`): least squares in unit coordinates over a convergent
     design (n_min 2(d + 1), alpha 0.7072, level 2); relative residual, R², leave-one-out error; bootstrap
     intervals; the fit at each level as observations; subsampling intervals planned as a later method.
-  - Next: the polynomial model, interviewed as scatter was (`scatter.md` is the pattern; `shared.md` holds
-    what they share). OD-12 is decided in each spec (the point run: none; scatter and the linear model: the
-    bootstrap; coordinate lines and lines: none), and recorded at the end of step 6.
+  - Accepted: the polynomial model (`polynomial_model.md`): least squares in the orthonormal Legendre
+    terms of total degree ≤ p (default 2; a `basis` seam), over a convergent design (n_min 2P, alpha 0.7072,
+    level 2); relative residual, R², LOO; the Sobol indices of the fitted polynomial; the root energy √E_k at
+    each total degree, with no rate; bootstrap intervals; no cap on terms, with progress during the analysis.
+    Record 0039 (the polynomial model plots y against its fitted and held-out predictions; its shadows come
+    with the active subspace) accepted and applied to U4, scope, and the glossary.
+  - Next: review and accept the drafts `shared.md`, `point_run.md`, `scatter.md`,
+    `coordinate_lines.md`; then record OD-12 (the point run, coordinate lines, lines: none; scatter, the linear
+    and polynomial models: the bootstrap), and close step 6.
 
 ## Done
 
@@ -107,7 +113,7 @@
 | `docs/design/use_cases.md` | accepted |
 | `docs/design/model_interface.md` | accepted |
 | `docs/design/designs.md` | accepted |
-| `docs/design/diagnostics/` | `lines.md`, `linear_model.md` accepted; `shared.md`, `point_run.md`, `scatter.md`, `coordinate_lines.md` draft; one to write |
+| `docs/design/diagnostics/` | `lines.md`, `linear_model.md`, `polynomial_model.md` accepted; `shared.md`, `point_run.md`, `scatter.md`, `coordinate_lines.md` draft |
 | `docs/design/uncertainty.md` | empty |
 | `docs/design/contracts.md` | empty |
 | `docs/design/data_model.md` | template |

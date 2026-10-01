@@ -58,3 +58,4 @@ Write one when a choice:
 | 0036 | Let a diagnostic result hold observations without estimates or a note | accepted | 2026-09-30 |
 | 0037 | Show runs that aren't usable along each model parameter only; two-model-parameter plots later | accepted | 2026-09-30 |
 | 0038 | Report each coordinate line's Gram spectrum, and its decay rate as an observation | accepted | 2026-09-30 |
+| 0039 | Plot the polynomial model's fit against y; its shadows come with the active subspace | accepted | 2026-09-30 |

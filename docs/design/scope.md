@@ -1,6 +1,6 @@
 # Scope of v2.0
 
-**Status:** accepted. **Updated:** 2026-09-30 (0022, 0025, 0037). **Depends on:** OD-2 (0006), OD-5 (0012), OD-6 (0014),
+**Status:** accepted. **Updated:** 2026-09-30 (0022, 0025, 0037, 0039). **Depends on:** OD-2 (0006), OD-5 (0012), OD-6 (0014),
 OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
 
 > What the first release does, what it explicitly doesn't, and the size budgets that keep it small. When
@@ -24,8 +24,8 @@ OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
 
 - **Lines** draws m random lines, or takes lines the analyst gives, each an anchor and a direction (0012).
 - **The polynomial model's report** has U4's lean set (the residual and cross-validated error, the Sobol
-  first-order and total indices, a 1-D shadow, a histogram of the residuals) and the decay of its
-  coefficients (0012).
+  first-order and total indices, the model prediction against the fitted and held-out predictions, a histogram
+  of the residuals) and the decay of its coefficients (0012, 0039).
 - **Ready for parallel and remote runs (0015).** The later specs provide: only the main process writes the
   store; runs are counted against the approval when they start; each run has its own run directory; a
   diagnostic result doesn't depend on the order runs finish; a run has three phases (prepare, execute,
@@ -38,7 +38,7 @@ OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
 
 - **Diagnostic campaigns**, studies that vary the model parameter space, and synthesis or comparison across
   diagnostic evaluations: a later version, with its own decision record (0005, 0006).
-- **The active subspace and a 2-D shadow** in the polynomial model's report: later, each with its own
+- **The active subspace and its 1-D and 2-D shadows** in the polynomial model's report (0039): later, each with its own
   estimator, figure, and known answers (0012).
 - **Quadrature and sparse grids:** later, with a projection path in the polynomial model (0013).
 - **Formula models** (v1's third kind): not planned; a formula is a one-line Python function (0014).

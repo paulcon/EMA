@@ -1,6 +1,6 @@
 # Use cases
 
-**Status:** accepted. **Updated:** 2026-09-30 (U9 added by 0016; U2's model spec follows `model_interface.md`; U3's failure map dropped by 0037; U2's per-line numbers by 0038).
+**Status:** accepted. **Updated:** 2026-09-30 (U9 added by 0016; U2's model spec follows `model_interface.md`; U3's failure map dropped by 0037; U2's per-line numbers by 0038; U4's polynomial figures by 0039).
 
 > Each use case is a short scenario from the analyst's side: who they are, what model they have, what they
 > want to learn, what they type (in Python or the CLI), what EMA asks them, and the report they get. Write
@@ -294,12 +294,13 @@
   (step 6); the lean set is:
   - numbers: the fit's residual and cross-validated error, and the Sobol first-order and total indices, each
     with its variability interval (for example, convergence over the design's levels, OD-12);
-  - figures: a 1-D shadow (the model prediction against the fitted polynomial), the Sobol indices with their
-    intervals, and a histogram of the residuals.
+  - figures: the model prediction against the fitted polynomial and against its held-out predictions (0039),
+    the Sobol indices with their intervals, and a histogram of the residuals.
 
   The linear model's report has its coefficients with intervals, the 1-D shadow, the residual histogram, and
-  the residual norm. The active subspace, a 2-D shadow, and the decay of the coefficients are not in this
-  lean set; the decay of the coefficients is in v2.0 (0012); the active subspace and a 2-D shadow are not.
+  the residual norm. The active subspace, its 1-D and 2-D shadows, and the decay of the coefficients are not in
+  this lean set; the decay of the coefficients is in v2.0 (0012); the active subspace and its shadows are not
+  (0039).
 - **What they do next, outside EMA:**
   - build a polynomial surrogate of the chosen degree in a UQ tool, and use it for the uncertainty study;
   - export the stored runs, and fit the surrogate in their own tool (U5);
@@ -457,8 +458,8 @@ written.
 
 - **Scope (step 3), settled by 0012 and 0021:** v2.0 has six diagnostics: the five the use cases use, and
   lines (random or given; U2's single line). The polynomial model's report adds the decay of the coefficients
-  to U4's lean set; the active subspace and a 2-D shadow are not in v2.0. Models declared noisy are not in
-  v2.0, and U7 works as written.
+  to U4's lean set; the active subspace and its 1-D and 2-D shadows are not in v2.0 (0039). Models declared
+  noisy are not in v2.0, and U7 works as written.
 - **Model interface (step 4), settled by `model_interface.md` and records 0022–0030:** U2's model spec
   fields (`command`, `input_decks`, `files`, `parameters`, `predictions` with a regex parser, 0027) follow
   that spec. U6's `solver.cfg` is a listed file, copied into each run directory and part of the model version

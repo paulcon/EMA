@@ -1,6 +1,6 @@
 # Glossary
 
-**Status:** accepted. **Updated:** 2026-09-30 (records 0022–0024, 0031, 0033, 0034).
+**Status:** accepted. **Updated:** 2026-09-30 (records 0022–0024, 0031, 0033, 0034, 0039).
 
 > One word per idea, in your nomenclature, linked to the standard terms so readers (and the agent) can
 > connect them. The code, the docs, and the messages use these words. The Avoid column is advice for prose,
@@ -51,6 +51,7 @@
 | variability interval | how much an estimate changes when the runs behind it change (resampled, refined, or held out), reported with its method and settings; it carries no coverage probability (0004) | confidence interval, credible interval, bootstrap interval | confidence interval, CI, credible interval, error bar (except to explain the difference) |
 | note | a caveat about the data: failed runs, too few runs, a constant model prediction, a noisy model (P6, P7) | | warning |
 | figure | an image plus its data card | plot | |
+| shadow plot | a figure of the model prediction against the model parameters, in unit coordinates, projected on the first one (1-D) or two (2-D) eigenvectors of the gradient's second-moment matrix of a fitted approximation; for a linear fit, on the direction of its slopes (0039) | sufficient summary plot | |
 | data card | the JSON beside a figure recording what it shows | | |
 | report | the Markdown a diagnostic evaluation produces: a header, the diagnostic result with its figures, and its provenance | | |
 | workspace | the directory holding the store | | |
