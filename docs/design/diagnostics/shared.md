@@ -1,7 +1,7 @@
 # What every diagnostic shares
 
-**Status:** accepted. **Updated:** 2026-09-30. **Depends on:** P1, P2, P4, P5, P6; records 0004, 0010, 0018,
-0022, 0034, 0035, 0040.
+**Status:** accepted. **Updated:** 2026-10-01. **Depends on:** P1, P2, P4, P5, P6; records 0004, 0010, 0018,
+0022, 0034, 0035, 0040, 0042.
 
 > The parts of a diagnostic's spec that are the same for all six: the report's layout, how numbers are
 > written, the precheck, how runs that aren't usable are counted and drawn, and where a diagnostic's own
@@ -25,7 +25,8 @@ One report per diagnostic evaluation, in Markdown with TeX math and PNG figures 
    - **Runs:** the total; new and reused; failed, by kind (error, timeout, unread); missing this model
      prediction; usable.
 3. **Notes,** only if there are any.
-4. **Estimates:** tables of estimates, each with its variability interval.
+4. **Estimates:** one sentence explaining variability intervals (`EXPLAIN_INTERVALS`, below), then tables of
+   estimates, each with its variability interval.
 5. **Observations** (0034): numbers read or computed directly from the usable runs, with no interval.
 6. **Figures:** each PNG, its caption, and the name of its data card.
 7. **Provenance** (P5): EMA's version, the library versions, the model version, the request, the runs used,
@@ -39,8 +40,15 @@ One report per diagnostic evaluation, in Markdown with TeX math and PNG figures 
 
 ### Estimates
 
-- **One method per table.** Under each table, one line states its interval method and settings, and that the
-  intervals are not confidence intervals (0004). A table whose estimates use two methods is split.
+- **One explanation per report** (0042): the Estimates section opens with `EXPLAIN_INTERVALS`:
+
+  > Each variability interval shows how much its estimate changes when the runs behind it change, by the method
+  > named under its table; it is not a confidence interval, and carries no coverage probability.
+
+  It is the only place generated text says "confidence interval" (the glossary's terminology test). A report
+  with no Estimates section has no such sentence.
+- **One method per table.** Under each table, one line states its interval method and settings (0004). A table
+  whose estimates use two methods is split.
 
   ```markdown
   | Model parameter | Rank correlation | Variability interval |
@@ -49,13 +57,13 @@ One report per diagnostic evaluation, in Markdown with TeX math and PNG figures 
   | L | 0.8134 | [0.7768, 0.8446] |
 
   Variability intervals: bootstrap over the 200 usable runs, 1000 resamples, 0.5th to 99.5th percentiles,
-  seed 1. Not confidence intervals.
+  seed 1.
   ```
 
   (The numbers in this example are placeholders; each diagnostic's spec chooses its method, OD-12, and the
   bootstrap's defaults are below.)
-- **No interval:** when an estimate's method gives none (for example, too few runs to resample), its interval
-  cell says "none", and the line under the table says why.
+- **No interval:** when an estimate's method gives none (for example, fewer than 201 of the 1000 resamples
+  defined, `../uncertainty.md`), its interval cell says "none", and the line under the table says why (0042).
 
 ### Observations
 
@@ -171,6 +179,7 @@ The defaults for any diagnostic whose spec chooses the bootstrap (OD-12), set in
 | `NOTE_MAX_REASONS` | 5 | the most failure reasons a note lists verbatim | enough for the usual few causes; `failed_runs` has the rest |
 | `SPAWN_TAG_BASE` | 2³² | the smallest spawn key a diagnostic's own draws use | above every design stream's key (random lines' j) |
 | `BOOTSTRAP_RESAMPLES` | 1000 | resamples per bootstrap | percentiles stable to about 0.01 of the interval at this size (scatter interview) |
+| `EXPLAIN_INTERVALS` | the sentence above | the one explanation of variability intervals per report | 0004 asks reports to explain the difference from confidence intervals; once per report keeps the terminology test's exception to one sentence (0042) |
 | `BOOTSTRAP_PERCENTILES` | (0.5, 99.5) | the interval's ends | the owner's choice: wide, and still converging as resamples grow (scatter interview) |
 
 ## Requirements
@@ -180,7 +189,7 @@ The defaults for any diagnostic whose spec chooses the bootstrap (OD-12), set in
 | S1 | Every report has the sections above, in that order; empty Notes are left out. | A report for each diagnostic on R1: the section headings, in order. |
 | S2 | The header states the model version, the model prediction, the space with scales, the held model parameters with their values, the design with its seed, and the run counts by kind. | U3's `r1` on R5: 200 runs, failed by kind, missing z, usable; a held value and a nominal one. |
 | S3 | Every number in the report is `format(x, ".4g")` of the stored double. | Parse the report's numbers, compare with the diagnostic result. |
-| S4 | Each estimates table is followed by one line naming its interval method and settings. | Every table in each diagnostic's report on R2. |
+| S4 | Each estimates table is followed by one line naming its interval method and settings; the Estimates section opens with `EXPLAIN_INTERVALS`, the report's only use of "confidence interval" (0042). | Every table in each diagnostic's report on R2; the sentence once in each report with estimates, and absent from the point run's and the lines' reports. |
 | S5 | A model prediction is constant only when every usable run gives the same double; then counts, a note, and the observations, with no estimates. | R4a: the note, for every diagnostic; R4b: estimates, and a relative spread of 8·10⁻¹³. |
 | S6 | Fewer usable runs than a diagnostic's minimum give counts and a note, with no estimates. | Each diagnostic one run below, and at, its minimum. |
 | S7 | The note on runs not usable counts them by kind, and lists at most 5 reasons verbatim, with counts. | R5, y and z: counts by kind; a fixture with 7 distinct reasons: 5 listed, the rest summed. |

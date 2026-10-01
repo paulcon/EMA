@@ -1,7 +1,7 @@
 # Scatter
 
-**Status:** accepted. **Updated:** 2026-09-30. **Module:** `ema/diagnostics/scatter.py`. **Depends on:**
-`shared.md`; `../designs.md`; records 0012, 0032, 0034, 0035, 0037.
+**Status:** accepted. **Updated:** 2026-10-01. **Module:** `ema/diagnostics/scatter.py`. **Depends on:**
+`shared.md`; `../designs.md`; records 0012, 0032, 0034, 0035, 0037, 0042.
 
 > The model prediction against each model parameter, over a uniform design (U1). Written from an interview on
 > 2026-09-30 (TODO step 6). Everything not stated here follows `shared.md`.
@@ -141,10 +141,16 @@ stream above (a scratch script, 2026-09-30; step 11 checks them).
 
 ## Estimates
 
+Each variability interval shows how much its estimate changes when the runs behind it change, by the method named
+under its table; it is not a confidence interval, and carries no coverage probability.
+
 | Model prediction | Estimate | Variability interval |
 |---|---|---|
 | Mean | 3.582 | [2.906, 4.232] |
 | Standard deviation | 3.826 | [3.275, 4.299] |
+
+Variability intervals: bootstrap over the 200 usable runs, 1000 resamples, 0.5th to 99.5th percentiles,
+seed 1.
 
 | Model parameter | Rank correlation $\rho$ | Variability interval |
 |---|---|---|
@@ -153,7 +159,7 @@ stream above (a scratch script, 2026-09-30; step 11 checks them).
 | x3 | −0.009447 | [−0.2193, 0.1803] |
 
 Variability intervals: bootstrap over the 200 usable runs, 1000 resamples, 0.5th to 99.5th percentiles,
-seed 1. Not confidence intervals.
+seed 1.
 
 | Model parameter | Binned first-order index $S_i$ | Variability interval |
 |---|---|---|
@@ -162,7 +168,7 @@ seed 1. Not confidence intervals.
 | x3 | −0.004922 | [−0.07658, 0.103] |
 
 Variability intervals: bootstrap over the 200 usable runs, 1000 resamples, the index recomputed on the
-distinct runs of each resample, 0.5th to 99.5th percentiles, seed 1. Not confidence intervals. 14 bins.
+distinct runs of each resample, 0.5th to 99.5th percentiles, seed 1. 14 bins.
 
 ## Observations
 

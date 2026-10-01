@@ -1,6 +1,6 @@
 # Glossary
 
-**Status:** accepted. **Updated:** 2026-09-30 (records 0022–0024, 0031, 0033, 0034, 0039).
+**Status:** accepted. **Updated:** 2026-09-30 (records 0022–0024, 0031, 0033, 0034, 0039, 0041, 0042).
 
 > One word per idea, in your nomenclature, linked to the standard terms so readers (and the agent) can
 > connect them. The code, the docs, and the messages use these words. The Avoid column is advice for prose,
@@ -10,7 +10,9 @@
 > CLI commands and flags, data card keys) and the text EMA generates for users (report templates, golden
 > reports, figure labels, CLI and error messages), for a short list of words that are always wrong there:
 > - in identifiers: `qoi`, `box`, `DiagnosticRun`;
-> - in generated text: "confidence interval", "CI", "credible interval", "error bar", "QoI", "box".
+> - in generated text: "confidence interval", "CI", "credible interval", "error bar", "QoI", "box"; except
+>   "confidence interval" in the one sentence each report with estimates opens its Estimates section with
+>   (`EXPLAIN_INTERVALS`, `diagnostics/shared.md`; 0042).
 >
 > A word joins the list when a decision record decides against it.
 >
@@ -46,8 +48,8 @@
 | diagnostic evaluation | one execution of a diagnostic for a particular model and design, which produces the numbers of the diagnostic result; the unit of work (0006) | | diagnostic run |
 | diagnostic parameter | a setting of a diagnostic that the user chooses, such as the number of points or the seed; not a model parameter (0003) | hyperparameter, option | parameter (alone, where it could mean a model parameter) |
 | diagnostic result | what a diagnostic evaluation produces: estimates, observations, counts, notes, and figures, and the provenance recorded with them (P5, 0034); never interpretation (P2) | | |
-| estimate | a number with its variability interval and the method that made the interval | | |
-| observation | a number read or computed directly from a diagnostic evaluation's usable runs, with no variability interval, such as a run's model prediction, or the minimum and maximum of the runs; it describes the runs, not the model over its model parameter space (0034) | observed value, sample statistic, summary statistic | |
+| estimate | a number with its variability interval and the method that made the interval; the interval is "none", with the reason, when the method gives none for that diagnostic evaluation (`uncertainty.md`, 0041) | | |
+| observation | a number whose spec gives it no variability interval, read or computed directly from a diagnostic evaluation's usable runs, such as a run's model prediction, or the minimum and maximum of the runs; it describes the runs, not the model over its model parameter space (0034) | observed value, sample statistic, summary statistic | |
 | variability interval | how much an estimate changes when the runs behind it change (resampled, refined, or held out), reported with its method and settings; it carries no coverage probability (0004) | confidence interval, credible interval, bootstrap interval | confidence interval, CI, credible interval, error bar (except to explain the difference) |
 | note | a caveat about the data: failed runs, too few runs, a constant model prediction, a noisy model (P6, P7) | | warning |
 | figure | an image plus its data card | plot | |

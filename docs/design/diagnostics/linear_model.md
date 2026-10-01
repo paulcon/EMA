@@ -1,7 +1,7 @@
 # Linear model
 
-**Status:** accepted. **Updated:** 2026-09-30. **Module:** `ema/diagnostics/linear_model.py`. **Depends on:**
-`shared.md`; `../designs.md`; records 0012, 0032, 0033, 0034, 0035.
+**Status:** accepted. **Updated:** 2026-10-01. **Module:** `ema/diagnostics/linear_model.py`. **Depends on:**
+`shared.md`; `../designs.md`; records 0012, 0032, 0033, 0034, 0035, 0041, 0042.
 
 > A least-squares linear fit of the model prediction in unit coordinates, over a convergent design: its
 > coefficients, how well it fits, and how well it predicts runs it wasn't fitted to (0012, U4). Written from an
@@ -128,7 +128,7 @@ from the spread of those estimates.
   estimator, its own spawned stream → intervals and the line under the table), with the bootstrap its only
   implementation; each estimator a pure function of a set of run indices; the convergent design's levels,
   sizes, and the sampler's r in the diagnostic result; the method, its settings, and its spawn tag named in the
-  result and under each table.
+  result, and the method and its settings under each table (0041).
 - **Effort later:** an `interval` diagnostic parameter (part of the request's identity; v2.0 accepts only
   `bootstrap`, as `sampler` accepts only `random`), about 40–60 lines, a record, and known answers comparing the
   subset spread with the spread over designs on R3 and R7.
@@ -192,6 +192,9 @@ checks them).
 
 ## Estimates
 
+Each variability interval shows how much its estimate changes when the runs behind it change, by the method named
+under its table; it is not a confidence interval, and carries no coverage probability.
+
 | Coefficient | Estimate | Variability interval |
 |---|---|---|
 | Intercept | 78.27 m³/yr | [74.39, 82.02] m³/yr |
@@ -205,8 +208,7 @@ checks them).
 | Kw | 7.478 m³/yr | [1.701, 14.31] m³/yr |
 
 y ≈ intercept + Σ slope·u, u the unit coordinates in [−1, 1] (r through its logarithm). Variability intervals:
-bootstrap over the 72 usable runs, 1000 resamples, 0.5th to 99.5th percentiles, seed 3. Not confidence
-intervals.
+bootstrap over the 72 usable runs, 1000 resamples, 0.5th to 99.5th percentiles, seed 3.
 
 | Fit | Estimate | Variability interval |
 |---|---|---|
@@ -214,14 +216,13 @@ intervals.
 | R² | 0.9455 | [0.9302, 0.9734] |
 
 Variability intervals: bootstrap over the 72 usable runs, 1000 resamples, 0.5th to 99.5th percentiles, seed 3.
-Not confidence intervals.
 
 | Held out | Estimate | Variability interval |
 |---|---|---|
 | Leave-one-out error, relative | 0.2716 | [0.2168, 0.336] |
 
 Variability intervals: bootstrap over the 72 usable runs, 1000 resamples, the error recomputed on the distinct
-runs of each resample, 0.5th to 99.5th percentiles, seed 3. Not confidence intervals.
+runs of each resample, 0.5th to 99.5th percentiles, seed 3.
 
 ## Observations
 

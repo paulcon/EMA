@@ -1,7 +1,7 @@
 # Polynomial model
 
-**Status:** accepted. **Updated:** 2026-09-30. **Module:** `ema/diagnostics/polynomial_model.py`. **Depends on:**
-`shared.md`; `linear_model.md`; `../designs.md`; records 0012, 0032, 0033, 0034, 0035, 0039.
+**Status:** accepted. **Updated:** 2026-10-01. **Module:** `ema/diagnostics/polynomial_model.py`. **Depends on:**
+`shared.md`; `linear_model.md`; `../designs.md`; records 0012, 0032, 0033, 0034, 0035, 0039, 0041, 0042.
 
 > A least-squares polynomial fit of the model prediction in unit coordinates, over a convergent design: how well
 > it fits, how its variance splits among the model parameters (Sobol indices), and how fast its coefficients
@@ -77,8 +77,9 @@ u_k ∈ [−1, 1]^d (`../designs.md`: through the logarithm for a log range).
   A = [ψ_α(u_k)] (n_u × P).
 
 - **The coefficients** (interview, 2026-09-30) are in the diagnostic result and a data card, all P of them with
-  their multi-indices, and not in the report: the Sobol indices and the decay summarize them. (On R3 at p = 2 and
-  360 runs, the 10 largest of 45 carry 99.8% of Σc²; which terms are largest depends on the runs.)
+  their multi-indices, each an estimate with its bootstrap interval (0041), and not in the report: the Sobol
+  indices and the decay summarize them. (On R3 at p = 2 and 360 runs, the 10 largest of 45 carry 99.8% of Σc²;
+  which terms are largest depends on the runs.)
 
 **How well it fits,** as the linear model (`linear_model.md`; interview, 2026-09-30):
 
@@ -277,20 +278,22 @@ rows, 0032), the bootstrap from the stream above (a scratch script, 2026-09-30; 
 
 ## Estimates
 
+Each variability interval shows how much its estimate changes when the runs behind it change, by the method named
+under its table; it is not a confidence interval, and carries no coverage probability.
+
 | Fit | Estimate | Variability interval |
 |---|---|---|
 | Relative residual ‖r‖ / ‖y − mean‖ | 0.03526 | [0.02607, 0.03786] |
 | R² | 0.9988 | [0.9986, 0.9993] |
 
 Variability intervals: bootstrap over the 360 usable runs, 1000 resamples, 0.5th to 99.5th percentiles, seed 3.
-Not confidence intervals.
 
 | Held out | Estimate | Variability interval |
 |---|---|---|
 | Leave-one-out error, relative | 0.04192 | [0.03645, 0.05058] |
 
 Variability intervals: bootstrap over the 360 usable runs, 1000 resamples, the error recomputed on the distinct
-runs of each resample, 0.5th to 99.5th percentiles, seed 3. Not confidence intervals.
+runs of each resample, 0.5th to 99.5th percentiles, seed 3.
 
 | Sobol indices of the fitted polynomial | First-order | Variability interval | Total | Variability interval |
 |---|---|---|---|---|
@@ -305,7 +308,7 @@ runs of each resample, 0.5th to 99.5th percentiles, seed 3. Not confidence inter
 
 Of the degree-2 polynomial fitted to the runs, under the uniform distribution in unit coordinates (r through its
 logarithm). Variability intervals: bootstrap over the 360 usable runs, 1000 resamples, 0.5th to 99.5th
-percentiles, seed 3. Not confidence intervals.
+percentiles, seed 3.
 
 | Total degree k | Terms | Root energy √E_k | Variability interval |
 |---|---|---|---|
@@ -313,8 +316,7 @@ percentiles, seed 3. Not confidence intervals.
 | 2 | 36 | 10.37 m³/yr | [9.843, 10.96] m³/yr |
 
 √E_k: the standard deviation of the fitted polynomial's terms of total degree k. Variability intervals:
-bootstrap over the 360 usable runs, 1000 resamples, 0.5th to 99.5th percentiles, seed 3. Not confidence
-intervals.
+bootstrap over the 360 usable runs, 1000 resamples, 0.5th to 99.5th percentiles, seed 3.
 
 ## Observations
 
@@ -428,7 +430,7 @@ scratch script on 2026-09-30; step 11 recomputes both parts with a separate scri
 | PM2 | The fit is least squares, by QR, in the orthonormal Legendre terms of total degree ≤ p in unit coordinates, over the usable runs of level L, the terms in the stated order. | R10 at p = 2: the three coefficients within 10⁻¹², the rest below 10⁻¹²; P = C(d + p, p) for d = 1 … 8, p = 1 … 4. |
 | PM3 | The relative residual, R², and the LOO error by PRESS, as the linear model's. | A fixture of 12 runs in d = 2, p = 2: LOO equal to explicit refits within 10⁻¹². |
 | PM4 | The Sobol indices are the first-order and total indices of the fitted polynomial, from its coefficients over V; √E_k per total degree k = 1 … p. | R1 and R10 at p = 2 (Expected answers); a fixture whose coefficients are set by hand. |
-| PM5 | Intervals: 1000 resamples from the polynomial model's stream, the same for every estimate; refits as drawn; LOO on each resample's distinct runs; the 0.5th and 99.5th percentiles; undefined resamples dropped and counted. | Changing `POLY_BOOT_TAG` changes the intervals, not the design (S8); a fixture at 2P runs: the count under the table. |
+| PM5 | Intervals: 1000 resamples from the polynomial model's stream, the same for every estimate, the P coefficients included (in the result, 0041); refits as drawn; LOO on each resample's distinct runs; the 0.5th and 99.5th percentiles; undefined resamples dropped and counted. | Changing `POLY_BOOT_TAG` changes the intervals, not the design (S8); a fixture at 2P runs: the count under the table. |
 | PM6 | The per-level table: each level fitted on its usable runs among its first n_l points: usable runs, relative residual, R², LOO, and total indices; "none" below 2P. | R3 at the defaults (the mock report); R5 where level 0 has too few usable runs. |
 | PM7 | Fewer than 2P usable runs, or A of rank below P: counts and a note, no estimates; the observations stay. | R5 in a space where 2P − 1 runs are usable; 2P; a fixture whose usable runs take p values along one model parameter. |
 | PM8 | y → a·y + b (a a power of 2) maps c_0, the c_α, and √E_k as stated, and leaves the relative residual, R², LOO, the Sobol indices, and the notes unchanged. | R2 at p = 4 with a = 2⁻¹⁰, b = 3. |
@@ -459,4 +461,5 @@ scratch script on 2026-09-30; step 11 recomputes both parts with a separate scri
 - **Architecture (step 9):** the polynomial model's row (no active subspace or shadows, 0039); the basis
   interface beside the sampler's; `on_progress` for the analysis phase, with A's size; the CLI's progress line
   and the MCP server's progress notifications.
-- **Data model (step 8):** all P coefficients and their multi-indices in the diagnostic result.
+- **Data model (step 8):** all P coefficients and their multi-indices in the diagnostic result, each with its
+  interval (0041).

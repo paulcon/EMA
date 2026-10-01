@@ -1,6 +1,6 @@
 # 0040. Bootstrap the fits and the scatter; no intervals for points and lines
 
-**Date:** 2026-09-30. **Status:** accepted. **Resolves:** OD-12.
+**Date:** 2026-09-30. **Status:** accepted; the polynomial model's row amended by 0041. **Resolves:** OD-12.
 
 ## Context
 

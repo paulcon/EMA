@@ -43,9 +43,16 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
     (two usable runs differ as doubles, as 0035), with no tolerance.
   - Decided: OD-12 (0040): the bootstrap for scatter and the linear and polynomial models; none for the point
     run, coordinate lines, and lines.
-- [ ] **7. Uncertainty; contracts and degenerate cases.** `docs/design/uncertainty.md`, `contracts.md`.
-  - Decided: OD-12 (0040); `uncertainty.md` is written from its table.
-  - Claude can help: draft the negative control for each promise.
+- [x] **7. Uncertainty; contracts and degenerate cases.** `docs/design/uncertainty.md`, `contracts.md`.
+  - Decided: OD-12 (0040); `uncertainty.md` is written from its table, with V1–V7: an interval cell says
+    "none" when fewer than 201 resamples are defined; intervals reported as computed; no user settings in v2.0.
+  - Decided (`contracts.md`): shared promises only (C1–C56), each with a broken toy as its negative control;
+    diagnostics checked on run batches built directly from a contract model; C5 exact under powers of 2; test
+    tiers: fast 30 s a size budget (`scope.md`), slow 10 min a target, with no patched constants.
+  - Decided: record 0041 (an estimate's interval may be "none"; the polynomial coefficients' intervals; spawn
+    tags out of the report), from the consistency check.
+  - Decided: record 0042 (one explanation of variability intervals per report; scatter's missing line;
+    `shared.md`'s example of "none"; the glossary's "observation" row), from the third consistency check.
 
 ## How v2 is built
 
@@ -54,6 +61,10 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
     interface and designs specs.
   - Also: each run's host (0015) and run directory (0020); model predictions in their own table, with no blob
     store (0021).
+  - Also, from `contracts.md` (step 7): invariants I1… for C46–C52 and C56; the template's I4 against 0010 (a
+    failed run reused, a retry stored beside it); the store test at `tests/contracts/store.py`; a run's failure
+    kind and reason, host, and resolved program path; whether a stored result is reused after a named constant
+    such as `BOOTSTRAP_RESAMPLES` changes; the polynomial coefficients with their intervals (0041).
 - [ ] **9. Architecture and the workspace layer.** `docs/design/architecture.md` (formerly `api_spec_draft.md`).
   - Also: drop the `Executor` classes (0015); drop `ema.experimental` from v2.0 (0017); the MCP tools and the
     server's instructions (0016, 0019); asking for a PDF (0018); the run-directory lookup (0020); within the

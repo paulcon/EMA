@@ -34,6 +34,7 @@ Everything that code or tests may cite has an id, so a docstring, a test, or a c
 | G | design generator requirement | `docs/design/designs.md` |
 | S | requirement shared by every diagnostic | `docs/design/diagnostics/shared.md` |
 | PT, SC, CL, LN, LM, PM | requirement of one diagnostic: point run, scatter, coordinate lines, lines, linear model, polynomial model | `docs/design/diagnostics/<name>.md` |
+| V | variability interval requirement | `docs/design/uncertainty.md` |
 | C | contract promise | `docs/design/contracts.md` |
 | T | trust-boundary rule | `docs/design/trust.md` |
 | Q, W, I | data-model question, write, invariant | `docs/design/data_model.md` |
@@ -56,7 +57,7 @@ docs/design/
   designs.md                  G1…
   diagnostics/_template.md    one spec per diagnostic, in the five-row table format
   diagnostics/shared.md       what every diagnostic shares: report layout, precheck, figures (S1…)
-  uncertainty.md              one interval method per diagnostic
+  uncertainty.md              V1…; one interval method per diagnostic
   contracts.md                C1…, and the degenerate cases
   data_model.md               Q/W/I…, from the data model template
   architecture.md             packages, layers, modules, and their public names

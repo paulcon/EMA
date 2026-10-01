@@ -4,8 +4,8 @@
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`): steps 1–6 done.
-- Next: step 7, `docs/design/uncertainty.md` from record 0040's table, and `docs/design/contracts.md`.
+- Writing the design documents by hand (`TODO.md`): steps 1–7 done.
+- Next: step 8, the data model (`docs/design/data_model.md`).
 
 ## Done
 
@@ -84,11 +84,47 @@
   later with the active subspace (0039); OD-12, the interval method per diagnostic (0040). U1's and U7's
   "Decide:" lines settled in scatter's and the point run's specs. TODO step 6 done.
 
+- 2026-09-30: uncertainty and contracts accepted (`docs/design/uncertainty.md`, V1–V7; `docs/design/contracts.md`,
+  C1–C56), from an interview. Uncertainty, from record 0040: what a variability interval means; the methods (the
+  bootstrap; none; subsampling the levels later; convergence and cross-validation not interval methods); the
+  bootstrap's steps; an interval cell says "none" when fewer than 201 of the 1000 resamples are defined
+  (`BOOTSTRAP_MIN_DEFINED`); intervals reported as computed, not recentered or clipped; no user settings for the
+  method in v2.0; the interval-method interface; the per-diagnostic table, with the share of undefined resamples at
+  each fit's minimum. Contracts: only the promises every implementation keeps, each citing the spec requirements it
+  generalizes, with a conforming toy and one broken toy per check; diagnostic (C1–C19), design generator (C20–C27),
+  sampler, basis, and interval method (C28–C30), model adapter (C31–C45), and, provisional until steps 8, 9, and
+  13, store (C46–C52, C56), workspace and MCP (C53–C55); the diagnostic contract runs on run batches built directly
+  from a test-only contract model, with the degenerate cases listed; changes of units exact under 2^±40 (numbers
+  computed through a logarithm within 10⁻¹²), within 10⁻⁹ under a shift, a large-offset check at 10⁻⁶; test tiers:
+  the fast tier's 30 s a size budget (`scope.md`), the slow tier's 10 min a target, with no patched constants.
+  README: the V prefix. Checked against the other specs before the commit, and corrected in place: the fast tier's
+  budget follows `scope.md`; "constant to rounding" is 0035's 10⁻¹⁵, not 10⁻¹²; C30 keeps only what any interval
+  method promises (V1, V3, V4), with four broken toys; the exceptions the diagnostic specs make (no Estimates
+  section, the point run's labels and Point row, strips per panel, `degree` with `n_min` given); P2's, P3's, and
+  P5's named tests; the sampler's identity (C28); the limit named (C27); facts and citations (1848 × 231, f
+  defined, ids); asks of steps 8 and 9. Record 0041 accepted and applied: an estimate's interval may be "none",
+  with the reason (the glossary's "estimate" row); the polynomial model's coefficients have bootstrap intervals in
+  the result and their data card, not the report; the spawn tag is in the result, not the line under a table
+  (`linear_model.md`'s seam); 0040 marked as amended. Checked a third time (2026-10-01) and corrected in place:
+  `uncertainty.md` (observations against 0041; LOO's 0/0 case; a Sobol value of "none"; two percentages; V7 over
+  scatter too; citation paths) and `contracts.md` (the point run's replicate rows in C2; C1's case at a minimum of
+  1; the relative spread under a shift; strips along every axis the specs draw them on, and per line; C30's V1 toy;
+  C51's provenance; the declarations C11, C12, and C14 need; C37's failed calls; C47's price and note; S7's 5
+  reasons; the figure rules; spawn tags recorded; sharper broken toys); PM5 names the coefficients' intervals.
+  Record 0042 accepted and applied: each report with estimates opens its Estimates section with one sentence
+  explaining variability intervals (`EXPLAIN_INTERVALS`, `shared.md`, S4), in place of "Not confidence intervals."
+  under each table, which the terminology test forbade (the glossary's test allows that one sentence); scatter's
+  missing line under its mean and standard deviation table; the mock reports of scatter and the linear and
+  polynomial models; `shared.md`'s example of "none"; the glossary's "observation" row. TODO step 7 done.
+
 ## Next
 
-- Step 7: `uncertainty.md` (the interval-method interface, the bootstrap's defaults, the distinct-runs rule, the
-  spawn tags, from 0040) and `contracts.md` (the diagnostic contract from S1–S10 and each spec's contract
-  checks; the design generator contract from G1–G17; a negative control for each promise).
+- Step 8: the data model (`docs/design/data_model.md`, from its template): every question in its §2 with a
+  query; tables matching the model interface and designs specs; each run's host (0015) and run directory
+  (0020); model predictions in their own table (0021); invariants I1… for the store contract's C46–C52 and
+  C56, and the other asks in `contracts.md` (What this spec asks): the template's I4 against 0010, the store test
+  at `tests/contracts/store.py`, a run's failure kind, reason, host, and program path, and whether a stored
+  result is reused after a named constant changes; the polynomial coefficients' intervals (0041).
 
 ## Specs
 
@@ -102,8 +138,8 @@
 | `docs/design/model_interface.md` | accepted |
 | `docs/design/designs.md` | accepted |
 | `docs/design/diagnostics/` | accepted: `shared.md` and the six diagnostics |
-| `docs/design/uncertainty.md` | empty |
-| `docs/design/contracts.md` | empty |
+| `docs/design/uncertainty.md` | accepted |
+| `docs/design/contracts.md` | accepted (C46–C56 provisional until steps 8, 9, and 13) |
 | `docs/design/data_model.md` | template |
 | `docs/design/architecture.md` | draft |
 | `docs/design/trust.md` | empty |

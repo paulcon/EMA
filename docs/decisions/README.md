@@ -59,4 +59,6 @@ Write one when a choice:
 | 0037 | Show runs that aren't usable along each model parameter only; two-model-parameter plots later | accepted | 2026-09-30 |
 | 0038 | Report each coordinate line's Gram spectrum, and its decay rate as an observation | accepted | 2026-09-30 |
 | 0039 | Plot the polynomial model's fit against y; its shadows come with the active subspace | accepted | 2026-09-30 |
-| 0040 | Bootstrap the fits and the scatter; no intervals for points and lines | accepted | 2026-09-30 |
+| 0040 | Bootstrap the fits and the scatter; no intervals for points and lines | accepted; the polynomial model's row amended by 0041 | 2026-09-30 |
+| 0041 | Let an estimate's interval be "none", give the polynomial coefficients intervals, and keep spawn tags out of the report | accepted | 2026-09-30 |
+| 0042 | Explain variability intervals once per report, and fix three step-6 slips | accepted | 2026-10-01 |
