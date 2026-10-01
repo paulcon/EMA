@@ -1,6 +1,6 @@
 # Principles
 
-**Status:** accepted. **Updated:** 2026-10-01 (P1 clarified by 0019; P7's "Open" settled by 0021; held candidate updated by 0026; P3's hash settings by 0029, and its tracked files by 0031; P2's list by 0034; P6's constant by 0035, and its check by 0036; P3's budgets by 0050; P3, P4, P6, and P7 worded by 0051; the candidate "One-way layers" answered by architecture rules, and P2's pointer, by 0056).
+**Status:** accepted. **Updated:** 2026-10-01 (P1 clarified by 0019; P7's "Open" settled by 0021; held candidate updated by 0026; P3's hash settings by 0029, and its tracked files by 0031; P2's list by 0034; P6's constant by 0035, and its check by 0036; P3's budgets by 0050; P3, P4, P6, and P7 worded by 0051; the candidate "One-way layers" answered by architecture rules, and P2's pointer, by 0056; P3's uncovered values and file comparison, and the candidate "User code runs isolated" answered by trust rules, by 0057).
 
 ## Accepted
 
@@ -62,12 +62,12 @@ The approval shows the price (how many runs are new, how many are reused, and th
 - **Enforced by:** the store keys runs by model version hash and point hash, and has no other lookup for reuse
   (0051). The model version hash covers the spec, except the settings `keep`, `batch_size`, and `timeout_s`
   (0020, 0025, 0029), and the contents of every file the model spec names: the Python function's file, the
-  input deck templates, and the listed files; modules found elsewhere, installed packages, and programs outside
-  the model's files are not covered, and each run records its program's path (`model_interface.md`, 0029).
+  input deck templates, and the listed files; modules found elsewhere, installed packages, programs outside
+  the model's files, and the values of variables passed by name (`pass_env`, `trust.md`) are not covered, and each run records its program's path (`model_interface.md`, 0029).
   The scheduler is the only code that runs a model: it checks the store first, and refuses a new run unless an
   approval matches its model version hash and point. One approval module, from day 1 (`trust.md`); an
   approval records the model version hash and the new points it covers. Model files are compared as files
-  (samefile, casefold), never as strings. The workspace prices the design against the store (new vs reused)
+  (samefile; case-folded where the file system is), never as strings. The workspace prices the design against the store (new vs reused)
   before asking, and the approval records that price; the scheduler stops at the approved number of new
   runs. The time estimate comes from stored run durations for that model version, and is "unknown" when
   there are none.
@@ -167,7 +167,7 @@ as replicates, and the diagnostic result reports the measured variation.
 
 > Held until the step that decides what they depend on. Candidates dropped on 2026-09-29, and why, are in
 > record 0007 (`../decisions/0007-choose-the-principles.md`). "One-way layers" is answered by the architecture
-> rules AR1–AR7 (`architecture.md` §1, 0056).
+> rules AR1–AR7 (`architecture.md` §1, 0056). "User code runs isolated, without EMA's secrets" is answered by
+> the trust rules T1–T10 (`trust.md`, 0057): EMA has no secrets of its own, and P1–P7 protect what a user sees.
 
-- **User code runs isolated, without EMA's secrets.** Split from "Nothing runs without approval" (now P3).
-  OD-11 is decided: every Python model runs in an isolated child process (0026). Waits on `trust.md`.
+None is held.

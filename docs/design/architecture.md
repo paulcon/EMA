@@ -1,10 +1,10 @@
 # Architecture: packages, layers, and modules
 
-**Status:** accepted (TODO step 9; 0056). **Updated:** 2026-10-01. **Depends on:** P1–P7;
+**Status:** accepted (TODO step 9; 0056). **Updated:** 2026-10-01 (0057: the trust rules placed). **Depends on:** P1–P7;
 `scope.md`; `use_cases.md` (U1–U9); `model_interface.md` (M1–M21); `designs.md` (G1–G17);
 `diagnostics/shared.md` (S1–S10) and the six diagnostic specs; `uncertainty.md` (V1–V7); `contracts.md`
 (C1–C56); `data_model.md` (Q1–Q12, W1–W6, I1–I12; Q13–Q15 added by 0056); `export.md` (E1–E7); records 0005, 0008, 0010, 0015–0022,
-0024–0030, 0032–0036, 0040, 0041, 0046, 0047, 0049, 0050, 0053–0055. Rewritten from the specs' "Architecture
+0024–0030, 0032–0036, 0040, 0041, 0046, 0047, 0049, 0050, 0053–0055, 0057; `trust.md` (T1–T10). Rewritten from the specs' "Architecture
 (step 9)" asks and the consistency review's "Step 9 inputs"; the draft of 2026-09-28 (`api_spec_draft.md`) is
 replaced.
 
@@ -116,11 +116,12 @@ src/ema/
     point.py  uniform.py  convergent.py  lines.py      the generators
   models/                     layer 2
     spec.py                   LoadedModel, load_spec, stored_model, save_spec, resolve_program
-    files.py                  hash_files, same_file, check_files
+    files.py                  hash_files, same_file, is_within, check_files
     prepare.py  execute.py  collect.py                  the three phases of a call (0015)
     parsers.py                OutputParser, the registry, regex, json, csv (0027)
     processes.py              ModelProcesses: the model versions' children, owned by the workspace
-    sandbox.py  _worker.py    the isolated child (ported from v1 after re-review, 0026)
+    sandbox.py  _worker.py    the isolated child (ported from v1 after re-review, 0026); BASE_ENV,
+                              model_environment (trust.md)
   store/                      layer 2 (data_model.md §10)
     schema.sql  records.py  store.py  migrations.py
     layout.py                 Layout: the workspace's paths
@@ -156,7 +157,8 @@ tests/
 
 The vocabulary of the whole application: data, and pure functions of it. It imports only the standard
 library's pure modules (`dataclasses`, `enum`, `json`, `hashlib`, `struct`, `fractions`, `math`, `types`,
-`typing`, `datetime` for the type of stored timestamps, never for the clock) and numpy.
+`typing`, `unicodedata` for the spec's hidden-character check (0057), `datetime` for the type of stored
+timestamps, never for the clock) and numpy.
 
 ### `types/identity.py`
 
@@ -271,7 +273,6 @@ class InputDeck:
 class CommandLine:
     command: tuple[str, ...]
     input_decks: tuple[InputDeck, ...] = ()
-    env: Mapping[str, str] = field(default_factory=dict)
 
 class Keep(Enum):
     ALL = "all"; INCOMPLETE = "incomplete"; NONE = "none"
@@ -284,13 +285,18 @@ class ModelSpec:
     parameters: tuple[ModelParameter, ...]
     predictions: tuple[PredictionSpec, ...]
     files: tuple[FileEntry, ...] = ()
+    env: Mapping[str, str] = field(default_factory=dict)    # both kinds of model (trust.md, 0057)
+    pass_env: tuple[str, ...] = ()      # names passed from EMA's environment; values not in the model version
     noisy: bool = False                 # only False in v2.0 (0021)
     keep: Keep = Keep.ALL               # settings: not in the model version (0029)
     batch_size: int | None = None
     timeout_s: float = 3600.0
 
     @classmethod
-    def from_json(cls, text: str) -> "ModelSpec": ...   # raises SpecError naming the field
+    def from_json(cls, text: str) -> "ModelSpec": ...   # raises SpecError naming the field; also checks
+        # trust.md's T7 (path shapes on "/"-separated parts, credentials-file names, EMA's own file names,
+        # one-line strings with no hidden character, duplicate keys) and T8 (variable names), and an env
+        # PATH's empty or relative entries (T2)
     def to_json(self) -> str: ...                       # every field, defaults filled in, paths with "/"
     def versioned_json(self) -> str: ...                # without keep, batch_size, timeout_s (§3.4)
     def parameter(self, name: str) -> ModelParameter: ...
@@ -308,7 +314,8 @@ class ModelSpec:
 | `batch` | bool | no (Python function only) | false | yes |
 | `command` | list of strings | command line: yes; else refused | | yes |
 | `input_decks` | list of `{template, writes}` | no (command line only) | `[]` | yes; the templates are tracked |
-| `env` | mapping of strings | no (command line only) | `{}` | yes |
+| `env` | mapping of strings | no (both kinds, 0057) | `{}` | yes |
+| `pass_env` | list of variable names | no (both kinds, 0057) | `[]` | the names; not their values |
 | `files` | list of a path or `{path, shared}` | no | `[]` | yes; each file is tracked |
 | `parameters` | list, at least one | yes | | yes |
 | a parameter's `name`, `units`, `nominal`, `description` | | yes (`units` may be `""`) | | yes |
@@ -656,11 +663,16 @@ class ApprovalRequest:
     program: str | None                       # the resolved program path (0029)
     templates: Mapping[str, str]              # name → text
     files: tuple[str, ...]
-    text: str                                 # the whole question, rendered by EMA
+    function: str | None                      # a Python function's "file.py:f", shown in place of the command
+    env: Mapping[str, str]                    # the spec's env (trust.md)
+    pass_env: Mapping[str, bool]              # each name: set in EMA's environment or not; never its value
+    text: str                                 # the whole question, rendered by EMA (trust.md: hidden characters
+                                              # as codes; strings EMA didn't write in code spans or fenced blocks)
 
 @dataclass(frozen=True)
 class ConfirmationRequest:
-    spec_path: str
+    spec_path: str                            # absolute, the parent resolved through its links (T6)
+    replaces: str | None                      # what the model's name means now, when it is loaded (0054)
     spec_text: str
     text: str
 
@@ -698,7 +710,7 @@ class ModelDescription:
 class Proposal:
     """A model spec an MCP client drafted, validated and rendered; nothing saved (U9)."""
     spec: ModelSpec
-    path: str                                 # where save_model would write it
+    path: str                                 # the absolute path save_model's confirmation would show (T6)
     spec_text: str                            # the file's exact text
     missing_files: tuple[str, ...]            # files it names that don't exist yet
     text: str
@@ -775,6 +787,7 @@ Each error carries `retryable` as a class attribute, so the interfaces can say w
 | `WorkspaceBusy` | another process holds the run lock, named | yes |
 | `WorkspaceVersion` | the workspace's schema is newer than this EMA (`data_model.md` §11) | no |
 | `PandocMissing` | a PDF is asked for without pandoc and LaTeX; says what to install (0018) | no |
+| `PathRefused` | an MCP path argument outside the root, inside a workspace, with a hidden character, or naming a credentials file; a drafted spec's file resolving outside the root (`trust.md`, T5, T7). A spec naming a credentials file is a `SpecError`. | no |
 
 ## 4. Layer 1: `ema.numerics` and `ema.designs`
 
@@ -889,14 +902,18 @@ def stored_model(spec: ModelSpec, files: tuple[TrackedFile, ...], spec_path: str
     # with the current loading's settings (Q3: keep, batch_size, timeout_s) set on it, its tracked files,
     # and the loading's spec path. Runs use the stored spec; an edited spec file takes effect only when
     # it is loaded again (0054). The tracked files are checked before each call (check_files).
-def save_spec(spec: ModelSpec, path: str) -> None: ...   # for save_model; refuses to overwrite a different file
-def resolve_program(model: LoadedModel) -> str | None: ...
+def save_spec(spec: ModelSpec, path: str) -> None: ...   # for save_model; refuses to overwrite a different file;
+    # writes with an exclusive create, so a file that appears meanwhile is kept (T6)
+def resolve_program(model: LoadedModel) -> str | None: ...   # against the model's own PATH (model_environment)
     # the command's program, resolved as execute will (or the child's interpreter), for the first
     # approval's question before any run (U2, 0029)
 
 # models/files.py
 def hash_files(spec: ModelSpec, model_dir: str) -> tuple[TrackedFile, ...]: ...
-def same_file(a: str, b: str) -> bool: ...          # samefile, casefold (T1, C33)
+def same_file(a: str, b: str) -> bool: ...          # samefile; case-folded where the file system is (T1, C33)
+def is_within(path: str, directory: str) -> bool: ...   # the resolved path, or its nearest existing parent,
+    # is the directory or below it, as files (T1, T5); a named file whose link resolves to a credentials
+    # file is refused at loading (T7)
 def check_files(model: LoadedModel) -> None: ...    # before every call; ModelChanged naming the file (M16, C34)
 
 # models/processes.py
@@ -911,7 +928,7 @@ class PreparedCall:
     run_dirs: tuple[str, ...]
     call_dir: str                        # the run directory, or the batch directory beside them
     command: tuple[str, ...] | None      # a command-line model's
-    env: Mapping[str, str]               # the spec's env; the scrubbed base is step 10's (trust.md)
+    env: Mapping[str, str]               # the whole environment the model gets (model_environment, trust.md)
     timeout_s: float
 
 def prepare(model: LoadedModel, keys: Sequence[RunKey], runs_dir: str, shared_dir: str) -> PreparedCall: ...
@@ -951,7 +968,11 @@ def names() -> tuple[str, ...]: ...
 `sandbox.py` and `_worker.py` hold the isolated child: one long-lived child per model version, JSON (or
 arrays in a format that runs no code) and never pickle, killed on a timeout, a crash, or Ctrl-C, and started
 again for the next call (0026, M9). Ported from v1's `core/models/_sandbox.py` and `_worker.py` after
-re-review; the environment it passes is step 10's.
+re-review; the environment it passes is `trust.md`'s. The child runs in its own process group, killed whole;
+it is started by its worker's path, and replaces its `sys.path` with EMA's, made absolute, received over its
+pipe; its streams never reach EMA's stdout. `run.json` and `predictions.json` are written without following a
+link the model left there, and run and batch directories deleted without following links (`trust.md`, T9).
+`load_spec` never imports the function's file: M17 parses it (`ast`).
 
 ### `ema.store`
 
@@ -1079,19 +1100,22 @@ def ask_approval(*, store: Store, model: LoadedModel, asked_for: str, request: R
                  design: DesignIdentity | None, resolution: Resolution, price: Price,
                  approve: Approver | None) -> str: ...
     # renders the question: the model version and the price; on the model version's first approval
-    # (Q4), also the command, the program's path (resolve_program), the input deck templates, and the files
-    # (U2, 0029); calls approve (an Exception, or no answer, is a no); records the answer and the question
+    # (Q4), also the command and the program's path (resolve_program), or a Python function's `function`,
+    # the input deck templates, the files, and the environment the spec sets (U2, 0029, trust.md); calls approve (an Exception, or no answer, is a no); records the answer and the question
     # (W3), with the approved points on a yes; returns the approval id, or raises ApprovalDeclined.
     # approve=None means nobody can be asked (an MCP client without elicitation): CannotAsk at once, with
     # nothing rendered or recorded, since nothing was asked (T3); the workspace checks it before the lock
 def ask_confirmation(*, store: Store, spec_path: str, spec_text: str, confirm: Approver | None) -> None: ...
-    # the same for saving a model spec an MCP client drafted (W2, 0049); raises ApprovalDeclined on a no
+    # the same for saving a model spec an MCP client drafted (W2, 0049): the absolute path, what the name
+    # means now, and the full text (T6); raises ApprovalDeclined on a no
 def ask(question: ApprovalRequest | ConfirmationRequest) -> bool: ...
     # the terminal approver, ema.ask: prints question.text, reads y/N; end of input is a no
 ```
 
 v1's approval rules that `scope.md` keeps (paths compared as files, credentials refused, the approval covering
-what decides a run) are placed by `trust.md` (step 10); this module is where they go.
+what decides a run) are placed by `trust.md`, by layer (0057): asking and recording are here; the checks a
+spec needs are in `ema.types.model` and `ema.models.files`; the environment in `ema.models.sandbox`; the
+MCP root in `ema.workspace`.
 
 ### `ema.diagnostics` (3b)
 
@@ -1201,8 +1225,10 @@ once. A `Workspace` object (OD-16, decided 2026-10-01) holds the open store and 
 (`ModelProcesses`).
 
 ```python
-def open_workspace(path: str | os.PathLike = "ema_workspace") -> "Workspace": ...
-    # creates it, or opens it (an older schema migrated, a newer refused: data_model.md §11)
+def open_workspace(path: str | os.PathLike = "ema_workspace", *, root: str | os.PathLike | None = None) -> "Workspace": ...
+    # creates it, or opens it (an older schema migrated, a newer refused: data_model.md §11); with root,
+    # every method that takes a path refuses one outside the root or inside a workspace, and a drafted
+    # spec's file resolving outside the root (PathRefused; trust.md, T5; the MCP server's, 0057)
 
 ResultRef = DiagnosticResult | str            # a result, or its id: any unique prefix of ≥ 4 hex digits (Q11)
 
@@ -1218,7 +1244,9 @@ class Workspace:                              # not frozen; a context manager; c
     def save_model(self, spec: str | Mapping[str, Any], path: str | os.PathLike, *,
                    confirm: Approver | None) -> LoadingSummary: ...
         # validates as propose_model does (an invalid spec is refused, nothing asked); asks the confirmation
-        # with the full text and the path (W2); writes the file, and loads it (W1). One call per MCP tool.
+        # with the absolute path, what the name means now, and the full text (W2, T6): the path ends in .json,
+        # its parent exists; a different existing file is refused before asking; the same bytes are asked as
+        # "already saved, unchanged: load it?"; writes the file, and loads it (W1). One call per MCP tool.
     def test_model(self, name: str, *, approve: Approver | None) -> RunInfo: ...
         # the test run at the nominal point: priced and approved like any new run (0049); stored: no question
 
@@ -1355,7 +1383,7 @@ formats a number (C54, C55; P1).
 | `ema run-dirs ID [--point FILE]` | `run_dirs` (0020) |
 | `ema reproduce ID` | `reproduce` (U8) |
 | `ema export ID DIR` | `export` (E1) |
-| `ema mcp` | starts the MCP server; the directory it may write in is `trust.md`'s (step 10, E7) |
+| `ema mcp --root DIR` | starts the MCP server; `--root`, required and absolute (not `/`, nor inside a workspace), is the directory its path arguments may name (`trust.md`, T5, E7); a relative `--workspace` resolves against it |
 
 - **`--space FILE`** is `designs.md`'s JSON form (U2); `--param k=v` is parsed by the diagnostic's
   `DiagnosticParameter` (a JSON value, or a bare string), as `run`'s keyword arguments are.
@@ -1411,6 +1439,9 @@ Started by `ema mcp`; needs the `ema[mcp]` extra (`scope.md`). Each tool is one 
   The instructions ask the client to quote EMA's text, give result ids, and point the analyst to the report,
   rather than restate numbers (P1).
 - **No tool writes a file that EMA runs** (U9): `save_model` writes a model spec only (0016).
+- **Confined** (`trust.md`, T5): every path argument lies inside the root and outside any workspace;
+  resources are looked up by name, never joined into a path; the instructions in `tools.md` say that
+  reasons and stderr lines are quoted model output.
 
 ## 9. Contracts and tests
 
@@ -1519,17 +1550,17 @@ specs:
 
 | Package | Estimate | Main parts |
 |---|---|---|
-| `ema.types` | 700 | the model spec's validation (~200), the result types, `identity.py` (~100) |
+| `ema.types` | 775 | the model spec's validation (~200, and ~75 for `trust.md`'s checks), the result types, `identity.py` (~100) |
 | `ema.numerics` | 550 | the basis (ported, ~150), fits and PRESS, the bootstrap, the Gram spectrum |
 | `ema.designs` | 350 | the `random` sampler, six generators (lines ~150) |
-| `ema.models` | 1,330 | the sandbox and worker (ported, ~500), the three phases, parsers, `ModelProcesses` |
+| `ema.models` | 1,300 | the sandbox and worker (ported, ~435 without v1's limits and withheld variables), the environment and path checks (~35), the three phases, parsers, `ModelProcesses` |
 | `ema.store` | 700 | `data_model.md` §10 |
-| `ema.plotting`, `ema.report` | 530 | |
-| `ema.runner`, `ema.approval` | 400 | |
+| `ema.plotting`, `ema.report` | 540 | escaping text EMA didn't write (~10) |
+| `ema.runner`, `ema.approval` | 410 | the questions' rendering (`trust.md`) |
 | `ema.diagnostics` | 2,000 | base and precheck ~300; the six, 150–400 each |
-| `ema.workspace` | 600 | the evaluation's order ~250; export ~120 (E1–E7); reproduce ~60 |
-| `ema.cli`, `ema.mcp` | 700 | |
-| **Total** | **7,860** | 140 under the budget: tight, so each plan reports its package's count |
+| `ema.workspace` | 610 | the evaluation's order ~250; export ~120 (E1–E7); reproduce ~60; the root (~10) |
+| `ema.cli`, `ema.mcp` | 705 | `--root` |
+| **Total** | **7,940** | 60 under the budget (0057 added about 80): tight, so each plan reports its package's count |
 
 - **Reference models ship with `ema`,** in `ema/reference_models/` (each a model spec with its function or
   program), counted against their own 1,000 lines, not the 8,000. The get-started guide and the use cases'
@@ -1559,6 +1590,9 @@ specs:
 | the space's class name | `ModelParameterSpace`, as 0005 says | 0005 |
 | a declined approval, a changed file | raise `ApprovalDeclined`, `ModelChanged`; U4's and U6's lines show them | 0056 |
 | reference models | ship in `ema/reference_models/` | this spec |
+| the model's environment | `BASE_ENV`, `pass_env`, `env`, for both kinds of model | 0057 |
+| the MCP root | `ema mcp --root DIR`, required; `open_workspace(..., root=)` | 0057 |
+| v1's approval rules | placed by layer (§6) | 0057 |
 
 ## What this spec asks of other documents
 
@@ -1590,8 +1624,6 @@ specs:
   - `model_interface.md`: the note on `architecture.md`'s stubs says they follow this spec.
   - 0016's status: "its tool list amended by 0053 (export) and 0056 (figures as resources)".
   - `STATUS.md`: OD-16 decided (0056).
-- **Trust (step 10):** the environment `execute` passes to model code; the directory `ema mcp` confines path
-  arguments to (E7), and its flag; v1's approval rules placed in `ema.approval`; the write path shown in
-  `save_model`'s confirmation.
+- **Trust (step 10):** done (`trust.md`, 0057).
 - **Setup (step 12):** whether import-linter sees standard-library imports (§10); CLAUDE.md's commands.
 - **Guides (step 13):** each guide walked through against §7; any awkward step changes §7 first.

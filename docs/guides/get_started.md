@@ -14,3 +14,5 @@
 6. Read the report: the figures, the numbers and their intervals, the notes. <…>
 7. Run a second diagnostic, and see which runs were reused. <…>
 8. Where to go next: the other guides. <…>
+9. Through an MCP client: `ema mcp --root DIR` in the client's configuration, with an absolute directory
+   (`../design/trust.md`). <…>

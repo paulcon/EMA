@@ -33,13 +33,8 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 - [x] **8. Data model.** `docs/design/data_model.md`. Records: 0054, 0055.
 - [x] **9. Architecture and the workspace layer.** `docs/design/architecture.md` (formerly `api_spec_draft.md`).
   Records: 0056 (OD-16; "One-way layers" as architecture rules AR1–AR7).
-- [ ] **10. Trust boundary.** `docs/design/trust.md`.
-  - Also: `architecture.md`'s asks (the environment `execute` passes, the `ema mcp` directory and its flag, v1's
-    approval rules in `ema.approval`, the write path shown in `save_model`'s confirmation).
-  - Decide: the held principle "User code runs isolated, without EMA's secrets" (`docs/design/principles.md`,
-    Candidates), after OD-11.
-  - Decide: whether "user code" (what the trust boundary runs) gets a glossary row; the specs also say "model
-    code" and "model programs" (`docs/notes/consistency_review_2026-10-01.md`, "Step 10 inputs").
+- [x] **10. Trust boundary.** `docs/design/trust.md`. Records: 0057 (the held principle answered by T1–T10;
+  "model" as the one word, with no glossary row).
 - [ ] **11. Reference models with expected answers.** `docs/design/reference_models.md`.
   - Claude can help: compute reference values with v1's `testfunctions/truth.py`, or by brute force, as an
     independent check on yours.

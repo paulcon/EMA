@@ -54,7 +54,7 @@ Write one when a choice:
 | 0026 | Run every Python model in an isolated child process | accepted | 2026-09-30 |
 | 0027 | Read model predictions with regex, JSON, and CSV output parsers | accepted | 2026-09-30 |
 | 0028 | Collect every run from files, and keep the run directories of incomplete runs | accepted | 2026-09-30 |
-| 0029 | Say what the model version covers, and check it before every call | accepted | 2026-09-30 |
+| 0029 | Say what the model version covers, and check it before every call | accepted; its list of what is not covered amended by 0057 | 2026-09-30 |
 | 0030 | Store large model files once, read-only, and link them into run directories | accepted | 2026-09-30 |
 | 0031 | Add "run directory" to the glossary, and say in P3 which files the model version covers | accepted | 2026-09-30 |
 | 0032 | Draw uniform points from numpy's PCG64, behind a sampler interface ready for others | accepted; its sampler interface amended by 0033 | 2026-09-30 |
@@ -82,3 +82,4 @@ Write one when a choice:
 | 0054 | Reuse a diagnostic result only with the same runs and versions; show its own approval; let the latest loading of a name win | accepted; its example and item 4 amended by 0055 | 2026-10-01 |
 | 0055 | Replay a diagnostic result from a provenance that survives its deletion; write ids in reports at a fixed length; correct 0054's example | accepted | 2026-10-01 |
 | 0056 | Make the layers architecture rules, use a Workspace object, serve figures as MCP resources, type the use cases against the workspace, add three store reads, and allow a Store per thread | accepted | 2026-10-01 |
+| 0057 | Give a model an allowlisted environment, confine the MCP server to a root, and check a spec's paths | accepted | 2026-10-01 |

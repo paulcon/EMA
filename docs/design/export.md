@@ -1,6 +1,6 @@
 # Export
 
-**Status:** accepted. **Updated:** 2026-10-01, from an interview. **Depends on:** 0050, 0053, U5, P5,
+**Status:** accepted. **Updated:** 2026-10-01, from an interview; the MCP root by 0057. **Depends on:** 0050, 0053, U5, P5,
 C17; records 0015, 0020, 0022, 0025, 0029, 0046.
 
 > What `export` writes, so an analyst can use a diagnostic result's runs in another tool, and how reading it
@@ -65,13 +65,16 @@ C17; records 0015, 0020, 0022, 0025, 0029, 0046.
   result and provenance (U5). With pandas: `pd.read_csv(path, float_precision="round_trip")`; its default
   parser isn't guaranteed to read every double exactly.
 - **An existing directory** that isn't empty is refused, naming it; an export never overwrites a file.
+- **Text columns** (`ema_reason`, `ema_missing`) are not escaped for spreadsheets: a cell that starts with `=`,
+  `+`, `-`, or `@` may be read as a formula there, and the run-a-diagnostic guide says to open `runs.csv` as
+  data (`trust.md`).
 
 ## Interfaces
 
 - **Python:** `ws.export(result_id, directory)` (U5).
 - **CLI:** `ema export RESULT_ID DIR`.
-- **MCP:** an export tool, one of the server's 10 (0016, 0053), writing only inside a directory the user named
-  when starting the server (`trust.md`, step 10).
+- **MCP:** an export tool, one of the server's 10 (0016, 0053), writing only inside the directory the user named
+  when starting the server, `ema mcp --root DIR`, and outside any workspace (`trust.md`, T5).
 
 ## Requirements
 
@@ -83,7 +86,7 @@ C17; records 0015, 0020, 0022, 0025, 0029, 0046.
 | E4 | `ema_missing` lists each model prediction missing from an `ok` run, with its reason, in the model spec's order. | R5 with z: every run with b > 0.5 has `z: <reason>`; a reason containing `;` is written with `,`. |
 | E5 | `result.json` is strict JSON holding the format version, the design, the model spec, the column dictionary, and the diagnostic result with its provenance, which loads back equal to the stored result (C17). | U5's `r2`: `json.load` gives the stored result and provenance; every `runs.csv` column has a dictionary entry. |
 | E6 | `ema_new` is true exactly for the runs the result's own diagnostic evaluation made. | U5's `r2`: 120 true, 200 false. |
-| E7 | The MCP export tool writes only inside the directory the user named when starting the server. | A path outside it, and one with `..`, are refused. |
+| E7 | The MCP export tool writes only inside the directory the user named when starting the server (`ema mcp --root`), and outside any workspace. | A path outside it, one with `..`, and one inside a workspace are refused. |
 
 ## What this spec asks of other documents
 
@@ -92,5 +95,5 @@ C17; records 0015, 0020, 0022, 0025, 0029, 0046.
   evaluation made (`ema_new`); each missing model prediction's reason (0022).
 - **Architecture (step 9):** `Workspace.export`, `ema export`, and the MCP export tool, the tenth (0016,
   0053).
-- **Trust (step 10):** the MCP export tool's directory, named when the server starts (E7).
+- **Trust (step 10):** done (`trust.md`, 0057).
 - **README:** the id prefix E.

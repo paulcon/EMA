@@ -21,6 +21,15 @@
 4. What you approve, and why. <…>
 5. Test it at the nominal point; time a few runs. <…>
 
+## The environment and files (`../design/trust.md`)
+
+- What a model sees: the base variables, `pass_env` with an example (`LM_LICENSE_FILE`), and `env`; no secret
+  in `env`, which is stored and shown; `DYLD_*` dropped by macOS for protected programs. <…>
+- A wrapper script for a command of more than one line, or for a scheduler's or module system's many
+  variables. <…>
+- Units as plain text or Unicode (`W/m²`), not mathtext. <…>
+- A file outside the model's directory: a link to it inside the directory. <…>
+
 ## When a model changes
 
 - What makes a new version, and what happens to stored runs. <…>

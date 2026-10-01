@@ -1,8 +1,8 @@
 # Model interface
 
-**Status:** accepted. **Updated:** 2026-10-01 (0043, 0052, 0053, 0054, 0056). **Depends on:** OD-3 (0003, 0005), OD-6 (0014),
+**Status:** accepted. **Updated:** 2026-10-01 (0043, 0052, 0053, 0054, 0056, 0057). **Depends on:** OD-3 (0003, 0005), OD-6 (0014),
 OD-9 (0022), OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0015, 0020, 0021, 0024, 0025, 0028, 0029, 0030,
-0031.
+0031, 0057.
 
 > The hardest thing to change later. This spec says what a model is to EMA: what it takes, what it returns,
 > how it fails, and what makes a new version. It was written from an interview on 2026-09-30 (TODO step 4).
@@ -13,6 +13,14 @@ OD-9 (0022), OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0015, 0020, 0021,
 
 - **A JSON file,** `model.json` by convention. Relative paths in it resolve against its own directory, the
   model's directory. EMA reads and writes it with the standard library (the MCP server's `save_model`, 0016).
+- **Paths in it** (the function's file, input deck templates and the names they are written to, `files`, and a
+  parser's `file`) are relative, with no `..` part; only the command's program may be absolute. A credentials
+  file (`.env`, `id_rsa`, …), named directly or reached through a link, is refused (`SpecError`, naming the
+  field), and so are EMA's own file names (`point.json`, `run.json`, `predictions.json`, `stdout.txt`,
+  `stderr.txt`) as a deck's `writes` or a listed file (`trust.md`, T7, 0057).
+- **Strings** are one line, with no hidden characters (Unicode's Cc but tab, Cf but the joiners U+200C and
+  U+200D, Cs, Zl, Zp), and a key may appear only once in an object; each is refused at loading, naming the
+  field (`trust.md`, T7).
 - **Names:** a model's name is lowercase letters, digits, `_`, and `-`. Model parameter and model prediction
   names are Python identifiers, unique across both lists, so they work as keyword arguments and in templates;
   none may start with `ema_`, the prefix of EMA's columns in an export (`export.md`, 0053).
@@ -117,11 +125,15 @@ A Python function model (U1's beam):
   non-finite value at one point is a missing model prediction for that run; an exception, a timeout, or a
   wrong shape fails every run in the call. Each run records the call's time divided by its size, and the
   call's size and time. A call's runs are counted against the approval when it starts (0015).
-- **Isolated** (0026): every Python model runs in a child process, one long-lived child per model version,
-  with a scrubbed environment (`trust.md`), stdin from `/dev/null`, and a timeout on every call. What the
+- **Isolated** (0026): every Python model runs in a child process, one long-lived child per model version, in
+  its own process group, with the environment `trust.md` gives (with the spec's `env` and `pass_env`,
+  Environment below), stdin from `/dev/null`, and a timeout on every call. The child is started by its
+  worker's path, and replaces its `sys.path` with EMA's, made absolute, received over its pipe (0057). What the
   child returns is JSON, or arrays in a format that runs no code; never pickle. On a timeout, a crash, or
-  Ctrl-C, the child is killed, and the next call starts a new one. No in-process option, and no memory or CPU
+  Ctrl-C, the child's process group is killed, and the next call starts a new child. No in-process option, and no memory or CPU
   limits in v2.0. A function shouldn't keep state between calls; the add-a-model guide says so.
+- **Loading never imports** the function's file: M17's check parses it (`ast`) and resolves module names to
+  paths, so nothing of the model runs in EMA's process (`trust.md`, T4).
 
 ### Command line
 
@@ -136,14 +148,25 @@ A Python function model (U1's beam):
   point's value. There is no number-format field.
 - **Files:** as in "What a model takes": copied, or shared and linked (0030). The program itself may be one of
   them. A program found on `PATH` or given by an absolute path is neither copied nor tracked (Versions).
-- **Environment:** the scrubbed environment (`trust.md`), plus the spec's `env` mapping, which is part of the
-  model version. The program is told nothing else: no replicate number and no run id.
+- **Environment:** as below, for both kinds of model. The program is told nothing else: no replicate number
+  and no run id.
 - **Output parsers** (0027): each model prediction has one, of three kinds, each returning one scalar:
   `regex` (`file`, `pattern` with one group or a group named `value`, `match` first or last, default last),
   `json` (`file`, a dotted `key` whose integer parts index lists), and `csv` (`file`, `column` by header or
   index, `row` default `-1`, optional `delimiter`). `file` is relative to the run directory, or `stdout` or
   `stderr`. A parser that finds no file, match, or key, or reads a value that isn't a finite number, makes
   that model prediction missing, with a reason. Anything else is read by a wrapper script that writes JSON.
+
+### Environment (both kinds of model)
+
+- **A model gets** the base variables `trust.md` lists (`BASE_ENV`: `PATH`, `HOME`, the locale, …) that EMA's
+  environment has; the variables named in the spec's `pass_env`, with their values in EMA's environment; and
+  the spec's `env` mapping, whose values take precedence. Nothing else (`trust.md`, T2, 0057).
+- **In the model version:** `env` and `pass_env`'s names; not `pass_env`'s values (Versions).
+- **Refused at loading,** naming the variable: a name that isn't a variable name, a credential-like name
+  (`*_API_KEY`, `*_TOKEN`, …) in either, a name in both, and an empty or relative entry in an `env` `PATH`
+  (values are literal: no `$PATH`, no `~`). Empty or relative entries in the base `PATH` are dropped
+  (`trust.md`, T2, T8).
 
 ## A run
 
@@ -158,6 +181,9 @@ A Python function model (U1's beam):
   `predictions.json` for a Python function. It returns the run's record: the point, the command and its
   program's resolved path, the exit status, the model predictions and their reasons, the timing, and the host
   (0015, 0029). The record is also written to the run directory as `run.json`.
+- **EMA's own files** in a run or batch directory (`run.json`, `predictions.json`) are written without following
+  a link the model left there, and run and batch directories are deleted without following links
+  (`trust.md`, T9).
 - **A batch** (0025) is prepared, executed, and collected as one call, in a batch directory beside its runs'
   directories.
 - **Kept** (0020, 0028): the model spec's `keep` setting is `all` (the default), `incomplete` (runs that failed
@@ -171,7 +197,8 @@ A Python function model (U1's beam):
 - **Status:** a run is `ok` when it finished cleanly and read at least one model prediction (0043; a missing one
   has its own reason, 0022), or `failed`, with one of three kinds:
   - `error`: the Python function raised, or its child died; or the program exited with a nonzero code or a
-    signal, or couldn't start. A nonzero exit is a failure even when the model predictions can be read.
+    signal, or couldn't start; or EMA couldn't write its own file in the run or batch directory (0057). A
+    nonzero exit is a failure even when the model predictions can be read.
   - `timeout`: the call ran past `timeout_s`.
   - `unread`: the call finished cleanly, but none of its model predictions could be read.
 - **Timeout:** `timeout_s` in the model spec, 3600 s by default, for each call (a run, or a batch, 0025).
@@ -190,9 +217,10 @@ A Python function model (U1's beam):
   are covered.
 - **Warned:** at loading, an import in the function's file that resolves to an unlisted file in the model's
   directory.
-- **Not covered:** modules found elsewhere, installed packages, and programs on `PATH` or given by an absolute
-  path. Each run records its program's resolved path and its host (0015); the first approval for a model
-  version shows the path.
+- **Not covered:** modules found elsewhere, installed packages, programs on `PATH` or given by an absolute
+  path, and the values of `pass_env` variables (0057). Each run records its program's resolved path and its
+  host (0015); the first approval for a model version shows the path, and the environment the spec sets
+  (`trust.md`).
 - **Platforms** (0015's open question, for v2.0): a program copied as a model file is tracked, so another
   build is another model version; a program outside the model's files is the same version on every machine.
 - **Checked before each call:** the tracked files are hashed in full before every call, about 1 s per GB; a
@@ -209,14 +237,14 @@ A Python function model (U1's beam):
 | Id | Requirement | Test |
 |---|---|---|
 | M1 | A failure at a point is a run's record: status `failed`, a kind, a reason, and NaN model predictions; the adapter never raises for a point. | A function that raises, a program that exits 2, a child killed by a signal, and a timeout each give a record of the right kind. |
-| M2 | Model code gets stdin from `/dev/null` and no variable from `.env`. | A model that reads stdin gets end of file; one that writes its environment lacks a variable set in `.env`. |
+| M2 | A model gets stdin from `/dev/null` and no variable from `.env`. | A model that reads stdin gets end of file; one that writes its environment lacks a variable set in `.env`. |
 | M3 | Editing a tracked file, or a covered field of the spec, changes the model version; moving the model's directory, or changing `keep`, `batch_size`, or `timeout_s`, doesn't. | One byte changed in each kind of tracked file; each field changed in turn; the directory moved. |
 | M4 | Each model prediction is read, or missing with its own reason; a run that finished cleanly is failed only when none is read (kind `unread`, 0043). | A command-line model with two parsers, one of which finds nothing: the run is `ok`, with one NaN and its reason. |
 | M5 | A model receives a value for every model parameter, held ones included. | A space that names one of three model parameters: the function receives all three, two at nominal. |
 | M6 | A space that crosses a limit is refused before any run, naming the model parameter and the limit. | `k` in (−1, 10) with `gt: 0`: refused, and no run made. |
 | M7 | A Python function returns a float, or a mapping by name; a missing name or a non-finite value is a missing model prediction; extra names are ignored. | Returns of `1.0`, `{"a": 1.0}`, `{"a": nan}`, and `{"a": 1.0, "zz": 2.0}`. |
 | M8 | A batch model gives the same model predictions as the same function called one point at a time; a non-finite row is missing for that run only; an exception, a timeout, or a wrong shape fails every run in the call; no call holds more than `batch_size` points, or more than remain approved. | A vectorized reference model, both ways; a batch with one NaN row; one that raises; `batch_size` 3 over 10 points. |
-| M9 | Every Python model runs in its own child; a timeout, a crash, or Ctrl-C kills it, and the next call starts a new one; nothing is unpickled. | A function that sleeps past `timeout_s`; one that calls `os._exit`; Ctrl-C during a call leaves no child process. |
+| M9 | Every Python model runs in its own child; a timeout, a crash, or Ctrl-C kills its process group, and the next call starts a new one; nothing is unpickled. | A function that sleeps past `timeout_s`; one that calls `os._exit`; Ctrl-C during a call leaves no child process; a function that starts a subprocess and sleeps: both are gone after the timeout and after Ctrl-C (0057). |
 | M10 | A template name that isn't a model parameter is refused at loading; `$$` writes `$`; every value is written so that it reads back as the same double, and whole numbers have no decimal point. | Templates with `$nope` and `$$`; values 0.1, 1e-300, 64.0, and −2.5 read back with `float()`. |
 | M11 | Each output parser kind reads its known answer, and makes the model prediction missing, with a reason, when it finds no file, no match, or no key, or a value that isn't a finite number. | One fixture file per kind, and one per way to fail. |
 | M12 | A nonzero exit fails the run, even when the model predictions can be read. | A program that writes a good `plate.out` and exits 1. |
@@ -239,7 +267,6 @@ A Python function model (U1's beam):
 - **Architecture (step 9):** `ModelParameter` (limits, no scale), `PredictionSpec`, `ModelSpec` with one
   dataclass per interface, the three phases in place of `Model.evaluate`, and `RunStatus` without
   `INVALID_INPUT` or `TIMEOUT` as statuses (a failure kind instead).
-- **Trust (step 10):** the scrubbed environment; the stored copies written read-only; never following a link
-  out of a run directory when reading model output (0030).
+- **Trust (step 10):** done (`trust.md`, 0057).
 - **Guides (step 13):** the add-a-model guide: the JSON wrapper for other model output, stateless functions,
   helper files to list, shared files.

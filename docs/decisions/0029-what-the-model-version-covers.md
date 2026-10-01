@@ -1,6 +1,6 @@
 # 0029. Say what the model version covers, and check it before every call
 
-**Date:** 2026-09-30. **Status:** accepted. **Resolves:** none (TODO step 4; the open platform question in
+**Date:** 2026-09-30. **Status:** accepted; its list of what is not covered amended by 0057 (`pass_env` values). **Resolves:** none (TODO step 4; the open platform question in
 0015).
 
 ## Context

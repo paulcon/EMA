@@ -1,7 +1,7 @@
 # What every diagnostic shares
 
-**Status:** accepted. **Updated:** 2026-10-01 (0054, 0055). **Depends on:** P1, P2, P4, P5, P6; records 0004, 0010,
-0018, 0022, 0034, 0035, 0040, 0042, 0044, 0049, 0051, 0052, 0054, 0055.
+**Status:** accepted. **Updated:** 2026-10-01 (0054, 0055, 0057). **Depends on:** P1, P2, P4, P5, P6; records 0004, 0010,
+0018, 0022, 0034, 0035, 0040, 0042, 0044, 0049, 0051, 0052, 0054, 0055, 0057.
 
 > The parts of a diagnostic's spec that are the same for all six: the report's layout, how numbers are
 > written, the precheck, how runs that aren't usable are counted and drawn, and where a diagnostic's own
@@ -92,7 +92,8 @@ Every report's Observations section has, for the model prediction over the usabl
 
 A note is a caveat about the data (glossary). Shared notes, in this order:
 
-- **Runs not usable:** the count by kind, then the most frequent one-line reasons, verbatim, with counts (at
+- **Runs not usable:** the count by kind, then the most frequent one-line reasons, verbatim (escaped in the Markdown so that they render as written,
+  `trust.md`, T10), with counts (at
   most 5; the rest summed), ordered by count, descending, ties broken by the first run in design order with
   that reason (0051); then the number of usable runs the estimates use, and the call that lists them all:
 
@@ -170,7 +171,8 @@ the data cards are byte-identical (S10).
 - **One PNG per figure,** with one or more panels, and a data card beside it (JSON).
 - **Axes:** a model parameter on the x axis is in its own units, on a log axis for a log range; the model
   prediction on the y axis is on a linear axis; every axis is labeled `name [units]` (`name` alone when
-  dimensionless), with mathtext for symbols (0018).
+  dimensionless), with mathtext for EMA's own symbols (0018); a spec's names and units print literally
+  (`trust.md`, T10), so golden reports compare them as rendered.
 - **Runs not usable:** in a panel with a model parameter on the x axis, every run that isn't usable is one
   marker (×) in a strip below the axes, at its x, with the count in the strip's label. The data card gives
   each one's kind.

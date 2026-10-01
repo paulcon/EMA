@@ -4,9 +4,9 @@
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`): steps 1–9 done; the consistency review's decisions
+- Writing the design documents by hand (`TODO.md`): steps 1–10 done; the consistency review's decisions
   (records 0043–0052) applied.
-- Next: step 10, the trust boundary (`docs/design/trust.md`).
+- Next: step 11, reference models with expected answers (`docs/design/reference_models.md`).
 
 ## Done
 
@@ -40,12 +40,18 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   MCP resources, the use cases typed against the workspace, store reads Q13–Q15, a `Store` per thread),
   applied to `principles.md`, `use_cases.md`, `data_model.md`, `contracts.md`, `model_interface.md`, the
   README, and 0016's status.
+- 2026-10-01: step 10, trust boundary accepted (`docs/design/trust.md`: who is trusted, what needs a yes,
+  rules T1–T10), from an interview and five independent consistency reviews (28, 26, 21, 10, then 8
+  findings, all fixed); record 0057 (a model's allowlisted environment with `pass_env`, for both kinds of
+  model; `ema mcp --root`, required; a spec's paths and strings checked; the first approval shows the
+  environment; text EMA didn't write escaped; the held principle answered by T1–T10; "model" as the one
+  word, with no glossary row), applied to `model_interface.md`, `principles.md`, `glossary.md`, `scope.md`,
+  `architecture.md` (about 7,940 source lines), `use_cases.md`, `export.md`, `data_model.md`,
+  `diagnostics/shared.md`, `contracts.md`, the guide outlines, `CLAUDE.md`, and 0029's status.
 
 ## Next
 
-- Step 10, the trust boundary (`docs/design/trust.md`): `TODO.md` step 10, with the review's "Step 10
-  inputs" and `architecture.md`'s asks (the environment `execute` passes, the `ema mcp` directory, v1's
-  approval rules in `ema.approval`, the write path in `save_model`'s confirmation).
+- Step 11, reference models with expected answers (`docs/design/reference_models.md`): `TODO.md` step 11.
 
 ## Specs
 
@@ -63,7 +69,7 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
 | `docs/design/contracts.md` | accepted (C53–C55 provisional until step 13) |
 | `docs/design/data_model.md` | accepted (Q1–Q15, W1–W6, I1–I12) |
 | `docs/design/architecture.md` | accepted (AR1–AR7) |
-| `docs/design/trust.md` | empty |
+| `docs/design/trust.md` | accepted (T1–T10) |
 | `docs/design/export.md` | accepted (E1–E7) |
 | `docs/design/reference_models.md` | draft (the list; expected answers at step 11) |
 

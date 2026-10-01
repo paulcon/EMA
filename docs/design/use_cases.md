@@ -3,7 +3,7 @@
 **Status:** accepted. **Updated:** 2026-10-01 (U9 added by 0016; U2's model spec follows `model_interface.md`;
 U3's failure map dropped by 0037; U2's per-line numbers by 0038; U4's polynomial figures by 0039; U4's budget
 dropped, and the features no use case exercises named, by 0050; asks trimmed by 0052; typed steps follow
-`architecture.md` §7 by 0056).
+`architecture.md` §7 by 0056; the first approval's environment, and `ema mcp --root`, by 0057).
 
 > Each use case is a short scenario from the analyst's side: who they are, what model they have, what they
 > want to learn, what they type (in Python or the CLI), what EMA asks them, and the report they get. Write
@@ -169,7 +169,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
 
 - **What EMA asks, and when:** every approval shows the price and the model version (P3). The first approval
   for a model version (here, the test run's) also shows what will run: the command, the input deck template,
-  and the files copied into the run directory. Later approvals for that model version show only the price.
+  the files copied into the run directory, and the environment the spec sets (`trust.md`). Later approvals for that model version show only the price.
   After the interruption, the rerun asks again, for the 56 new runs only.
 - **What they get:** a report:
   - a header: the model version, the model parameter space, the design (coordinate lines, 17 points each,
@@ -189,8 +189,8 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
 - **Done when:** on the command-line reference model, in a fresh workspace:
   - the model spec loads;
   - the test run asks once: 1 new, 0 reused, time unknown;
-  - the first approval shows the command, the template, and the files, and later approvals for the same
-    model version don't;
+  - the first approval shows the command, the template, the files, and the environment the spec sets, and
+    later approvals for the same model version don't;
   - a diagnostic evaluation interrupted after k runs leaves k stored runs;
   - the rerun's price is 96 − k new and k + 1 reused, and exactly 96 − k runs are made (P3);
   - the report has one panel per model parameter and one spectrum per line;
@@ -381,7 +381,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
 - **What EMA asks, and when:** a new model version has no stored runs, and no stored run durations:
   - `r` asks for 200 new, 0 reused, time unknown (P3);
   - the heat model's run asks for 97 new, 0 reused, time unknown, and, as the first approval for the new
-    model version, shows the command, the input deck template, and the files again (U2).
+    model version, shows the command, the input deck template, the files, and the environment again (U2).
 - **Done when:**
   - changing one byte in a model file makes a new model version, and no stored run is reused (P3);
   - a run whose model files changed since the model was loaded is refused, with the name of the file;
@@ -456,6 +456,8 @@ written.
   scatter: 200 new, 0 reused, about 0.2 s. The client's agent answers none of them.
 - **What they get:** tool results with result ids and EMA's rendered text; the same report as U1.
 - **Done when:** on R2, with a scripted MCP client (no LLM, so no API cost):
+  - the scripted client starts the server with `ema mcp --root` naming the analyst's project directory
+    (`trust.md`);
   - the three elicitations come in that order, with U1's prices;
   - a declined elicitation saves no model spec, or makes no run;
   - every number in a tool result equals the stored value it names (P1);
@@ -479,4 +481,4 @@ written.
   - the CLI takes a model parameter space as `--space FILE` in U2, in `designs.md`'s JSON form.
 - **Architecture (step 9), `ema.mcp`:** at most 10 tools, each one workspace call, including `propose_model`
   and `save_model`; approvals through MCP elicitation; the server's instructions (U9, 0016, 0019).
-- **Trust (step 10):** approvals through MCP elicitation; the agent writes model specs only (U9, 0016).
+- **Trust (step 10):** done (`trust.md`, 0057).

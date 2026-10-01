@@ -11,4 +11,5 @@
    - each number and its interval, and what the interval means; <…>
    - the figures and their data cards; <…>
    - the notes. <…>
-6. Find it again later, and export its runs. <…>
+6. Find it again later, and export its runs; open `runs.csv` as data, not as a spreadsheet's formulas
+   (`../design/trust.md`). <…>

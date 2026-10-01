@@ -1,6 +1,6 @@
 # Scope of v2.0
 
-**Status:** accepted. **Updated:** 2026-10-01 (0022, 0025, 0037, 0039, 0050). **Depends on:** OD-2 (0006),
+**Status:** accepted. **Updated:** 2026-10-01 (0022, 0025, 0037, 0039, 0050, 0057). **Depends on:** OD-2 (0006),
 OD-5 (0012), OD-6 (0014), OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
 
 > What the first release does, what it explicitly doesn't, and the size budgets that keep it small. When
@@ -61,7 +61,7 @@ OD-5 (0012), OD-6 (0014), OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 
 - **An own chat loop:** not planned; the agent is an MCP server (0016).
 - **Live evals of the MCP server:** later, with their scenarios and monthly budget; the server is tested with a
   scripted client (U9, 0050).
-- **Agent-written model code:** the agent drafts model specs only (0016).
+- **Agent-written code:** the agent drafts model specs only (0016).
 - **HTML reports; byte-identical PDFs:** later, if needed (0018).
 - **Two-model-parameter plots** (a failure map of failed and usable runs in each pair of model parameters, and
   pair plots of the model prediction): later. About one small build step: 60–100 lines of figure code, a cap
@@ -108,10 +108,10 @@ OD-5 (0012), OD-6 (0014), OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 
 
 | v1 module (under `src/ema/` unless named) | Port, rewrite, or leave | Why |
 |---|---|---|
-| `core/models/_sandbox.py`, `_worker.py` | port, after re-review | isolation of model code, verified in v1 (534 lines); the trust spec (step 10) decides how it is used (OD-11, 0026) |
+| `core/models/_sandbox.py`, `_worker.py` | port, after re-review | isolation of models, verified in v1 (534 lines); `trust.md` says how it is used (OD-11, 0026, 0057) |
 | `core/legendre.py` | port, after re-review | the Legendre basis (205 lines), for the linear and polynomial models |
 | `testfunctions/library.py`, `truth.py` | port, after re-review | the reference models and their known answers (step 11) |
-| `agent/approval.py` | rewrite, reading its rules and tests | v2's trust module keeps its rules (paths compared as files, credentials refused, approval covers what decides a run), but v1's is built around its own agent (0016) |
+| `agent/approval.py` | rewrite, reading its rules and tests | v2's trust rules (`trust.md`, placed by layer, 0057) keep its rules (paths compared as files, credentials refused, approval covers what decides a run), but v1's is built around its own agent (0016) |
 | `core/models/cli.py`, `python_fn.py` | rewrite, reading their edge cases | the three phases of a run (0015) and kept run directories (0020); v1's handling of paths, process groups, and stdin is the checklist |
 | `core/models/parsers.py` | rewrite, reading it | only the kinds 0027 chose (OD-20): regex, json, csv |
 | `core/provenance.py` | rewrite, reading it | provenance per diagnostic result, not per campaign (P5, 0006) |

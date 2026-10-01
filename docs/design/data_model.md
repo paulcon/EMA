@@ -1,7 +1,7 @@
 # Data model
 
 **Status:** accepted. **Updated:** 2026-10-01, from an interview (TODO step 8); Q13–Q15, W5 on a stored id, and connections by
-0056. **Schema version:** 1.
+0056; the confirmation's path and Q4's first approval by 0057. **Schema version:** 1.
 **Depends on:** P1, P3–P7; `model_interface.md`, `designs.md`, `diagnostics/shared.md`, `point_run.md`,
 `uncertainty.md`, `contracts.md` (C17, C46–C52, C56), `export.md`; records 0006, 0010, 0011, 0015, 0020–0022,
 0025, 0028–0030, 0032, 0041, 0043, 0044, 0046, 0049, 0050, 0054, 0055, and 0056.
@@ -42,7 +42,7 @@
 | Q1 | For each point and replicate of this design, which run is current there, if any, and did it fail? | pricing and running (C46–C48) | yes: 10⁶ points in under 10 s |
 | Q2 | How many runs are stored for this model version, and what is their mean run time? | the price: "about 1 h 52 min (from 41 stored runs)" (P3, U2) | yes |
 | Q3 | Which model version, spec file, and settings does this model name mean now? | every workspace call that names a model; loading's message ("was heat@b204 at …") (0029, 0054) | yes |
-| Q4 | Has this model version had an approval answered yes? | the first approval shows the command, templates, and files (U2) | yes |
+| Q4 | Has this model version had an approval answered yes? | the first approval shows the command (or a Python function's `function`), templates, files, and the environment the spec sets (U2, `trust.md`) | yes |
 | Q5 | Is a diagnostic result stored for this reuse key? | a repeated request (C50, 0054) | yes |
 | Q6 | A diagnostic result: its numbers, request, design, provenance, and approval | `get_result`, `report`, `reproduce`, export, MCP | yes |
 | Q7 | A diagnostic result's runs, in design order, with their points, status, kind, reason, model predictions, time, host, program, and approval | export (E2), `failed_runs` (U3) | yes: 10⁶ rows in seconds |
@@ -258,7 +258,7 @@ spec file, and settings (0029, 0054). **Rows:** one per loading.
 | Column | Type | Null | Meaning | Written by |
 |---|---|---|---|---|
 | `confirmation` | `int` | no | SQLite's row id | W2 |
-| `spec_path` | `path` | no | where the spec would be, or was, saved | W2 |
+| `spec_path` | `path` | no | where the spec would be, or was, saved: the absolute path shown (`trust.md`, T6) | W2 |
 | `spec_sha256` | `hash` | no | the hash of the file's bytes as shown | W2 |
 | `question` | `text` | no | the text shown, in full | W2 |
 | `answer` | `bool` | no | yes or no | W2 |
@@ -592,5 +592,6 @@ evaluation, with its own counts.
 ## What this spec asks of other documents
 
 - **Architecture (step 9):** done (`architecture.md`, 0056).
-- **Trust (step 10):** T3 is met by `approvals` and `confirmations`; the run lock.
+- **Trust (step 10):** done (`trust.md`, 0057): T3 is met by `approvals` and `confirmations`; the run lock
+  makes the price shown the price run.
 - **Contracts:** done (0054, 0055): C46–C52 and C56 cite I1–I12, and C50 and C51 carry the reuse key and replay.

@@ -1,7 +1,7 @@
 # Glossary
 
 **Status:** accepted. **Updated:** 2026-10-01 (records 0022–0024, 0031, 0033, 0034, 0039, 0041–0043, 0049,
-0050, 0055).
+0050, 0055, 0057).
 
 > One word per idea, in your nomenclature, linked to the standard terms so readers (and the agent) can
 > connect them. The code, the docs, and the messages use these words. The Avoid column is advice for prose,
@@ -21,7 +21,7 @@
 
 | Term | Meaning | Standard terms it relates to | Avoid |
 |---|---|---|---|
-| model | a program or function that maps model parameter values to model predictions | simulator, computational model, simulation code | |
+| model | a program or function that maps model parameter values to model predictions | simulator, computational model, simulation code | user code, model code, model program (0057) |
 | model version | a model's spec (except its location, `keep`, `batch_size`, and `timeout_s`) plus the contents of the files the spec names, identified by a hash (0029) | | |
 | model spec | the user's description of a model: how EMA runs it, its model parameters and nominal values, its model predictions, and whether it's noisy; it holds no model parameter space (0005). The model spec (except its location, `keep`, `batch_size`, and `timeout_s`) and the contents of the files it names make a model version (0029, 0049) | model configuration, model definition | |
 | model parameter | one of a model's variables whose value a design sets; a design that doesn't vary it holds it at its nominal value, or at a held value its model parameter space gives (0003, 0023, 0033) | input, input variable, factor | input, input parameter |

@@ -1,7 +1,7 @@
 # Contracts and degenerate cases
 
 **Status:** accepted; C46–C52 and C56 cite `data_model.md`'s invariants (0054, 0055); C53–C55 provisional until
-the guides (step 13). **Updated:** 2026-10-01 (0054, 0055, 0056). **Depends on:** P1–P7; `scope.md`; `model_interface.md` (M1–M21),
+the guides (step 13). **Updated:** 2026-10-01 (0054, 0055, 0056, 0057). **Depends on:** P1–P7; `scope.md`; `model_interface.md` (M1–M21),
 `designs.md` (G1–G17), `diagnostics/shared.md` (S1–S10) and the six diagnostic specs, `uncertainty.md`
 (V1–V7); records 0008, 0010, 0011, 0015–0019, 0022, 0025–0030, 0032–0043, 0045–0048, 0051, 0052, 0054, 0055.
 
@@ -159,7 +159,7 @@ where the promise applies.
 | Id | Promise | Generalizes | Applies to | Check | Negative control |
 |---|---|---|---|---|---|
 | C31 | M1. | M1 | all | `check_failure_is_a_record` | re-raises the model's exception |
-| C32 | M2. | M2, 0026 | all | `check_no_stdin_no_secrets` | passes the parent's environment |
+| C32 | M2 and T2 (`trust.md`). | M2, T2, 0026 | all | `check_no_stdin_no_secrets` | passes the parent's environment |
 | C33 | M3, and files are compared as files. | M3, P3, 0029 | all | `check_model_version` | hashes the files' paths |
 | C34 | M16, and the runs already made are kept. | M16, U6 | all | `check_rehash` | hashes once, at loading |
 | C35 | M4 (a run that finished cleanly is failed only when none is read, kind `unread`; 0043), and a non-finite value is missing (M7, M11). | M4, M7, M11, 0043 | all | `check_predictions_read_or_missing` | fails the run when any model prediction is missing |
