@@ -11,7 +11,7 @@ OD-11 are decided).
 
 | Action | Approval shows | Asked by |
 |---|---|---|
-| running a design with new runs | <the model, the price, the budget left> | <workspace `approve=` callback> |
+| running a design with new runs | <the model, the price> (no budgets in v2.0, 0050) | <workspace `approve=` callback> |
 | saving a command-line model | <the command, every file written or copied, the environment> | <…> |
 | saving a file that becomes code | <its full text> | <…> |
 | <…> | <…> | <…> |

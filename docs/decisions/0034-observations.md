@@ -1,6 +1,6 @@
 # 0034. Report numbers without intervals as observations
 
-**Date:** 2026-09-30. **Status:** accepted. **Resolves:** none (TODO step 6, the diagnostic specs' shared parts).
+**Date:** 2026-09-30. **Status:** accepted; its glossary row amended by 0042. **Resolves:** none (TODO step 6, the diagnostic specs' shared parts).
 
 ## Context
 

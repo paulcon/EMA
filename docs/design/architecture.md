@@ -7,9 +7,11 @@
 > (0017), no blob store (0021), no `Box`/`qoi`/`DiagnosticRun` identifiers (0008), `ModelParameter` with
 > limits and no scale (0024), `batch` and `batch_size` (0025), failure kinds error/timeout/unread
 > (`model_interface.md`), the Gram spectrum, not Fourier (0038), `lines.py`, no `plane.py` (`designs.md`), no
-> `convergence_interval` or `level` (0040), export as CSV and JSON (U5). Step 9 rewrites it from the specs'
+> `convergence_interval` or `level` (0040), export as CSV and JSON (U5; `export.md`), no budgets or `Budget`
+> (0050), a design's identity with its model version (0046). Step 9 rewrites it from the specs'
 > "Architecture (step 9)" asks. In §11, `|` makes siblings independent in import-linter (they may not import
 > each other); use `:` where siblings import each other (e.g. diagnostics → plotting).
+
 **Related:** `../notes/v1/ema-redesign.md` (the objects, designs, and diagnostics this follows),
 `data_model.md` (the store's functions come from its §7 and §8),
 `../notes/v1/lessons_learned_2026-09-27.md` and `../notes/v1/lessons_learned_answers_2026-09-27.md` (§6, the

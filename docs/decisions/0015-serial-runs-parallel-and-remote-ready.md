@@ -1,6 +1,6 @@
 # 0015. Run one model run at a time in v2.0, ready for parallel and remote runs later
 
-**Date:** 2026-09-29. **Status:** accepted. **Resolves:** none (TODO step 3, scope).
+**Date:** 2026-09-29. **Status:** accepted; its run-at-a-time wording amended by 0025; its platform question by 0029; its shared files by 0030. **Resolves:** none (TODO step 3, scope).
 
 ## Context
 

@@ -1,7 +1,7 @@
 # Scatter
 
 **Status:** accepted. **Updated:** 2026-10-01. **Module:** `ema/diagnostics/scatter.py`. **Depends on:**
-`shared.md`; `../designs.md`; records 0012, 0032, 0034, 0035, 0037, 0042.
+`shared.md`; `../designs.md`; records 0012, 0032, 0034, 0035, 0037, 0042, 0044, 0048, 0049, 0051, 0052.
 
 > The model prediction against each model parameter, over a uniform design (U1). Written from an interview on
 > 2026-09-30 (TODO step 6). Everything not stated here follows `shared.md`.
@@ -58,43 +58,39 @@ Let the n_u usable runs (`shared.md`, the precheck) have values y_k and points x
      n = 200: as low as −0.06 over designs). It is not clipped.
 
 **Changes of units** (P6): y → a·y + b, with a > 0, gives ȳ → a·ȳ + b and s → a·s, and leaves every ρ_i and S_i
-unchanged. A log scale changes no estimate: ρ_i and S_i depend only on the order of x_i.
+unchanged: exactly under a·y, within C5's tolerances under the shift (0048). A log scale changes no estimate:
+ρ_i and S_i depend only on the order of x_i.
 
 **Failed runs** and runs missing the model prediction are left out of every estimate (P6), counted in the
 header and the note (`shared.md`), and drawn in the strip below each panel.
 
 ## Uncertainty
 
-OD-12, for scatter: **the bootstrap over the usable runs**, the same for every estimate, with the binned index
-recomputed on each resample's distinct runs.
+OD-12, for scatter: **the bootstrap over the usable runs** (`../uncertainty.md`, The bootstrap), with the tag
+`SCATTER_BOOT_TAG`. Its differences:
 
-- **Resamples:** 1000 (`BOOTSTRAP_RESAMPLES`), each n_u indices drawn with replacement from the usable runs by
-  `Generator(PCG64(SeedSequence(seed, spawn_key=(SCATTER_BOOT_TAG,)))).integers(0, n_u, (1000, n_u))`. Every
-  estimate uses the same resamples.
-- **Mean, standard deviation, rank correlations:** recomputed on each resample as drawn, duplicates included.
-- **Binned index:** recomputed on each resample's distinct runs: one copy of each run drawn, m of them (about
-  0.63·n_u), with ⌊√m⌋ bins, ties in the design's order. A resample repeats runs; copies of one run fall in the
-  same bin and make the bin means vary more than distinct runs would, and the adjustment assumes distinct
-  runs. On R2 at n = 200, plain resamples shift the index up by 0.04–0.05 (x₃: estimate −0.005, interval
-  [−0.044, 0.227]); distinct runs remove the shift, and their widths are closest to the index's true spread
-  over designs (interview, 2026-09-30).
-- **Interval:** the 0.5th and 99.5th percentiles of the defined resampled values (numpy's `percentile`, linear
-  interpolation) (`shared.md`, Bootstrap).
-- **Undefined resamples** (0/0: every y in a resample equal) are dropped, and the line under the table says how
-  many of the 1000, when any are (`shared.md`).
+- **On distinct runs:** the binned index, with ⌊√m⌋ bins over a resample's m distinct runs (about 0.63·n_u),
+  ties in the design's order. The mean, standard deviation, and rank correlations are recomputed as drawn. A
+  resample repeats runs; copies of one run fall in the same bin and make the bin means vary more than distinct
+  runs would, and the adjustment assumes distinct runs. On R2 at n = 200, plain resamples shift the index up by
+  0.04–0.05 (x₃: estimate −0.005, interval [−0.044, 0.227]); distinct runs remove the shift, and their widths are
+  closest to the index's true spread over designs.
+- **Undefined:** ρ and S on a resample whose y values are all equal (0/0); S on a resample with fewer than 2
+  distinct runs. The mean and standard deviation are never undefined.
 - **Three tables,** each with one line under it (`shared.md`): the model prediction (mean, standard deviation)
   and the rank correlations ("bootstrap over the n_u usable runs, 1000 resamples, 0.5th to 99.5th percentiles,
   seed s"), and the binned index ("… recomputed on the distinct runs of each resample").
 
 ## Minimum runs and degenerate cases
 
-- **Fewest usable runs:** 10 (`SCATTER_MIN_RUNS`): 3 bins of 3–4 runs, a rank correlation, a standard
-  deviation, and a bootstrap, with room to spare. Below it: counts and a note, no estimates (P6); the
-  shared observations stay. At small n the intervals are wide (R1's binned index varies by 0.23 over designs at
-  n = 10), and say so.
-- **All runs failed:** counts by kind and the note; no estimates or observations (`shared.md`).
-- **Constant:** the note, the observations, no estimates (0035). R4b is not constant: estimates, and a relative
-  spread of about 8·10⁻¹³.
+- **Fewest usable runs:** 10 (`SCATTER_MIN_RUNS`): 3 bins of 3–4 runs, a rank correlation, a standard deviation,
+  and a bootstrap, with room to spare. Below it: counts and a note, no estimates (P6); the shared observations
+  stay. Figures: the panels, with their strips and no bin means; the histogram (0051). At small n the intervals
+  are wide (R1's binned index varies by 0.23 over designs at n = 10), and say so.
+- **All runs failed, or no usable run:** counts by kind and the note; no estimates or observations
+  (`shared.md`). Figures: the panels, with only their strips; no histogram (0051).
+- **Constant:** the note, the observations, no estimates (0035). Figures: the panels, with their strips; no
+  histogram (0051). R4b is not constant: estimates, and a relative spread of about 8·10⁻¹³.
 - **A resample with fewer than 2 distinct runs:** its binned index is undefined, and dropped (above).
 - **Runs not usable:** estimates from the usable runs only; the per-model-parameter strips show where the others
   are. Two-model-parameter views (a failure map of pairs) are not in v2.0 (0037).
@@ -134,9 +130,9 @@ stream above (a scratch script, 2026-09-30; step 11 checks them).
 |---|---|
 | Model version | R2@8e41 |
 | Model prediction | y |
-| Space | x1 [−3.142, 3.142]; x2 [−3.142, 3.142]; x3 [−3.142, 3.142] |
+| Space | x1 [-3.142, 3.142]; x2 [-3.142, 3.142]; x3 [-3.142, 3.142] |
 | Held | none |
-| Design | uniform, n = 200, sampler random 1, seed 1 |
+| Design | uniform, n = 200, sampler random 1 (rate ½), seed 1 |
 | Runs | 200: 200 new, 0 reused; 0 failed; 0 missing y; 200 usable |
 
 ## Estimates
@@ -155,8 +151,8 @@ seed 1.
 | Model parameter | Rank correlation $\rho$ | Variability interval |
 |---|---|---|
 | x1 | 0.4185 | [0.2651, 0.5489] |
-| x2 | 0.02173 | [−0.1663, 0.1955] |
-| x3 | −0.009447 | [−0.2193, 0.1803] |
+| x2 | 0.02173 | [-0.1663, 0.1955] |
+| x3 | -0.009447 | [-0.2193, 0.1803] |
 
 Variability intervals: bootstrap over the 200 usable runs, 1000 resamples, 0.5th to 99.5th percentiles,
 seed 1.
@@ -165,7 +161,7 @@ seed 1.
 |---|---|---|
 | x1 | 0.2944 | [0.1888, 0.4248] |
 | x2 | 0.4068 | [0.2816, 0.5257] |
-| x3 | −0.004922 | [−0.07658, 0.103] |
+| x3 | -0.004922 | [-0.07658, 0.103] |
 
 Variability intervals: bootstrap over the 200 usable runs, 1000 resamples, the index recomputed on the
 distinct runs of each resample, 0.5th to 99.5th percentiles, seed 1. 14 bins.
@@ -174,9 +170,9 @@ distinct runs of each resample, 0.5th to 99.5th percentiles, seed 1. 14 bins.
 
 | Of the 200 usable runs | y |
 |---|---|
-| Minimum | −9.094 |
+| Minimum | -9.094 |
 | Maximum | 12.85 |
-| (max − min) / max\|y\| | 1.708 |
+| (max - min) / max\|y\| | 1.708 |
 
 ## Figures
 
@@ -200,9 +196,10 @@ space as above, n = 200, sampler random 1, seed 1, prediction y; runs: 200; appr
 
 ## Expected answers
 
-Each at n = 20,000, seed 0, `random` sampler. The tolerance is 5 × the estimate's standard deviation over 100
-designs (seeds 1–100) at that n, computed by a scratch script on 2026-09-30; step 11 recomputes it with a
-separate script, and records its size and seed.
+Each at n = 20,000 (`KNOWN_ANSWER_N`, `shared.md`), seed 0, `random` sampler. The tolerance is 5
+(`KNOWN_ANSWER_SDS`, `shared.md`) × the estimate's standard deviation over 100 designs (seeds 1–100) at that n,
+computed by a scratch script on 2026-09-30; step 11 recomputes it with a separate script, and records its size
+and seed.
 
 | Reference model | Quantity | Expected | Tolerance | Source |
 |---|---|---|---|---|
@@ -219,18 +216,16 @@ separate script, and records its size and seed.
 | R4b | estimates; relative spread | present; about 8·10⁻¹³ | the spread within 1% | analytic (0035) |
 | R5, y and z | every estimate | equal to scatter computed on the usable runs alone | exact | by construction (U3) |
 | R5, n = 200 | runs not usable, by kind | the design's points with a + b > 1 (error), a, b < −0.8 (timeout); for z, also b > 0.8 (missing) | exact | by construction |
-| R2, n = 200, seed 1 | the report | the mock report above | byte-identical (golden report) | this spec |
+| R2, n = 200, seed 1 | the report | the mock report above | golden report (`shared.md`: structure, and numbers within one unit in the 4th digit) | this spec |
 
 ## Named constants
 
 | Name | Value | Meaning | Why this value |
 |---|---|---|---|
 | `SCATTER_N` | 200 | the default number of points | v1's default; U1's example |
-| `SCATTER_MIN_RUNS` | 10 | the fewest usable runs for estimates | every estimate defined with room to spare (interview, 2026-09-30) |
+| `SCATTER_MIN_RUNS` | 10 | the fewest usable runs for estimates | every estimate defined with room to spare |
 | `SCATTER_BOOT_TAG` | 2³² + 1 | the spawn key of scatter's bootstrap stream | the first diagnostic tag above `SPAWN_TAG_BASE` (`shared.md`) |
 | `SCATTER_HIST_BINS` | ⌊√n⌋ | the number of bins of the binned index and the histogram | the usual balance of bias and resolution; one rule for both |
-| `KNOWN_ANSWER_N` | 20,000 | the design size of the known-answer tests | tolerances of 0.004–0.12 at 5 standard deviations |
-| `KNOWN_ANSWER_SDS` | 5 | the tolerance, in standard deviations over designs | a test at a fixed seed that a correct estimator passes with room to spare |
 
 ## Requirements
 
@@ -242,26 +237,15 @@ separate script, and records its size and seed.
 | SC4 | One binned index per varied model parameter: ⌊√n_u⌋ equal-count bins, stable order, adjusted, not clipped. | A hand-computed fixture of 12 runs; R1's c at n = 200, seeds where it is negative. |
 | SC5 | Intervals: 1000 resamples from scatter's stream, the same for every estimate; the binned index on each resample's distinct runs; the 0.5th and 99.5th percentiles; undefined resamples dropped and counted. | A fixture with a two-valued y at n = 10: the count in the line under the table. Changing `SCATTER_BOOT_TAG` changes the intervals, not the design (S8). |
 | SC6 | Fewer than 10 usable runs: counts and a note, no estimates; the observations stay. | R5 in a space where 9 runs are usable; 10 usable. |
-| SC7 | y → a·y + b (a a power of 2) maps the mean and standard deviation as stated, and leaves ρ, S, and the notes unchanged. | R2 with a = 2⁻¹⁰, b = 3. |
+| SC7 | y → a·y + b (a a power of 2) maps the mean and standard deviation as stated, and leaves ρ, S, and the notes unchanged: exactly under a·y; within C5's tolerances under the shift (0048). | R2 with a = 2⁻¹⁰, b = 3. |
 | SC8 | One figure per varied model parameter, with the bin-means step line and the strip of runs not usable, and one histogram with ⌊√n_u⌋ bins. | R5 at n = 200: 2 scatter figures and a histogram; the strip's count equals the header's. |
 | SC9 | Estimates use the usable runs only. | R5, y and z (Expected answers). |
 | SC10 | The known answers at n = 20,000, seed 0, within their tolerances; the golden report on R2 at n = 200, seed 1. | Expected answers. |
 
 ## Tests it implies
 
-- The known-answer tests and the golden report in "Expected answers" (slow tier at n = 20,000).
-- `shared.md`'s S1–S10.
-- The diagnostic contract (`../contracts.md`, step 7): all runs failed; 9 and 10 usable runs; a constant model
-  prediction; R4b; y → a·y + b; d = 1 and d = 20.
-- Nesting: scatter at n = 300 after n = 200 reuses 200 runs (U3, G4).
+- None beyond the requirements above and the contracts (`../contracts.md`).
 
 ## What this spec asks of other documents
 
-- **Record 0037** (accepted, applied): no failure map of pairs in v2.0; U3's text; scope's "Not in v2.0";
-  the step 7 "Decide:" line.
-- **`shared.md`:** the bootstrap's defaults (1000 resamples, 0.5th to 99.5th percentiles, undefined resamples
-  dropped and counted) and the table of spawn tags (applied).
-- **Uncertainty (step 7):** scatter's bootstrap, and why the binned index uses distinct runs.
 - **Reference models (step 11):** the expected answers above, recomputed by a separate script.
-- **Use cases:** U1's per-model-parameter estimate is the rank correlation and the binned index (TODO step 6's
-  "Decide:" line, settled here).

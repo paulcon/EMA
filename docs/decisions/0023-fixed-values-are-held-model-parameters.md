@@ -1,6 +1,6 @@
 # 0023. Hold a model parameter at its nominal value when a design's space leaves it out
 
-**Date:** 2026-09-30. **Status:** accepted. **Resolves:** OD-10.
+**Date:** 2026-09-30. **Status:** accepted; its held values amended by 0033. **Resolves:** OD-10.
 
 ## Context
 

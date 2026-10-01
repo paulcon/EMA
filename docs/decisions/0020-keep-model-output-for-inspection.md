@@ -1,6 +1,6 @@
 # 0020. Keep each run's model output in its run directory, for inspection outside EMA
 
-**Date:** 2026-09-29. **Status:** accepted. **Resolves:** none (TODO step 3, scope).
+**Date:** 2026-09-29. **Status:** accepted; its keep values amended by 0028. **Resolves:** none (TODO step 3, scope).
 
 ## Context
 

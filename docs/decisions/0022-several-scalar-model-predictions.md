@@ -1,6 +1,6 @@
 # 0022. Let a model have several scalar model predictions, and analyze one per diagnostic evaluation
 
-**Date:** 2026-09-30. **Status:** accepted. **Resolves:** OD-9.
+**Date:** 2026-09-30. **Status:** accepted; its data-model consequence and glossary row amended by 0043. **Resolves:** OD-9.
 
 ## Context
 

@@ -1,6 +1,8 @@
 # Use cases
 
-**Status:** accepted. **Updated:** 2026-09-30 (U9 added by 0016; U2's model spec follows `model_interface.md`; U3's failure map dropped by 0037; U2's per-line numbers by 0038; U4's polynomial figures by 0039).
+**Status:** accepted. **Updated:** 2026-10-01 (U9 added by 0016; U2's model spec follows `model_interface.md`;
+U3's failure map dropped by 0037; U2's per-line numbers by 0038; U4's polynomial figures by 0039; U4's budget
+dropped, and the features no use case exercises named, by 0050; asks trimmed by 0052).
 
 > Each use case is a short scenario from the analyst's side: who they are, what model they have, what they
 > want to learn, what they type (in Python or the CLI), what EMA asks them, and the report they get. Write
@@ -13,6 +15,8 @@
 >   has only its steps, what EMA asks, and "Done when".
 > - **Typed steps** are in Python, against `ema.workspace` as drafted in `architecture.md` §7, so they are
 >   provisional until that spec is accepted. One use case is also shown as CLI commands.
+> - **Not in a use case.** The lines diagnostic, the run-directory lookup, PDF output, `keep`, and batch
+>   Python models are tested by their specs' tests and the contracts, not by a use case (0050).
 
 | Id | Name | Principles and decisions it exercises |
 |---|---|---|
@@ -270,26 +274,24 @@
   space, and how is its variation split among the model parameters and their interactions (Sobol indices)?
 - **Steps, as typed:** a linear model, then polynomial models of degree 2 and 3, on convergent designs with
   the same seed. Convergent designs with the same seed and model parameter space are nested, so each larger
-  design reuses the runs of the smaller ones (OD-13). The analyst gives the degree-3 run a budget of one hour
-  (OD-15).
+  design reuses the runs of the smaller ones (OD-13). The analyst declines the degree-3 run at level 2 as too
+  long (0050).
 
   ```python
   space = {...}   # 8 model parameters
   r1 = ws.run("lens", "linear_model", space, level=2, seed=3, approve=ema.ask)
   r2 = ws.run("lens", "polynomial_model", space, degree=2, level=2, seed=3, approve=ema.ask)
-  r3 = ws.run("lens", "polynomial_model", space, degree=3, level=2, seed=3,
-              budget=ema.Budget(max_seconds=3600), approve=ema.ask)
-  #   refused: 960 new runs, about 80 min, over the budget of 60 min
-  r3 = ws.run("lens", "polynomial_model", space, degree=3, level=1, seed=3,
-              budget=ema.Budget(max_seconds=3600), approve=ema.ask)
+  r3 = ws.run("lens", "polynomial_model", space, degree=3, level=2, seed=3, approve=ema.ask)
+  #   asks: 960 new runs, about 80 min; the analyst declines
+  r3 = ws.run("lens", "polynomial_model", space, degree=3, level=1, seed=3, approve=ema.ask)
   ```
 
-- **What EMA asks, and when:** each run asks once, with its price, unless it is refused first. The numbers
+- **What EMA asks, and when:** each run asks once, with its price. The numbers
   are illustrative: design sizes follow `designs.md` (step 5); here, a convergent design has
   2 × (number of coefficients) points at level 0, doubling at each level.
   - `r1`: 72 new, 0 reused, about 6 min;
   - `r2`: 288 new, 72 reused, about 24 min;
-  - `r3` at level 2: refused before asking, since 960 new runs, about 80 min, is over the budget;
+  - `r3` at level 2: 960 new, 360 reused, about 80 min; the analyst declines, and no run is made;
   - `r3` at level 1: 300 new, 360 reused, about 25 min.
 - **What they get:** three reports. The polynomial model's numbers and figures are settled in its spec
   (step 6); the lean set is:
@@ -310,7 +312,7 @@
   - if no degree fits, look at lines (U2) or failures (U3) to see why, and choose another method.
 - **Done when:** on the polynomial reference model and on R2:
   - each price counts as reused exactly the points shared with the earlier designs;
-  - the budget refuses the level-2 run before asking, and makes no run;
+  - the level-2 price shows 960 new runs, about 80 min; declining makes no run;
   - running the same steps again gives identical diagnostic results, intervals included (P4);
   - y → a·y + b leaves every note and the Sobol indices unchanged (P6).
 
@@ -457,29 +459,13 @@ written.
 
 > Collected for the steps that settle them. None of these is decided here.
 
-- **Scope (step 3), settled by 0012 and 0021:** v2.0 has six diagnostics: the five the use cases use, and
-  lines (random or given; U2's single line). The polynomial model's report adds the decay of the coefficients
-  to U4's lean set; the active subspace and its 1-D and 2-D shadows are not in v2.0 (0039). Models declared
-  noisy are not in v2.0, and U7 works as written.
-- **Model interface (step 4), settled by `model_interface.md` and records 0022–0030:** U2's model spec
-  fields (`command`, `input_decks`, `files`, `parameters`, `predictions` with a regex parser, 0027) follow
-  that spec. U6's `solver.cfg` is a listed file, copied into each run directory and part of the model version
-  (0029).
-- **Designs (step 5):** uniform designs with the same seed and model parameter space are nested: the first n
-  points of a larger design are the smaller design (U3, U4). A convergent design starts from the same seeded
-  stream as a uniform design with the same seed, so a polynomial model reuses a scatter's runs (U5).
-  Coordinate lines through the nominal point include it, and share it (U2). U4's design sizes are
-  illustrative.
-- **Diagnostic specs (step 6):** the "Decide:" lines on step 6 in `../../TODO.md` (U1, U2, U7).
-- **Contracts (step 7):** failed runs reused unless retried
-  (record 0010); the point run's repeats of a deterministic model (record 0011).
 - **Data model (step 8):** a retried run stored beside the failed run it replaces (0010); a model version
   recorded as measured noisy, with the point run that measured it (U7).
 - **Architecture (step 9), `ema.workspace`:**
   - `test_model` takes `approve`, since its run is a new run (U1);
   - `run` for the point run needs no model parameter space (U7);
   - new names: `failed_runs` (U3), `reproduce` (U8), and `retry_failed` on `run` and `estimate` (0010);
-    with `ema.ask` and `ema.Budget`, the public names are near the budget of 20 (scope);
+    with `ema.ask`, the public names are near the budget of 20 (scope);
   - `run` re-hashes the model's files first, and refuses if they changed since the model was loaded (U6);
   - the first approval for a model version shows the command, the input deck template, and the files (U2);
   - `export` writes a CSV of runs and a JSON file, not `.npz` (U5);
@@ -487,5 +473,3 @@ written.
 - **Architecture (step 9), `ema.mcp`:** at most 10 tools, each one workspace call, including `propose_model`
   and `save_model`; approvals through MCP elicitation; the server's instructions (U9, 0016, 0019).
 - **Trust (step 10):** approvals through MCP elicitation; the agent writes model specs only (U9, 0016).
-- **Setup (step 12):** OD-19, the budget for live evals, before the MCP build step; U9's test uses a scripted
-  client, with no API cost (0016).

@@ -6,6 +6,13 @@ references, records against specs, numbers, data model, architecture, contracts,
 how an implementer would read the specs. Their findings were merged, the disputed ones checked by computation,
 and plain errors corrected in place (uncommitted). Decisions are left to you.
 
+## Outcome
+
+Interviewed the same day. Each question became a record, accepted and applied: Q1 → 0043, Q2 → 0044, Q3 → 0045,
+Q4 → 0046, Q5 → 0047, Q6 → 0048, Q7 → 0049, Q8 → 0050 (OD-15, OD-19), Q9 → 0051, Q10 → 0052. The step 8–10
+inputs below remain asks for those steps; where a record settled one (design identity, 0046; no budgets, 0050),
+the record wins.
+
 ## Overall
 
 - **Numbers:** sound. Every mock report reproduces to its printed digits: scatter, linear model, polynomial

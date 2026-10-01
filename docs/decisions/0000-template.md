@@ -1,6 +1,6 @@
 # NNNN. <Title: the decision, as a short phrase>
 
-**Date:** <YYYY-MM-DD>. **Status:** proposed | accepted | superseded by NNNN. **Resolves:** <OD-n>.
+**Date:** <YYYY-MM-DD>. **Status:** proposed | accepted | accepted; <part> amended by NNNN | superseded by NNNN. **Resolves:** <OD-n>.
 
 ## Context
 

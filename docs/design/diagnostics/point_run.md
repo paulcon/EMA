@@ -1,7 +1,7 @@
 # Point run
 
-**Status:** accepted. **Updated:** 2026-09-30. **Module:** `ema/diagnostics/point_run.py`. **Depends on:**
-`shared.md`; P7; records 0011, 0021, 0022, 0034, 0035, 0036.
+**Status:** accepted. **Updated:** 2026-10-01. **Module:** `ema/diagnostics/point_run.py`. **Depends on:**
+`shared.md`; P7; records 0011, 0021, 0022, 0034, 0035, 0036, 0044, 0049, 0051, 0052.
 
 > The model prediction at one point, and its measured variation over repeated runs there (0012, P7, 0011).
 > Written from an interview on 2026-09-30 (TODO step 6). Everything not stated here follows `shared.md`.
@@ -24,8 +24,10 @@
 | `repeats` | integer ≥ 0 | 4 | the number of runs after replicate 0: replicates 1 to `repeats` | yes |
 | `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
 
-- **No model parameter space** (U7). The header shows a **Point** row in place of Space and Held: every model
-  parameter's value, marked "given" or "nominal".
+- **The point's model parameter space** (0049): the user gives `x`, not a space (U7), and EMA builds the space
+  that holds every model parameter at the point's value, with none varied (`../designs.md`, Point). The
+  header's **Space** row shows it, with no Held row: every model parameter's value, marked "given" or
+  "nominal", every one held.
 - **No seed:** the point run makes no random draws. The request's seed, 0, is recorded (`shared.md`).
 - **Replicates** (0011): replicate 0 is the ordinary run at x, reused when stored (for example, the test run at
   the nominal point); replicates 1 to `repeats` are new runs the first time, and reused when the same repeats
@@ -94,6 +96,8 @@ a property of the model, so there is no interval method.
 - **`repeats = 0`:** one run; the note "No repeats: the variation was not measured."; the model version is not
   recorded as measured noisy.
 - **x outside the limits, or an unknown name:** refused before any run (G9).
+- **Figures** (0051): `point_run.png` in every case. With all runs failed, it has the strip only, one × per
+  run; with `repeats = 0`, one point at 0; constant, every point at 0.
 
 ## Figures
 
@@ -119,7 +123,7 @@ fresh entropy (`../reference_models.md`), so no two point runs agree. Replicate 
 |---|---|
 | Model version | R6a@5c02 |
 | Model prediction | y |
-| Point | a = 1, b = 0, c = 15, k = 10 (all nominal) |
+| Space | the point a = 1, b = 0, c = 15, k = 10 (all nominal); every model parameter held |
 | Design | point, repeats = 4 (replicates 0–4) |
 | Runs | 5: 4 new, 1 reused; 0 failed; 0 missing y; 5 usable |
 
@@ -133,7 +137,7 @@ fresh entropy (`../reference_models.md`), so no two point runs agree. Replicate 
 | Distinct values | 5 |
 | Minimum | 9.939 |
 | Maximum | 10.03 |
-| (max − min) / max\|y\| | 0.009281 |
+| (max - min) / max\|y\| | 0.009281 |
 
 The model prediction varies at this point, so R6a@5c02 is recorded as measured noisy in y.
 
@@ -141,7 +145,7 @@ The model prediction varies at this point, so R6a@5c02 is recorded as measured n
 
 ![Deviation from replicate 0](point_run.png)
 
-y − y(replicate 0) against the replicate number, 0 to 4. Data card: `point_run.json`.
+y - y(replicate 0) against the replicate number, 0 to 4. Data card: `point_run.json`.
 
 ## Provenance
 
@@ -170,7 +174,7 @@ spread 0, no note, and no "measured noisy" line.
 
 | Name | Value | Meaning | Why this value |
 |---|---|---|---|
-| `POINT_RUN_REPEATS` | 4 | the default number of repeats | 5 runs: enough to see variation and a rough spread; U7 asks for 10 when it wants more (interview, 2026-09-30) |
+| `POINT_RUN_REPEATS` | 4 | the default number of repeats | 5 runs: enough to see variation and a rough spread; U7 asks for 10 when it wants more |
 
 There are no tolerances: "varies" is exact (0035).
 
@@ -190,18 +194,15 @@ There are no tolerances: "varies" is exact (0035).
 
 ## Tests it implies
 
-- The known-answer tests in "Expected answers"; the R6 tests check sampling bounds only, never golden bytes.
-- `shared.md`'s S1–S10, with the point run's exceptions: a Point row in the header, and no "constant" note.
-- The diagnostic contract (`../contracts.md`, step 7): all runs failed; one usable run; y → a·y + b (with a a
-  power of 2) scales every observation as expected and changes no note.
+- The R6 tests check sampling bounds only, never golden bytes: the point run has no golden report.
+- `shared.md`'s S1–S10, with the point run's exceptions: the header's Space row holds every model parameter, with
+  no Held row (0049), and there is no "constant" note.
+- The diagnostic contract (`../contracts.md`): y → a·y + b (with a a power of 2) scales every observation as
+  expected and changes no note.
 - The store contract's exception for the point run's replicates (P7, 0011).
 
 ## What this spec asks of other documents
 
-- **Record 0036** (accepted, applied): P6's check counts observations, so a point run with observations
-  only, and no note, is a valid diagnostic result.
-- **`shared.md`:** the point run's exception to the "constant" note (applied).
-- **`../reference_models.md`:** R6 draws its noise from fresh entropy (applied).
 - **Data model (step 8):** a model version's "measured noisy" record, per model prediction, with the point run
   that measured it; the notes on later diagnostic results read it when they are made.
 - **Architecture (step 9):** `run` takes no model parameter space for the point run (U7).

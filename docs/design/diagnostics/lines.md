@@ -1,7 +1,8 @@
 # Lines
 
-**Status:** accepted. **Updated:** 2026-09-30. **Module:** `ema/diagnostics/lines.py`. **Depends on:**
-`shared.md`; `coordinate_lines.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038.
+**Status:** accepted. **Updated:** 2026-10-01. **Module:** `ema/diagnostics/lines.py`. **Depends on:**
+`shared.md`; `coordinate_lines.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0049,
+0051, 0052.
 
 > The model prediction along m random lines, or along lines the analyst gives, and the spectrum of each line
 > (0012; U2's finer line through a kink). Written from an interview on 2026-09-30 (TODO step 6). Each line is
@@ -29,9 +30,9 @@
 | `seed` | integer ≥ 0 | 0 | the random lines' seed; recorded, and unused, with given lines | yes (random lines) |
 | `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
 
-- **Two modes, one request** (interview, 2026-09-30): with `lines`, the design is those lines,
-  `lines(space, lines, n)`; without it, m random lines, `random_lines(space, m, n, seed)`. A request with both
-  `lines` and `m` is refused before building.
+- **Two modes, one request:** with `lines`, the design is those lines, `lines(space, lines, n)`; without it, m
+  random lines, `random_lines(space, m, n, seed)`. A request with both `lines` and `m` is refused before
+  building.
 - **A given line** (`../designs.md`, Given lines): the anchor in model parameter units, a partial mapping,
   unnamed varied model parameters at the space's center and held ones at their held values; the direction in
   unit coordinates (`{"a": 1, "e": 1}`), unnamed components 0. Refused before building: an anchor outside the
@@ -56,16 +57,16 @@ s_j = −1 + 2j/(n − 1), j = 0 … n − 1, whatever its direction.
 - **Gram spectrum, decay rate, degrees above the floor:** exactly as coordinate lines, in s
   (`coordinate_lines.md`, Computation): the same Lanczos computation, tail, window ⌊(n − 1)/2⌋, floor
   10⁻¹⁰ of the line's range, and `LINE_RATE_MIN_DEGREES`.
-- **Length:** the distance between the line's ends in unit coordinates, from 0 up to the diagonal of the
-  cube, 2√d. A new observation (interview, 2026-09-30): the rate is per degree along the line's own span, and a
-  shorter segment of an analytic function decays faster. On R11 at n = 33, lines of length 2.00, 1.39, and 0.70
-  have rates 0.209, 0.362, and 0.743.
-- **No summary across lines** (interview, 2026-09-30): no minimum, median, or interval over the m rates. The
-  lines differ in length and in the features they cross (R7's short lines miss the kink and the jump, and keep
-  rates of 0.6–1.2 that don't change with n; the long ones that cross the jump halve), so a summary mixes
-  them; and the rates change with n, which a bootstrap over lines wouldn't show (R2's median rate over 20 lines:
-  0.381 at n = 17, 0.620 at n = 33). Considered and not chosen: the minimum, median, and maximum as
-  observations; the median as an estimate with a bootstrap over the lines.
+- **Length:** the distance between the line's ends in unit coordinates, from 0 up to the diagonal of [−1, 1]^d,
+  2√d (0049). A new observation: the rate is per degree along the line's own span, and a shorter segment of an
+  analytic function decays faster. On R11 at n = 33, lines of length 2.00, 1.39, and 0.70 have rates 0.209,
+  0.362, and 0.743.
+- **No summary across lines:** no minimum, median, or interval over the m rates. The lines differ in length and
+  in the features they cross (R7's short lines miss the kink and the jump, and keep rates of 0.6–1.2 that don't
+  change with n; the long ones that cross the jump halve), so a summary mixes them; and the rates change with n,
+  which a bootstrap over lines wouldn't show (R2's median rate over 20 lines: 0.381 at n = 17, 0.620 at n = 33).
+  Considered and not chosen: the minimum, median, and maximum as observations; the median as an estimate with a
+  bootstrap over the lines.
 
 **Observations for each line** (0034), in line order, one table:
 
@@ -77,17 +78,17 @@ s_j = −1 + 2j/(n − 1), j = 0 … n − 1, whatever its direction.
 | Degrees above the floor | "k* of K" |
 | Decay rate | in decades per degree; or "none" and why |
 
-**Where each line runs** (interview, 2026-09-30): a table with one row per varied model parameter, in the
-model spec's order, and one column per line, each cell "from → to" in model parameter units, from the line's
-start (t = 0) to its end (t = 1). At most 5 lines per table (`LINES_TABLE_COLUMNS`); more lines make more
-tables, so the table's width doesn't grow with m or d. The lengths are in the observations table, not repeated
-here.
+**Where each line runs:** a table with one row per varied model parameter, in the model spec's order, and one
+column per line, each cell "from → to" in model parameter units, from the line's start (t = 0) to its end
+(t = 1). At most 5 lines per table (`LINES_TABLE_COLUMNS`); more lines make more tables, so the table's width
+doesn't grow with m or d. The lengths are in the observations table, not repeated here.
 
 - **Runs not usable on a line, a constant line, k* < 3:** as coordinate lines: no spectrum or rate for a line
   with any run not usable ("none: 2 runs not usable"); a note for each constant line ("y is the same in all 17
   usable runs along line 1: 1."); k* in its column.
-- **Changes of units** (P6): y → a·y + b, with a > 0, leaves the rates, degrees, and notes unchanged and scales
-  the ranges by a. The lengths and ends don't depend on y.
+- **Changes of units** (P6): y → a·y + b, with a > 0, leaves the degrees and notes unchanged, and the rates
+  within 10⁻¹² under a·y alone and within `RATE_SHIFT_TOL` under the shift (0048), and scales the ranges by a.
+  The lengths and ends don't depend on y.
 
 ## Uncertainty
 
@@ -106,10 +107,13 @@ and there is no estimate across lines (above). A rerun at 2n − 1 points per li
 - **A short line:** any length > 0 is analyzed; its length is in the table. A line always has length > 0: it is
   a line, not a ray, through an anchor inside the space, in a nonzero direction.
 - **Given lines that coincide:** their points are the same, and so are their runs; each is still its own row.
+- **Figures** (0051): one PNG per line in every case, with the same layout, as coordinate lines': a line's top
+  panel shows its usable runs and the strip of the others; its spectrum panel is empty, with the reason, when the
+  line has no spectrum.
 
 ## Figures
 
-**`lines_<j>.png`,** one per line, in line order, with two panels (interview, 2026-09-30):
+**`lines_<j>.png`,** one per line, in line order, with two panels:
 
 - **Top, the line:**
   - **x axis:** the distance from the line's start in unit coordinates, 0 to its length, labeled
@@ -120,8 +124,8 @@ and there is no estimate across lines (above). A rerun at 2n − 1 points per li
     isn't marked: it is only the draw that placed the line (its position is in the data card).
   - **Runs not usable:** × in the strip below the axes, at their distances (`shared.md`).
 - **Bottom, the spectrum:** as coordinate lines (`coordinate_lines.md`, Figures): |c_k| / range on a log axis
-  against the degree, the tail fit, the floor, the window; an empty panel with the reason when there is no
-  spectrum.
+  against the degree, any value below `SPECTRUM_YMIN` an open marker on the bottom edge (0048), the tail fit,
+  the floor, the window; an empty panel with the reason when there is no spectrum.
 - **No panel of the model parameters along the line:** each is linear in unit coordinates along it, and the
   ends table says from where to where.
 - **Title:** "line j"; the numbers are in the tables.
@@ -141,7 +145,7 @@ them); the hashes are placeholders.
 |---|---|
 | Model version | R7@41d9 |
 | Model prediction | y |
-| Space | a [−1, 1]; b [−1, 1]; c [−1, 1]; e [−1, 1] |
+| Space | a [-1, 1]; b [-1, 1]; c [-1, 1]; e [-1, 1] |
 | Held | none |
 | Design | random lines, m = 5, n = 17, seed 0 |
 | Runs | 85: 85 new, 0 reused; 0 failed; 0 missing y; 85 usable |
@@ -152,14 +156,14 @@ them); the hashes are placeholders.
 |---|---|
 | Minimum | 0.2 |
 | Maximum | 1.995 |
-| (max − min) / max\|y\| | 0.8997 |
+| (max - min) / max\|y\| | 0.8997 |
 
 | Model parameter | Line 0 | Line 1 | Line 2 | Line 3 | Line 4 |
 |---|---|---|---|---|---|
-| a | 0.6198 → 1 | −1 → 1 | 1 → −1 | −1 → 1 | 0.2123 → 0.783 |
-| b | −0.4175 → −0.3458 | −0.1497 → −0.6877 | −0.9938 → 0.003045 | −0.1718 → 0.3618 | −0.2506 → −0.8688 |
-| c | 0.1892 → 0.5543 | −0.1069 → 0.381 | 0.1505 → 0.6742 | −0.1998 → 0.1157 | −1 → 1 |
-| e | −1 → −0.6411 | 0.9332 → −0.672 | 0.3123 → 0.8897 | −0.3275 → −0.8983 | 0.0431 → 0.7265 |
+| a | 0.6198 → 1 | -1 → 1 | 1 → -1 | -1 → 1 | 0.2123 → 0.783 |
+| b | -0.4175 → -0.3458 | -0.1497 → -0.6877 | -0.9938 → 0.003045 | -0.1718 → 0.3618 | -0.2506 → -0.8688 |
+| c | 0.1892 → 0.5543 | -0.1069 → 0.381 | 0.1505 → 0.6742 | -0.1998 → 0.1157 | -1 → 1 |
+| e | -1 → -0.6411 | 0.9332 → -0.672 | 0.3123 → 0.8897 | -0.3275 → -0.8983 | 0.0431 → 0.7265 |
 
 | Line | Usable | Length | Range | Degrees above the floor | Decay rate (decades per degree) |
 |---|---|---|---|---|---|
@@ -200,25 +204,25 @@ Gram coefficients in `fractions`, then the rate in doubles). The points of rando
 | Reference model | Quantity | Expected | Tolerance | Source |
 |---|---|---|---|---|
 | R7, random, m = 5, n = 17, seed 0 | rate, lines 0–4 | 0.8166, 0.6447, 0.2184, 0.07052, 0.1891 | 10⁻⁶ | exact rational arithmetic |
-| R7, random, m = 5, n = 17, seed 0 | the report | the mock report above | byte-identical (golden report) and data cards | this spec |
+| R7, random, m = 5, n = 17, seed 0 | the report | the mock report above | golden report (`shared.md`: structure, and numbers within one unit in the 4th digit) and data cards | this spec |
 | R11, random, m = 10, seed 0, n = 33, 65, 129 | each line's rate | log₁₀ ρ, ρ the Bernstein ellipse parameter of the line's segment through its nearest pole (a or b = ±i/2): 0.2090 for lines 0, 1, 3, 4, 5, 6, 9; 0.7532, 0.2555, 0.3568 for lines 2, 7, 8 | 0.02 (computed at n = 33, 65, 129: within 0.005 for the long lines, 0.012 for line 2) | analytic |
 | R7, given: through the nominal point, direction (a, e) = (1, 1) | length; rate at n = 17, 33, 65 | 2.828 (2√2); 0.2026, 0.1082, 0.05903 | exact; 10⁻⁶ | analytic; exact rational arithmetic |
 | R7, given: through a = e = 0.3, direction (a, e) = (1, −1), n = 17 | the line's note; rate | "y is the same in all 17 usable runs along line 0: 1."; none: constant | exact | by construction, with R7 summed in the order listed in `../reference_models.md` |
 | R1 and R10, random, m = 5, seed 0 | k*; rate | 1 (R1) and 2 (R10) on every line; none | exact | analytic: degree 1 and 2 along any line |
 | R4a | notes; each line | the shared "constant" note only; none: constant | exact | trivial |
 | R5, random, m = 5, n = 17, seed 0 | runs not usable, by kind; lines with no rate | the points in each region (`../reference_models.md`); "none: k runs not usable" on each line that has any | exact | by construction |
-| R2, y → 2⁻¹⁰·y + 3 | rates; k*; notes; ranges | rates within 10⁻⁹; k* and notes identical; ranges × 2⁻¹⁰ | as stated | P6 |
+| R2, y → 2⁻¹⁰·y + 3 | rates; k*; notes; ranges | rates within `RATE_SHIFT_TOL` = 10⁻⁵; k* and notes identical; ranges × 2⁻¹⁰ | as stated | P6 |
 
 ## Named constants
 
 | Name | Value | Meaning | Why this value |
 |---|---|---|---|
-| `LINES_M` | 5 | the default number of random lines | 85 runs at n = 17; R7's lines already split into smooth and nonsmooth ones (interview, 2026-09-30) |
-| `LINES_N` | 17 | the default number of points per line, in both modes | as coordinate lines; a finer line sets its own (interview, 2026-09-30) |
+| `LINES_M` | 5 | the default number of random lines | 85 runs at n = 17; R7's lines already split into smooth and nonsmooth ones |
+| `LINES_N` | 17 | the default number of points per line, in both modes | as coordinate lines; a finer line sets its own |
 | `LINES_TABLE_COLUMNS` | 5 | the most lines in one table of ends | a table readable at any m and d |
 
-The rate's constants (`LINE_RATE_FLOOR`, `LINE_RATE_WINDOW`, `LINE_RATE_MIN_DEGREES`), `COORD_MIN_N`, and
-`COORD_MIN_RUNS` are coordinate lines', shared.
+The rate's constants (`LINE_RATE_FLOOR`, `LINE_RATE_WINDOW`, `LINE_RATE_MIN_DEGREES`, `RATE_SHIFT_TOL`),
+`SPECTRUM_YMIN`, `COORD_MIN_N`, and `COORD_MIN_RUNS` are coordinate lines', shared.
 
 ## Requirements
 
@@ -230,24 +234,19 @@ The rate's constants (`LINE_RATE_FLOOR`, `LINE_RATE_WINDOW`, `LINE_RATE_MIN_DEGR
 | LN4 | The ends table: one row per varied model parameter in the model spec's order, one column per line, "from → to" in model parameter units, at most 5 lines per table. | R3 with m = 7: two tables, of 5 and 2 lines, 8 rows each. |
 | LN5 | A line with any run not usable has no spectrum or rate; a constant line has a note; a constant diagnostic result has the shared note only. | R5 random at seed 0; R7's given line along the kink; R4a. |
 | LN6 | One PNG per line; the x axis is the distance along it, 0 to its length; a given line's anchor is marked, a random line's isn't. | R7 random: 5 PNGs, no anchor marks; R7's given line across the kink: a mark at distance √2. |
-| LN7 | y → a·y + b (a a power of 2) leaves the rates within 10⁻⁹, and k* and the notes unchanged, and scales the ranges by a. | R2 with a = 2⁻¹⁰, b = 3. |
+| LN7 | y → a·y + b (a a power of 2) leaves the rates within `RATE_SHIFT_TOL` = 10⁻⁵ under the shift, 10⁻¹² under a·y alone (0048), and k* and the notes unchanged, and scales the ranges by a. | R2 with a = 2⁻¹⁰, b = 3. |
 | LN8 | Random lines nest in m, and every line in n → 2n − 1: the runs are reused. | R7: m = 6 after m = 5 makes 17 new runs; n = 33 after n = 17 makes 16 new runs per line. |
 | LN9 | The known answers and the golden report. | Expected answers. |
 
 ## Tests it implies
 
-- The known-answer tests and the golden report in "Expected answers".
-- `shared.md`'s S1–S10, with the exception coordinate lines have: no Estimates section.
-- The diagnostic contract (`../contracts.md`, step 7): all runs failed; one usable run; a constant model
-  prediction; R4b; y → a·y + b; d = 1 and d = 20 (the ends table's rows).
+- `shared.md`'s S4 has no table to check: lines have no Estimates section, as coordinate lines.
 - The per-line computation is shared with coordinate lines, so its tests (CL2, CL3) cover both; LN2 checks the
   wiring.
 
 ## What this spec asks of other documents
 
-- **`shared.md`:** lines in the table of spawn tags: none (applied).
 - **`../reference_models.md` (step 11):** R7's given lines' expected answers; R7 summed in the listed order, so
   the line along the kink is exactly constant; R11's per-line rates from the nearest pole.
 - **Architecture (step 9):** `random_lines.py` becomes `lines.py`, one diagnostic with two modes; the per-line
   computation shared with coordinate lines.
-- **Uncertainty (step 7):** OD-12 for lines is none.

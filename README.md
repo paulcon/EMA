@@ -29,7 +29,7 @@ Everything that code or tests may cite has an id, so a docstring, a test, or a c
 | P | principle | `docs/design/principles.md` |
 | U | use case | `docs/design/use_cases.md` |
 | OD | open decision | `STATUS.md` |
-| D | decision record (4 digits, e.g. D0007) | `docs/decisions/` |
+| — | decision record, cited by its 4 digits (record 0007, or 0007) | `docs/decisions/` |
 | M | model-interface requirement | `docs/design/model_interface.md` |
 | G | design generator requirement | `docs/design/designs.md` |
 | S | requirement shared by every diagnostic | `docs/design/diagnostics/shared.md` |
@@ -62,7 +62,8 @@ docs/design/
   data_model.md               Q/W/I…, from the data model template
   architecture.md             packages, layers, modules, and their public names
   trust.md                    T1…
-  reference_models.md         R1…, with expected answers
+  export.md                   the export's files and their read-back (0050)
+  reference_models.md         R1…, their truths, and an index of expected answers (0052)
 docs/decisions/               README.md (how, and the index), 0000-template.md, 0001…, 0002…
 docs/plans/                   README.md, _template.md
 docs/guides/                  get_started.md, add_a_model.md, run_a_diagnostic.md, add_a_diagnostic.md (outlines)

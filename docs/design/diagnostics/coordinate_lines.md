@@ -1,7 +1,7 @@
 # Coordinate lines
 
-**Status:** accepted. **Updated:** 2026-09-30. **Module:** `ema/diagnostics/coordinate_lines.py`. **Depends on:**
-`shared.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038.
+**Status:** accepted. **Updated:** 2026-10-01. **Module:** `ema/diagnostics/coordinate_lines.py`. **Depends on:**
+`shared.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0051, 0052.
 
 > The model prediction along one line per varied model parameter, through an anchor, and the spectrum of each
 > line (U2). Written from an interview on 2026-09-30 (TODO step 6). Everything not stated here
@@ -39,6 +39,10 @@
   parameters); or "lines through the
   anchor: none (n is even)". Each line's panel marks the anchor's value with a vertical dotted line, whether
   or not it is one of the line's points.
+- **An anchor on another point of a line** is refused before building (0051): an anchor equal, bit for bit, to
+  a point of a coordinate line along which it is off center (an end at lo or hi, or another grid point), naming
+  the model parameter. The analyst gives another anchor, as when a nominal value is outside its range
+  (`../designs.md`). So a line along which the anchor is off center shares no point with the others.
 - **Nested** in n → 2n − 1 with the same space and anchor (G11): coordinate lines at 33 reuse the 17-point
   lines' runs.
 
@@ -48,7 +52,7 @@ Let a line have n points, evenly spaced end to end (`../designs.md`, Lines), at 
 s_j = −1 + 2j/(n − 1), j = 0 … n − 1, along its model parameter (through its logarithm for a log range), with
 values y_j.
 
-**The Gram spectrum** (interview, 2026-09-30):
+**The Gram spectrum:**
 
 - **Gram polynomials** G_0 … G_(n−1) (Gram 1883; also called discrete Chebyshev polynomials): G_k has degree
   k and a positive leading coefficient, and they are orthonormal under the average over the n points:
@@ -72,7 +76,7 @@ values y_j.
   from a kink (both decay like k⁻²), and a sine transform of the detrended line gives an order of smoothness
   (k⁻¹ jump, k⁻² kink, k⁻³ smooth), but not a polynomial's convergence.
 
-**The decay rate** (interview, 2026-09-30), in decades per degree:
+**The decay rate**, in decades per degree:
 
 1. **Tail:** T(k) = √(Σ_(j≥k) c_j²), k = 1 … n − 1, the size of the spectrum from degree k up. T(1) is the line's
    standard deviation (ddof 0). The tail smooths over parity zeros: a line even about its center has c_k = 0
@@ -108,8 +112,9 @@ k*/K at n = 33; R6a and R6b from one draw of their noise):
   refinement n → 2n − 1. At one n the two can be close (at n = 17: 0.196 analytic, 0.181 kink); refining tells
   them apart, and reuses every run (G11).
 - **Changes of units** (P6): y → a·y + b, with a > 0, gives c_k → a·c_k for k ≥ 1 and scales the range by a, so
-  the degrees above the floor and the rate are unchanged. A log range changes nothing: the line is uniform in
-  unit coordinates, and the spectrum is in them.
+  the degrees above the floor are unchanged, and the rate is, within 10⁻¹² under a·y alone and within
+  `RATE_SHIFT_TOL` under the shift (0048). A log range changes nothing: the line is uniform in unit coordinates,
+  and the spectrum is in them.
 
 **Observations for each line** (0034), in the model spec's order, one table:
 
@@ -120,11 +125,11 @@ k*/K at n = 33; R6a and R6b from one draw of their noise):
 | Degrees above the floor | "k* of K" |
 | Decay rate | as above, in decades per degree; or "none" and why |
 
-**Runs not usable on a line** (interview, 2026-09-30): a line with any run that isn't usable has no spectrum,
-no degrees, and no rate ("none: 2 runs not usable"); its range is over its usable runs, and its panel shows
-the others in the strip (`shared.md`). The spectrum is defined on the complete evenly spaced line. Considered
-and not chosen: the polynomials orthonormal on the usable points (an interior gap moved R7's analytic rate
-from 0.196 to 0.207), and the longest evenly spaced segment (one interior gap leaves 8 of 17 points).
+**Runs not usable on a line:** a line with any run that isn't usable has no spectrum, no degrees, and no rate
+("none: 2 runs not usable"); its range is over its usable runs, and its panel shows the others in the strip
+(`shared.md`). The spectrum is defined on the complete evenly spaced line. Considered and not chosen: the
+polynomials orthonormal on the usable points (an interior gap moved R7's analytic rate from 0.196 to 0.207), and
+the longest evenly spaced segment (one interior gap leaves 8 of 17 points).
 
 **A constant line** (the per-line form of 0035): every usable run on the line gives the same double. Its range
 is 0, its degrees 0 of K, its rate "none: constant", and the report has a note for it, after the shared notes:
@@ -133,9 +138,9 @@ where y = 0 exactly.)
 
 ## Uncertainty
 
-OD-12, for coordinate lines: **none** (interview, 2026-09-30). The decay rate is an observation of the n runs
-on its line (0034), with no variability interval, like the point run's numbers. Refinement is the analyst's
-check: a rerun at 2n − 1 points per line reuses every run (G11), and its rates show whether they converge.
+OD-12, for coordinate lines: **none**. The decay rate is an observation of the n runs on its line (0034), with
+no variability interval, like the point run's numbers. Refinement is the analyst's check: a rerun at 2n − 1
+points per line reuses every run (G11), and its rates show whether they converge.
 
 - A diagnostic result with observations only, and no estimates, is valid (0036).
 - Considered and not chosen: an interval spanned by the rates on the line and on its nested subline of
@@ -153,11 +158,15 @@ check: a rerun at 2n − 1 points per line reuses every run (G11), and its rates
 - **k* < 3:** no rate; k* in its column.
 - **Runs not usable on a line:** no spectrum or rate for that line (above).
 - **The anchor on no line** (n even, or off center): the header says so (Parameters); nothing else changes.
+- **An anchor on another point of a line:** refused before building (Parameters, 0051).
+- **Figures** (0051): one PNG per varied model parameter in every case, with the same layout. A line's top panel
+  shows its usable runs and the strip of the others; its spectrum panel is empty, with the reason, when the line
+  has no spectrum (all runs failed or some not usable: "no spectrum: 17 runs not usable"; constant: "no
+  spectrum: constant").
 
 ## Figures
 
-**`coordinate_lines_<name>.png`,** one per varied model parameter, in the model spec's order, with two panels
-(interview, 2026-09-30):
+**`coordinate_lines_<name>.png`,** one per varied model parameter, in the model spec's order, with two panels:
 
 - **Top, the line:**
   - **x axis:** the model parameter, in its units, on a log axis for a log range (`shared.md`).
@@ -170,8 +179,8 @@ check: a rerun at 2n − 1 points per line reuses every run (G11), and its rates
   - **x axis:** the degree k, 1 … n − 1.
   - **y axis:** |c_k| / the line's range, on a log axis, labeled `|c_k| / range`; from 10⁻¹⁷
     (`SPECTRUM_YMIN`) up.
-  - **Points:** one marker per degree; an exact zero (a parity zero of an even or odd line) as an open marker on
-    the bottom edge.
+  - **Points:** one marker per degree; any value below the panel's lower limit (`SPECTRUM_YMIN`), whether an
+    exact zero (a parity zero of an even or odd line) or rounding, as an open marker on the bottom edge (0048).
   - **The fit:** the line 10^(β − r·k) over k = 1 … k*, labeled "tail fit"; it is fitted to T(k), so it lies on
     or above the markers.
   - **The floor:** 10⁻¹⁰, dashed. **Outside the window:** the degrees above K, shaded.
@@ -193,7 +202,7 @@ are computed (a scratch script, 2026-09-30; step 11 checks them); the hashes are
 |---|---|
 | Model version | R8@2c7a |
 | Model prediction | y |
-| Space | a [−1, 1]; b [−1, 1]; c [−1, 1]; e [−1, 1]; f [−1, 1]; g [−1, 1] |
+| Space | a [-1, 1]; b [-1, 1]; c [-1, 1]; e [-1, 1]; f [-1, 1]; g [-1, 1] |
 | Held | none |
 | Design | coordinate lines, n = 17, anchor a = 0, b = 0, c = 0, e = 0, f = 0, g = 0 (all nominal); all 6 lines share the anchor's run |
 | Runs | 97: 56 new, 41 reused; 0 failed; 0 missing y; 97 usable |
@@ -209,7 +218,7 @@ are computed (a scratch script, 2026-09-30; step 11 checks them); the hashes are
 |---|---|
 | Minimum | 0.2 |
 | Maximum | 2 |
-| (max − min) / max\|y\| | 0.9 |
+| (max - min) / max\|y\| | 0.9 |
 
 | Model parameter | Usable | Range | Degrees above the floor | Decay rate (decades per degree) |
 |---|---|---|---|---|
@@ -259,7 +268,7 @@ range (scratch script, 2026-09-30). Step 11 recomputes every value with it.
 | R7 along a and b, n = 17 → 33 → 65 → 129 | each rate over the one before | 0.61, 0.51, 0.55 (a); 0.54, 0.52, 0.52 (b) | within [0.45, 0.65] | brute force (scratch script) |
 | R7 along c, n = 17 → 33 → 65 → 129 | each rate over the one before | 1.07, 1.02, 0.99 | within [0.95, 1.1] | brute force |
 | R8 along f and g | notes; rate | one note each; none: constant | exact | by construction |
-| R8, n = 17 | the report | the mock report above | byte-identical (golden report) and data cards | this spec |
+| R8, n = 17 | the report | the mock report above | golden report (`shared.md`: structure, and numbers within one unit in the 4th digit) and data cards | this spec |
 | R1, every line (k on a log range) | k*; rate | 1; none | exact | analytic: linear in unit coordinates |
 | R10 along a, b, c, e | k* | 1, 2, 0, 0 (c and e constant: notes) | exact | analytic |
 | R2 along x3 | note | "y is the same in all 17 usable runs along x3: 0" | exact | analytic (sin 0 = 0) |
@@ -267,54 +276,43 @@ range (scratch script, 2026-09-30). Step 11 recomputes every value with it.
 | R4a | notes; each line | the shared "constant" note only; none: constant | exact | trivial |
 | R4b | each line | a rate with k* ≥ 3; no note | exact | 0035 |
 | R5, prediction z, n = 17 | line along b | 15 of 17 usable (b = 0.875 and 1 missing); none: 2 runs not usable | exact | by construction |
-| R2, y → 2⁻¹⁰·y + 3 | rates; k*; notes; ranges | rates within 10⁻⁹ of the unscaled; k* and notes identical; ranges × 2⁻¹⁰ | as stated | P6 |
+| R2, y → 2⁻¹⁰·y + 3 | rates; k*; notes; ranges | rates within `RATE_SHIFT_TOL` = 10⁻⁵ of the unscaled; k* and notes identical; ranges × 2⁻¹⁰ | as stated | P6 |
 
 ## Named constants
 
 | Name | Value | Meaning | Why this value |
 |---|---|---|---|
-| `LINE_RATE_FLOOR` | 10⁻¹⁰ | the tail T(k) is fitted while above this fraction of the line's range | ten decades to fit; keeps rounding out unless the line's range is below about 10⁻⁶ of \|y\|; at 10⁻¹³, R3's r line lets rounding in (interview, 2026-09-30) |
-| `LINE_RATE_WINDOW` | ½ | the fit uses degrees 1 … ⌊(n − 1)/2⌋ | analytic lines converge (0.196, 0.209, 0.214), and kinks halve with each refinement; with every degree, R7's analytic line doesn't converge (0.246, 0.255, 0.225) (interview, 2026-09-30) |
+| `LINE_RATE_FLOOR` | 10⁻¹⁰ | the tail T(k) is fitted while above this fraction of the line's range | ten decades to fit; keeps rounding out unless the line's range is below about 10⁻⁶ of \|y\|; at 10⁻¹³, R3's r line lets rounding in |
+| `LINE_RATE_WINDOW` | ½ | the fit uses degrees 1 … ⌊(n − 1)/2⌋ | analytic lines converge (0.196, 0.209, 0.214), and kinks halve with each refinement; with every degree, R7's analytic line doesn't converge (0.246, 0.255, 0.225) |
 | `LINE_RATE_MIN_DEGREES` | 3 | the fewest degrees a rate is fitted to | a slope from at least 3 points |
-| `COORD_N` | 17 | the default number of points per line | U2's; 2⁴ + 1, so reruns at 33 and 65 reuse every run (interview, 2026-09-30) |
+| `COORD_N` | 17 | the default number of points per line | U2's; 2⁴ + 1, so reruns at 33 and 65 reuse every run |
 | `COORD_MIN_N` | 7 | the smallest n accepted | K = ⌊(n − 1)/2⌋ ≥ `LINE_RATE_MIN_DEGREES` |
-| `SPECTRUM_YMIN` | 10⁻¹⁷ | the spectrum panel's lower y limit | below double rounding of \|c_k\| / range for a line at the scale of its values |
+| `SPECTRUM_YMIN` | 10⁻¹⁷ | the spectrum panel's lower y limit; a value below it is an open marker on the bottom edge (0048) | below double rounding of \|c_k\| / range for a line at the scale of its values |
+| `RATE_SHIFT_TOL` | 10⁻⁵ | how far a decay rate may move under y → a·y + b; under a·y alone, 10⁻¹² (`UNITS_LOG_TOL`, `../contracts.md`) | where a line's tail reaches the floor before the window ends, a shift's lost bits are a large share of the smallest tail values: the worst change measured on R2's and R7's lines (n = 17 to 65) was 1.2·10⁻⁶ (0048) |
 | `COORD_MIN_RUNS` | 1 | the fewest usable runs for a diagnostic result with observations | the shared observations need one; there are no estimates |
 
 ## Requirements
 
 | Id | Requirement | Test |
 |---|---|---|
-| CL1 | The design is coordinate lines with the request's n, anchor, and space; n < 7, or a space with no varied model parameter, is refused before building. | The design equals `coordinate_lines(...)` bit for bit; n = 6: refused; a space holding every model parameter: refused. |
+| CL1 | The design is coordinate lines with the request's n, anchor, and space; n < 7, a space with no varied model parameter, or an anchor equal to a point of a line along which it is off center (0051) is refused before building. | The design equals `coordinate_lines(...)` bit for bit; n = 6: refused; a space holding every model parameter: refused; n = 17 with the anchor at b's lo: refused, naming b. |
 | CL2 | Each line's Gram coefficients are orthonormal-basis coefficients on its n points: y is recovered, c_0 is the mean, Σ_(k≥1) c_k² is the variance (ddof 0), and they agree with exact rational arithmetic. | R7's lines at n = 17, 65, 129: agreement within 10⁻¹⁴ of the line's range; (1/n)GᵀG = I within 10⁻¹³. |
-| CL3 | The decay rate: the tail over degrees 1 … k*, k* ≤ ⌊(n − 1)/2⌋, above 10⁻¹⁰ of the line's range; minus the least-squares slope of log₁₀ T(k); none when k* < 3. | A fixture y = Σ_k 10⁻ᵏ G_k at n = 33: rate 1 within 10⁻⁹; R1: k* = 1, none; R10 along b: k* = 2. |
+| CL3 | The decay rate: the tail over degrees 1 … k*, k* ≤ ⌊(n − 1)/2⌋, above 10⁻¹⁰ of the line's range; minus the least-squares slope of log₁₀ T(k); none when k* < 3. | A fixture y = Σ_k 10⁻ᵏ G_k at n = 33: rate 1 within 10⁻⁶ (0048); R1: k* = 1, none; R10 along b: k* = 2. |
 | CL4 | One row per varied model parameter, in the model spec's order: usable, range, k* of K, rate. | R8 at n = 17 (the mock report). |
 | CL5 | A line with any run not usable has no spectrum, k*, or rate; its range is over its usable runs. | R5, z, along b. |
 | CL6 | A constant line: range 0, 0 of K, "none: constant", and a note; a constant diagnostic result: the shared note only. | R8 along f and g; R10 along c and e; R4a. |
 | CL7 | The Design row says which lines contain the anchor. | 6 model parameters: n = 17, centered: "all 6 lines share the anchor's run"; the anchor off center in b: "lines through the anchor: a, c, e, f, g"; n = 16: "none (n is even)". |
-| CL8 | y → a·y + b (a a power of 2) leaves the rates within 10⁻⁹, and k* and the notes unchanged, and scales the ranges by a. | R2 with a = 2⁻¹⁰, b = 3. |
-| CL9 | One PNG per varied model parameter, with the line and its spectrum; the data card's c_k equal the result's; a line with no spectrum keeps its empty panel, with the reason. | R8 at n = 17: 6 PNGs, 2 with "no spectrum: constant"; R5's z: the × strip's count equals the header's. |
+| CL8 | y → a·y + b (a a power of 2) leaves the rates within `RATE_SHIFT_TOL` = 10⁻⁵ under the shift, 10⁻¹² under a·y alone (0048), and k* and the notes unchanged, and scales the ranges by a. | R2 with a = 2⁻¹⁰, b = 3. |
+| CL9 | One PNG per varied model parameter, with the line and its spectrum; the data card's c_k equal the result's; a line with no spectrum keeps its empty panel, with the reason. | R8 at n = 17: 6 PNGs, 2 with "no spectrum: constant"; R5's z: the × strip's count equals the header's; a constructed spectrum with one value below `SPECTRUM_YMIN`: 1 open marker on the bottom edge (0048). |
 | CL10 | The known answers and the golden report. | Expected answers. |
 
 ## Tests it implies
 
-- The known-answer tests and the golden report in "Expected answers"; the exact-rational computation is a test
-  helper (about 30 lines), not part of `ema`.
-- `shared.md`'s S1–S10, with coordinate lines' exception: no Estimates section, so S4 has no table to check.
-- The diagnostic contract (`../contracts.md`, step 7): all runs failed; one usable run; a constant model
-  prediction; R4b; y → a·y + b; d = 1 and d = 20.
-- Nesting: coordinate lines at n = 33 after n = 17 reuses the 97 runs (U2, G11).
+- `shared.md`'s S4 has no table to check: coordinate lines have no Estimates section.
+- The exact-rational computation of "Expected answers" is a test helper (about 30 lines), not part of `ema`.
 
 ## What this spec asks of other documents
 
-- **Record 0038** (accepted, applied): U2's "one estimate per line with its variability interval" becomes one
-  observation per line, the decay rate of its Gram spectrum (`../use_cases.md`, accepted); `../designs.md`'s
-  "Evenly spaced points are what the lines' Fourier spectra need" names the Gram spectrum (accepted). TODO step
-  6's "Decide:" line on coordinate lines' per-line estimate is settled here.
-- **`shared.md`:** coordinate lines in the table of spawn tags: none, no random draws (applied).
-- **Uncertainty (step 7):** OD-12 for coordinate lines is none: the rate is an observation.
-- **The lines diagnostic (next spec):** whether random and given lines use the same Gram spectrum and rate.
 - **Architecture (step 9):** `fourier.py` becomes the Gram spectrum (`gram.py`); the diagnostics table's
   coordinate lines row.
-- **Reference models (step 11):** R7's expected spectra are Gram spectra (0038, applied); step 11 recomputes
-  the rates in "Expected answers".
+- **Reference models (step 11):** step 11 recomputes the rates in "Expected answers".

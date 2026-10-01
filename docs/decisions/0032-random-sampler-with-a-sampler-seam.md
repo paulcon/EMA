@@ -1,6 +1,6 @@
 # 0032. Draw uniform points from numpy's PCG64, behind a sampler interface ready for others
 
-**Date:** 2026-09-30. **Status:** accepted. **Resolves:** OD-13.
+**Date:** 2026-09-30. **Status:** accepted; its sampler interface amended by 0033. **Resolves:** OD-13.
 
 ## Context
 

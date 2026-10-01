@@ -16,11 +16,11 @@ work is `TODO.md`, and where things stand is `STATUS.md`.
   `docs/decisions/`. If the change needs a new decision, draft a decision record with status `proposed`, and
   don't make the change until I accept it. Only I set a record to `accepted`.
 - **Cite ids.** Docstrings, tests, and commit messages name the ids they implement (P3, M2, C5, W3, I4,
-  D0007).
+  record 0007).
 - **Tests first.** For a new module, write its contract checks and known-answer tests from the spec, show
   them to me, then write the code.
-- **One step at a time.** Each step has a plan in `docs/plans/`. Stop at the plan's stop condition and wait for
-  review.
+- **One step at a time.** Each build step has a plan in `docs/plans/`, numbered from 01. Stop at the plan's stop
+  condition and wait for review.
 - **Size budgets** (`docs/design/scope.md`) are constraints. Going over one is a decision to propose, not
   something to drift into.
 - **Update `STATUS.md`** at the end of each step, in the same commit as the work.
@@ -29,7 +29,8 @@ work is `TODO.md`, and where things stand is `STATUS.md`.
 
 - **Commit only when I ask.** Write a detailed message: what changed and why, the ids it implements, and any
   file ported from v1.
-- **One branch per step** (`step-NN-topic`), from `main`. I decide merges.
+- **One branch per build step** (`build-NN-topic`), from `main`; design steps (TODO 1–13) commit on `main`. I
+  decide merges.
 - Never push, tag, or change a remote without asking.
 
 ## v1

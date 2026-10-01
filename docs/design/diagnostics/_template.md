@@ -72,9 +72,3 @@
 | Name | Value | Meaning | Why this value |
 |---|---|---|---|
 | <…> | <…> | <…> | <…> |
-
-## Tests it implies
-
-- <the known-answer tests from "Expected answers">
-- <the contract checks from `../contracts.md` that apply>
-- <…>

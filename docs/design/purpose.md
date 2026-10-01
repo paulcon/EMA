@@ -1,6 +1,6 @@
 # Purpose
 
-**Status:** accepted. **Updated:** 2026-09-29.
+**Status:** accepted. **Updated:** 2026-10-01 (0050).
 
 ## What EMA is for
 
@@ -16,9 +16,9 @@ An EMA user is a scientist or engineer who brings a computational model to be an
 
 ## What a user gets
 
-The computational model may be a Python function or an external simulation code executed by command line and specified by an input deck; the external simulation code writes files containing the model predictions to the file system. EMA provides the user a guide to building an interface to the computational model; the interface drives diagnostic evaluations. The user chooses a diagnostic from an available set. A diagnostic evaluation runs the model at many different model parameter values. A model run may take a long time on the user's computer, and the run may fail. EMA estimates the time to complete a diagnostic evaluation, asks before running the model, and manages failed runs.
+The computational model may be a Python function or an external simulation code executed by command line and specified by an input deck; the external simulation code writes files containing the model predictions to the file system. EMA provides the user a guide to building an interface to the computational model; the interface drives diagnostic evaluations. The user chooses a diagnostic from an available set. A diagnostic evaluation runs the model at many different model parameter values. A model run may take a long time on the user's computer, and the run may fail. EMA estimates the time of the model runs a diagnostic evaluation needs, asks before running the model, and manages failed runs.
 
-Once a diagnostic evaluation completes, EMA produces a report with the diagnostic results. The report includes plots that show evidence of relationships between model parameters and model predictions. Reports include variability intervals for all estimates produced by diagnostic evaluations. Plots that show the estimates include the computed variability intervals. Interpreting the results in light of the domain science is left to the user.
+Once a diagnostic evaluation completes, EMA produces a report with the diagnostic results. The report includes plots that show evidence of relationships between model parameters and model predictions. Reports include variability intervals for every estimate, or the reason there is none. Plots that show the estimates include the computed variability intervals. Interpreting the results in light of the domain science is left to the user.
 
 EMA also keeps a database record of model runs, and the user can reuse model runs across diagnostic evaluations as well as export the runs for use in other tools. EMA records the data and metadata needed to reproduce each diagnostic evaluation and its diagnostic result.
 

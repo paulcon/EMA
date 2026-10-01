@@ -16,12 +16,14 @@
 
 **Status:** template (step 8 fills it in; then draft, then accepted)  
 
-> **Stale in places (consistency review, 2026-10-01).** This template was written before records 0003–0042.
+> **Stale in places (consistency review, 2026-10-01).** This template was written before records 0003–0052.
 > Before filling it in, strike: the blob store, `array`/`array_ref`, and I2 (0021); the `invalid_input` status,
 > and Q1's filter on it (`model_interface.md`, M6); failed runs not reused (0010: every stored run is reused
 > unless the user asks to retry; I4 needs a rule for which run at a key is current); `peak_mem_mb` (0026: no
-> limits); "campaign" (0006); "QoI", `outputs`, `inputs` (0003); `DiagnosticStatus` running/interrupted (C49:
-> an interrupted evaluation stores no result); the test path (`tests/contracts/store.py`, `contracts.md`).
+> limits); "campaign" and Q5's budget (0006; no budgets in v2.0, 0050); "QoI", `outputs`, `inputs` (0003);
+> `DiagnosticStatus` running/interrupted (C49: an interrupted evaluation stores no result); the test path
+> (`tests/contracts/store.py`, `contracts.md`). A design's identity includes its model version (0046).
+
 **Schema version:** 1  
 **Author, date:** <name>, <YYYY-MM-DD>  
 **Related:** `../notes/v1/ema-redesign.md`, `architecture.md`, decision records `<docs/decisions/NNNN-…>`

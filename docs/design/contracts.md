@@ -3,7 +3,7 @@
 **Status:** accepted; C46–C56 provisional until the data model (step 8), architecture (step 9), and guides
 (step 13). **Updated:** 2026-10-01. **Depends on:** P1–P7; `scope.md`; `model_interface.md` (M1–M20),
 `designs.md` (G1–G17), `diagnostics/shared.md` (S1–S10) and the six diagnostic specs, `uncertainty.md`
-(V1–V7); records 0008, 0010, 0011, 0015–0019, 0022, 0025–0030, 0032–0042.
+(V1–V7); records 0008, 0010, 0011, 0015–0019, 0022, 0025–0030, 0032–0043, 0045–0048, 0051, 0052.
 
 > The promises each interface makes, written so each becomes one `check_*` function run over every
 > implementation (`../notes/v1/lessons_learned_answers_2026-09-27.md` §4). This file is the test plan: Claude
@@ -52,7 +52,16 @@ fixture function (tests only; not a reference model):
   second model prediction z = f + 1, missing wherever b > 0.5. The degenerate cases below build other model
   predictions from f.
 - **d = 1:** a only, f = a + a². **d = 20:** x₁ … x₂₀ ∈ [−1, 1], nominal 0, f = x₁ + x₂² + 0.1·x₃·x₄.
+- **z at d = 1 and d = 20:** z = f + 1, missing wherever the first model parameter is in its top quarter
+  (a > 1.5 at d = 1; x₁ > 0.5 at d = 20) (0045).
+- **The point run's batch:** replicate r at the point is f(x)·(1 + r·2⁻³⁰), distinct as doubles, so the model
+  prediction varies; in the constant case, every replicate equals the case's value (0045).
 - **Failures** are a mask over the design's rows, with a kind per run (error, timeout, unread) and a reason.
+  The point run's masks are by replicate number: every 7th; a contiguous block of replicates; the last 30%
+  (0045).
+
+On it, coordinate lines and lines compute no rate (k* ≤ 2); rates and fit quality are tested by CL3, CL8, LN7,
+and the polynomial model's known answers (0045).
 
 The model adapter contract runs real models: a Python function, the same function as a batch, and a
 command-line program, each a few lines in `tests/models/`, taking milliseconds per run.
@@ -67,12 +76,13 @@ The cases the contracts run against.
 | one usable run; the minimum − 1; the minimum | diagnostics | the contract model, masked down to k usable runs, k from the diagnostic's declared minimum |
 | failures at random (every 7th run); in one contiguous block of a's range (the middle quarter); at one end (a in the top 30%) | diagnostics | masks over the contract model |
 | one model prediction missing, another read (0022) | diagnostics, models | z on the contract model; a command-line model with two output parsers |
+| z missing in every run, every run ok: no usable run (0051) | diagnostics | z on the contract model, missing in every row |
 | constant: every usable run the same double (0035) | diagnostics | y = 7 |
 | constant to rounding: 7·(1 + 10⁻¹⁵·f), distinct as doubles (0035; R4b's reference model is the same case at about 4·10⁻¹³) | diagnostics | the contract model's f |
 | large offset, small variation: 10⁶ + 10⁻³·f | diagnostics | the contract model's f |
 | change of units: y → a·y with a = 2⁻⁴⁰ and 2⁴⁰ (about 10∓¹²); y → y + b with b = 3·max\|y\| | diagnostics | the contract model; powers of 2 keep distinct values distinct, and the shift loses about 2 bits, small enough not to merge the contract model's values (0035) |
 | d = 1; d = 20 (the polynomial model at p = 10 and p = 2) | designs, diagnostics | the contract model's variants |
-| a nominal value or an anchor at a range's end | designs | the contract model, with a's nominal moved to 0 |
+| a nominal value or an anchor at a range's end (coordinate lines: refused, naming the model parameter, 0051) | designs | the contract model, with a's nominal moved to 0 |
 | a log range over many decades (10⁻⁶ to 10⁶) | designs, diagnostics | the contract model with c's range widened |
 | repeated points in one design (coordinate lines' shared anchor, G12) | designs, store | coordinate lines at n odd, anchored at the nominal point (the centers) |
 | measured noisy in this model prediction (P7) | diagnostics | the model version's record, set by the fixture |
@@ -90,13 +100,13 @@ The cases the contracts run against.
 | C2 | With failures at random, in a block, or at one end, or with this model prediction missing on runs where another is read: the counts by kind equal the batch's; the note, with at most 5 reasons verbatim (S7); and no estimate or observation computed from the usable runs changes when a run that isn't usable changes (its kind, reason, or other model predictions); an observation that reports a run's kind (the point run's replicate rows, `point_run.md`) shows the new kind. | P6, S7, SC9, 0022 | `check_partial_failures` | fills failed runs' y with 0; uses an `ok` run missing this model prediction |
 | C3 | The diagnostic declares its minimum number of usable runs, as a function of d and its diagnostic parameters; one below it: counts, the note naming it, no estimates, and the observations that need fewer runs; at it: estimates (or, with no estimates in its spec, its observations). Where the minimum is 1 (the point run, coordinate lines, lines), one below is C1's case, with C1's note. | P6, S6, 0034 | `check_minimum` | makes estimates one run below its declared minimum |
 | C4 | A model prediction the same double in every usable run: the constant note, the shared observations, no estimates (the point run: no note, PT6); constant to rounding (10⁻¹⁵ relative): no constant note, and estimates (or, with no estimates in its spec, its observations). | P6, S5, 0035, PT6 | `check_constant` | calls a range below 10⁻¹⁰ of max\|y\| constant |
-| C5 | y → a·y (a = 2⁻⁴⁰, 2⁴⁰) and y → y + b: the notes, counts, and usable runs unchanged; each estimate and observation transforms as the diagnostic declares it (unchanged; times a; a·v + b; or unchanged under a·y only, as the shared relative spread, (max − min)/max\|y\|, which a shift changes). The notes are the same notes, their values in y's units transformed as declared. Under a·y, exactly, bit for bit, except a number declared as computed through a logarithm (coordinate lines' and lines' rates), within `UNITS_LOG_TOL` = 10⁻¹²; under y + b, within `UNITS_RTOL` = 10⁻⁹, relative to a·(the range of y) for a number in y's units, and absolute for a dimensionless one. | P6, 0035, SC7, CL8, LN7, LM7, PM8; `point_run.md` (Tests it implies) | `check_units` | a constant test with an absolute tolerance (range < 10⁻⁸) |
-| C6 | 10⁶ + 10⁻³·f: no constant note, and each estimate and observation equals f's, transformed as declared, within `OFFSET_RTOL` = 10⁻⁶, relative to the range of y over the usable runs for a number in y's units (P6), and absolute for a dimensionless one; except the observations that a cutoff at a fraction of a line's range decides (coordinate lines' and lines' k* and rates), which rounding limits here, and the relative spread (C5). | P6 | `check_large_offset` | the variance as mean(y²) − mean(y)² |
+| C5 | y → a·y (a = 2⁻⁴⁰, 2⁴⁰) and y → y + b: the notes, counts, and usable runs unchanged; each estimate and observation transforms as the diagnostic declares it (unchanged; times a; a·v + b; or unchanged under a·y only, as the shared relative spread, (max − min)/max\|y\|, which a shift changes). The notes are the same notes, their values in y's units transformed as declared. Under a·y, exactly, bit for bit, except a number declared as computed through a logarithm (coordinate lines' and lines' rates), within `UNITS_LOG_TOL` = 10⁻¹²; under y + b, within `UNITS_RTOL` = 10⁻⁹, relative to a·(the range of y) for a number in y's units, and absolute for a dimensionless one, except a number computed through a logarithm, within `RATE_SHIFT_TOL` = 10⁻⁵ with k* unchanged (`coordinate_lines.md`, 0048). The contract model gives no rates, so the clauses for a number computed through a logarithm apply in CL8's and LN7's tests (0045). | P6, 0035, 0045, 0048, SC7, CL8, LN7, LM7, PM8; `point_run.md` (Tests it implies) | `check_units` | a constant test with an absolute tolerance (range < 10⁻⁸) |
+| C6 | 10⁶ + 10⁻³·f: no constant note, and each estimate and observation equals f's, transformed as declared, within `OFFSET_RTOL` = 10⁻⁶, relative to the range of y over the usable runs for a number in y's units (P6), and absolute for a dimensionless one; except the observations that a cutoff at a fraction of a line's range decides (coordinate lines' and lines' k* and rates), which rounding limits here, and the relative spread (C5). The contract model gives no rates; rates are tested by CL3, CL8, and LN7 (0045). | P6, 0045 | `check_large_offset` | the variance as mean(y²) − mean(y)² |
 | C7 | The same request and batch give an identical diagnostic result (every double bit for bit, intervals included), and byte-identical data cards and report. The batch is in the design's order (C56). | P4, S10 | `check_deterministic` | seeds its draws from the clock |
-| C8 | A diagnostic with its own draws declares its spawn tags, one per diagnostic and estimator stream (`shared.md`), each ≥ 2³² and unique among the registered diagnostics, and records them in its diagnostic result (0041); changing one changes the intervals and not the design. A diagnostic that declares none gives the same numbers for two requests that differ only in the seed, on the same batch. | S8, V1, P4 | `check_spawn_tag` | draws from `default_rng(seed + 1)`; declares no tag, and draws from the seed |
+| C8 | A diagnostic with its own draws declares its spawn tags, one per diagnostic and estimator stream (`shared.md`), each ≥ 2³² and unique among the registered diagnostics, and records them in its diagnostic result (0041); changing one changes the intervals and not the design. A diagnostic that declares none gives the same numbers for two requests that differ only in the seed, on the same batch. No registered stream's spawn key, as 32-bit words, equals another's or a design stream's (0051). | S8, V1, P4, 0051 | `check_spawn_tag` | draws from `default_rng(seed + 1)`; declares no tag, and draws from the seed |
 | C9 | Every degenerate case gives a diagnostic result with an estimate, an observation, or a note; a diagnostic whose spec promises estimates gives estimates or a note. | 0036, P6 | `check_never_empty` | returns no note and no observation for a constant model prediction |
 | C10 | With one or more usable runs, the shared observations (minimum, maximum, relative spread), labeled with what they are of ("of the n usable runs"; the point run's "of the 5 runs at the point"). | `shared.md` (Observations), 0034 | `check_shared_observations` | leaves out the relative spread |
-| C11 | The report: S1's sections in order, empty Notes left out, and the Estimates section left out by a diagnostic whose spec has none (the point run, PT2; coordinate lines and lines); the header's rows (S2; the point run's Point row in place of Space and Held); every number `format(x, ".4g")` of its stored double (S3); one line under each estimates table naming its method and settings, and the Estimates section opening with `EXPLAIN_INTERVALS`, the report's only "confidence interval" (S4, 0042); a "none" interval cell with its reason (V6). | S1–S4, V6, PT2 | `check_report` | numbers to 6 digits; an estimates table with no line under it; "Not confidence intervals." under each table |
+| C11 | The report: S1's sections in order, empty Notes left out, and the Estimates section left out by a diagnostic whose spec has none (the point run, PT2; coordinate lines and lines); the header's rows (S2; the point run's Point row in place of Space and Held); every number as S3 says (`format(x, ".4g")` of its stored double, an ASCII minus, integers in full; 0044); one line under each estimates table naming its method and settings, and the Estimates section opening with `EXPLAIN_INTERVALS`, the report's only "confidence interval" (S4, 0042); a "none" interval cell with its reason (V6). | S1–S4, V6, PT2 | `check_report` | numbers to 6 digits; an estimates table with no line under it; "Not confidence intervals." under each table |
 | C12 | Every figure has a PNG and a data card; every point drawn from a run has its run id (a point drawn from a computed number, such as a slope or a Gram coefficient, has none); every axis is labeled `name [units]`, or `name` when dimensionless; no panel for a held model parameter. In every panel with a strip (along a model parameter, `shared.md`; the replicate, `point_run.md`; the distance along a line, `lines.md`; w·u and ŷ, the linear and polynomial models), each run of that panel's runs that isn't usable appears once, with its kind (a run shared by lines appears in each line's panel); where the panel's runs are all the runs, the strip's count equals the header's. | S9, 0018 | `check_figures` | leaves failed runs out of the strip |
 | C13 | The design's size, computed from the request before building, equals its rows; its distinct (point, replicate) keys are the runs the price counts (0011). | P3, G3 | `check_price` | a size off by one |
 | C14 | Changing a diagnostic parameter whose spec says "Changes the design? no" leaves the design bit for bit; changing one marked "yes" changes it, or is refused, or leaves it bit for bit where its spec says so (lines' `seed` with given lines; the polynomial model's `degree` with `n_min` given). | the specs' diagnostic parameter tables | `check_design_parameters` | `prediction` moves the design |
@@ -121,14 +131,14 @@ diagnostic's spec, and its known-answer tests check the declaration against the 
 
 | Id | Promise | Generalizes | Check | Negative control |
 |---|---|---|---|---|
-| C20 | The same request gives the same points, bit for bit; another seed, where the generator takes one, gives different points. | G1, P4 | `check_deterministic` | draws from numpy's global generator |
-| C21 | Every point is inside the space's closed ranges and every limit; held values are exact; where the generator puts a point on a face (lines), it is exactly the range's end, log ranges included. | G2, G10 | `check_inside` | maps a log range's unit coordinate by exp without landing exactly on its ends |
-| C22 | The size computed before building, from the request alone, equals the rows built. | G3 | `check_size` | a size off by one |
-| C23 | Each nesting the generator claims holds, bit for bit. | G4, G7, G11, G13 | `check_nesting` | reseeds when n changes |
-| C24 | A design over 10,000,000 points is refused before any array is allocated. | G5 | `check_too_large` | allocates, then checks |
-| C25 | Rows [a, b), made alone, equal those rows of the whole design. | G6 | `check_blocks` | reseeds each block |
-| C26 | Columns follow the model spec's order, whatever order the space names them in. | G16 | `check_column_order` | columns in the space's order |
-| C27 | For a generator that takes a space: a space that names an unknown model parameter, has lo ≥ hi, a log range with lo ≤ 0, or a range end or held value outside the limits is refused before building, naming the model parameter and, for a limit, the limit. | G15, M6 | `check_bad_space` | builds before validating |
+| C20 | G1, with another seed only where the generator takes one; and the same request for two model versions that differ in a nominal value gives two designs, with different points where a model parameter is held at its nominal value (0046). | G1, P4, 0046 | `check_deterministic` | draws from numpy's global generator |
+| C21 | Every point is inside the space's closed ranges and every limit; held values are exact; where the generator puts a point on a face (lines), it is exactly the range's end, log ranges included. | G2, G10, 0047 | `check_inside` | maps a log range by exp(ln lo + (ln hi − ln lo)·u) without the clamp or the exact end, which puts a point outside the closed range (0047) |
+| C22 | G3. | G3 | `check_size` | a size off by one |
+| C23 | G4. | G4, G7, G11, G13 | `check_nesting` | reseeds when n changes |
+| C24 | G5, and no array is allocated before the refusal. | G5 | `check_too_large` | allocates, then checks |
+| C25 | G6. | G6 | `check_blocks` | reseeds each block |
+| C26 | G16. | G16 | `check_column_order` | columns in the space's order |
+| C27 | G15, for a generator that takes a space; and the space is refused before building, naming, for a limit, the limit (M6). | G15, M6 | `check_bad_space` | builds before validating |
 
 ## Sampler, basis, and interval-method contracts
 
@@ -148,21 +158,21 @@ where the promise applies.
 
 | Id | Promise | Generalizes | Applies to | Check | Negative control |
 |---|---|---|---|---|---|
-| C31 | A failure at a point is a run record (status `failed`, a kind, a reason, NaN model predictions); the adapter never raises for a point. | M1 | all | `check_failure_is_a_record` | re-raises the model's exception |
-| C32 | Model code reads end of file on stdin, and sees no variable set in `.env`. | M2, 0026 | all | `check_no_stdin_no_secrets` | passes the parent's environment |
-| C33 | One byte changed in a tracked file, or a covered field, changes the model version; moving the model's directory, or changing `keep`, `batch_size`, or `timeout_s`, doesn't; files are compared as files. | M3, P3, 0029 | all | `check_model_version` | hashes the files' paths |
-| C34 | Tracked files are hashed before every call; a change since the model was loaded refuses the next call, naming the file, and keeps the runs already made. | M16, U6 | all | `check_rehash` | hashes once, at loading |
-| C35 | Each model prediction is read, or missing with its own reason; a run is failed only when none is read; a non-finite value is missing. | M4, M7, M11 | all | `check_predictions_read_or_missing` | fails the run when any model prediction is missing |
-| C36 | The model receives a value for every model parameter, held ones included. | M5 | all | `check_complete_points` | passes the varied model parameters only |
-| C37 | A batch call gives the same model predictions as one point at a time; a non-finite row is missing for that run only; an exception, a timeout, or a result of the wrong shape fails every run in the call; no call holds more than `batch_size` points, or more than remain approved. | M8, 0025, `model_interface.md` (Batch) | batch | `check_batch` | fills the last batch past the approved count |
-| C38 | Each Python model runs in its own child; a timeout, a crash, or Ctrl-C kills it, and the next call starts a new one; nothing is unpickled. | M9, 0026 | Python, batch | `check_isolation` | runs the function in process |
+| C31 | M1. | M1 | all | `check_failure_is_a_record` | re-raises the model's exception |
+| C32 | M2. | M2, 0026 | all | `check_no_stdin_no_secrets` | passes the parent's environment |
+| C33 | M3, and files are compared as files. | M3, P3, 0029 | all | `check_model_version` | hashes the files' paths |
+| C34 | M16, and the runs already made are kept. | M16, U6 | all | `check_rehash` | hashes once, at loading |
+| C35 | M4 (a run that finished cleanly is failed only when none is read, kind `unread`; 0043), and a non-finite value is missing (M7, M11). | M4, M7, M11, 0043 | all | `check_predictions_read_or_missing` | fails the run when any model prediction is missing |
+| C36 | M5. | M5 | all | `check_complete_points` | passes the varied model parameters only |
+| C37 | M8. | M8, 0025, `model_interface.md` (Batch) | batch | `check_batch` | fills the last batch past the approved count |
+| C38 | M9. | M9, 0026 | Python, batch | `check_isolation` | runs the function in process |
 | C39 | A command runs without a shell, in its own process group, killed whole by a timeout or Ctrl-C; a nonzero exit fails the run even when the model predictions can be read. | M12, M20 | command line | `check_process` | `shell=True` |
-| C40 | Model predictions reach the store only from files: output parsers, or `predictions.json`. | M13, 0028 | all | `check_collect_from_files` | returns the function's values in memory |
-| C41 | `keep` keeps all, incomplete, or no run directories as stated; a stopped run leaves none. | M14, 0028 | all | `check_keep` | keeps a stopped run's directory |
-| C42 | A shared file is stored once, read-only, and linked; a write to it fails the run; editing its source makes a new model version and a new copy, and old run directories still point to the old one. | M15, 0030 | all | `check_shared_files` | copies the file into each run directory |
-| C43 | An input deck template refuses an unknown name at loading, writes `$$` as `$`, and writes each value so it reads back as the same double, whole numbers without a decimal point. | M10 | command line | `check_templates` | writes values with `%g` |
-| C44 | Each run records its host and its program's resolved path. | M19, 0029 | all | `check_run_record` | records the command as typed |
-| C45 | Each output parser kind reads its known answer, and makes the model prediction missing, with a reason, for no file, no match, no key, a value that isn't a number, and a non-finite value; it doesn't follow a link out of the run directory. | M11, 0027, 0030 | regex, json, csv | `check_parser` | parses `inf` as a value |
+| C40 | M13. | M13, 0028 | all | `check_collect_from_files` | returns the function's values in memory |
+| C41 | M14. | M14, 0028 | all | `check_keep` | keeps a stopped run's directory |
+| C42 | M15. | M15, 0030 | all | `check_shared_files` | copies the file into each run directory |
+| C43 | M10. | M10 | command line | `check_templates` | writes values with `%g` |
+| C44 | M19. | M19, 0029 | all | `check_run_record` | records the command as typed |
+| C45 | M11, and a parser doesn't follow a link out of the run directory. | M11, 0027, 0030 | regex, json, csv | `check_parser` | parses `inf` as a value |
 
 M6 is C27; M17 (the unlisted-import warning) and M18 (`noisy: true` refused) are about loading one model spec,
 and stay `model_interface.md`'s own tests.
@@ -177,7 +187,7 @@ here then cites them. C56 was added in the interview, after C55; ids are not ren
 | C46 | Runs are keyed by model version, point, and replicate; a stored run is reused; a deterministic model gets no second run at a stored point, except the point run's replicates and a retry of a failed run (0010). | P3, P7, 0010, 0011 | `check_reuse` | keys points by their values printed to 6 significant digits |
 | C47 | A failed run is reused unless retry is asked; the price counts the reused failed runs ("200 reused, of which 34 failed"), and the report's note says how many and that `retry_failed` runs them again; with retry asked, exactly the design's failed points run again, each stored beside the failed run it replaces. | 0010, U3 | `check_failed_reused` | retries failed runs without being asked |
 | C48 | No more new runs than approved, counted when a run starts; with k of n points stored, the price says n − k new, and n − k runs are made; with no stored durations for the model version, the price's time is "unknown"; two designs in different model parameter spaces reuse the runs at their shared points. | P3, 0015, M8 | `check_approval_cap` | counts runs when they finish |
-| C49 | An interrupted diagnostic evaluation keeps every finished run and stores no diagnostic result; a rerun makes no new run for them, and gives the same result. | 0015, PM10 | `check_interrupt` | one transaction per diagnostic evaluation |
+| C49 | An interrupted diagnostic evaluation keeps every finished run and stores no diagnostic result, and stores no record of a run stopped partway (`model_interface.md`, 0028, 0051); a rerun makes no new run for the finished runs, and gives the same result. | 0015, 0028, 0051, PM10 | `check_interrupt` | one transaction per diagnostic evaluation; stores the stopped run as failed |
 | C50 | A repeated request returns the stored diagnostic result, with no new computation, no new run, and no approval asked, and a byte-identical report. | `shared.md` (The report) | `check_repeat` | recomputes |
 | C51 | No diagnostic result without its provenance, the runs it used, and their approvals, written in one transaction; deleting a result and rerunning from its provenance gives an identical result; changing the seed, or the model version, and rerunning gives provenance records that differ in that field and in what it decides (the runs used and their approvals, when the design or the model version changes), and in nothing else. | P5 | `check_provenance` | writes the result before its provenance |
 | C52 | A model version measured noisy is recorded with the point run that measured it, for that model prediction; earlier diagnostic results are unchanged. | P7, PT4, PT5, U7 | `check_measured_noisy` | rewrites earlier results' notes |
@@ -190,7 +200,7 @@ contract over the guides' examples; C53 adds the use cases.
 
 | Id | Promise | Generalizes | Check | Negative control |
 |---|---|---|---|---|
-| C53 | Each use case U1–U9 runs as written, and meets its "Done when"; U4's budget steps wait on OD-15. | `use_cases.md` | `check_use_case`, one parametrized check over the use cases, slow tier | a workspace that runs before showing the price fails every use case that makes a new run |
+| C53 | Each use case U1–U9 runs as written, and meets its "Done when" (no budgets in v2.0, 0050). | `use_cases.md` | `check_use_case`, one parametrized check over the use cases, slow tier | a workspace that runs before showing the price fails every use case that makes a new run |
 | C54 | Each CLI command's result equals the workspace function it calls. | the held principle "One-way layers" | `check_cli_matches_workspace` | a command that formats its own numbers |
 | C55 | Every MCP tool returns the envelope, has a description for every schema field, and marks errors `retryable` or not; every number in a tool result equals the stored value it names. | P1, 0016, 0019, U9 | `check_tool` | a tool that rounds a number itself |
 
@@ -207,7 +217,7 @@ C16, C46, and C52.
 | Every heuristic threshold is a named constant in a spec, and the reverse (none in v2.0, 0017) | P2 | fast |
 | A report's main body is byte-identical with and without interpretations; nothing in layers 0–3 imports `ema.experimental` (import-linter) | P2 | none in v2.0: no `ema.experimental` (0017); added with it |
 | The terminology test: public names and generated text (0008) | glossary | fast |
-| Golden reports for the reference models, compared exactly | P4 | slow |
+| Golden reports for the reference models: structure, and numbers within one unit in the 4th digit (`diagnostics/shared.md`, 0044) | P4 | slow |
 | Each reference model's expected answers (`reference_models.md`, step 11) | | slow |
 
 ## Test tiers
@@ -218,10 +228,9 @@ C16, C46, and C52.
 | slow | the use cases end to end; reference models' expected answers and golden reports; C18 at d = 20 for the polynomial model, and every d = 20 timing; the command-line reference models; the wheel build | 10 min with `-n auto`: a target | before a step is reported done |
 
 - **Budgets:** the fast tier's 30 s is one of `scope.md`'s size budgets: going over it is a decision record,
-  not a drift. The slow tier's 10 min is a target (interview, 2026-09-30): each build step's plan reports the
-  tiers' times, and a step that exceeds it says so, and proposes a fix or a new target. The polynomial model's
-  known-answer tests alone take about 9 min serially (`polynomial_model.md`), so they run in parallel with the
-  rest.
+  not a drift. The slow tier's 10 min is a target: each build step's plan reports the tiers' times, and a step
+  that exceeds it says so, and proposes a fix or a new target. The polynomial model's known-answer tests alone
+  take about 9 min serially (`polynomial_model.md`), so they run in parallel with the rest.
 - **No patched constants:** every check uses `BOOTSTRAP_RESAMPLES` = 1000, as users run it. The one expensive
   case, the polynomial model at d = 20 (1000 refits of a 1848 × 231 matrix, about 19 s, measured 2026-09-30),
   runs in the slow tier; the other diagnostics run C18 at d = 20 in the fast tier (the linear model's 1000
@@ -234,8 +243,8 @@ C16, C46, and C52.
 |---|---|---|---|
 | `UNITS_SCALES` | (2⁻⁴⁰, 2⁴⁰) | the scalings C5 applies | about 10∓¹², as v1's; powers of 2 keep distinct values distinct (0035) |
 | `UNITS_SHIFT` | 3·max\|y\| | the shift C5 applies | moves every value, and loses about 2 bits, which merges no two of the contract model's values |
-| `UNITS_RTOL` | 10⁻⁹ | C5's tolerance under the shift: relative to a·(the range of y) in y's units, absolute when dimensionless | as CL8 and LN7; measured: 2·10⁻¹⁵ on the contract model (scatter, the linear fit; 2026-09-30) |
-| `UNITS_LOG_TOL` | 10⁻¹² | C5's tolerance under a power-of-2 scaling alone, for a number computed through a logarithm | log₁₀ rounds at about 10⁻¹⁵; every other number is exact (measured: 0); tighter than CL8 and LN7's 10⁻⁹, which combine a scaling with a shift |
+| `UNITS_RTOL` | 10⁻⁹ | C5's tolerance under the shift: relative to a·(the range of y) in y's units, absolute when dimensionless | measured: 2·10⁻¹⁵ on the contract model (scatter, the linear fit; 2026-09-30) |
+| `UNITS_LOG_TOL` | 10⁻¹² | C5's tolerance under a power-of-2 scaling alone, for a number computed through a logarithm | log₁₀ rounds at about 10⁻¹⁵; every other number is exact (measured: 0); as CL8 and LN7 under a·y alone; under a shift they use `RATE_SHIFT_TOL` (0048) |
 | `OFFSET_RTOL` | 10⁻⁶ | C6's tolerance | 10⁶ + 10⁻³·f keeps about 7 of f's digits; measured worst 1.9·10⁻⁷ (scatter's binned index); the variance by mean(y²) − mean(y)² is 100% off |
 | `ROUNDING_WIGGLE` | 10⁻¹⁵ | the relative wiggle of "constant to rounding" | 0035's case: about 25 units in the last place of 7, at the contract model's largest f (3.2) |
 | `D20_SECONDS` | 60 | the slow tier's time for one diagnostic evaluation at d = 20 | the polynomial model's bootstrap alone takes about 19 s |
@@ -253,4 +262,3 @@ C16, C46, and C52.
   resolved program path (C31, C44), in place of one `error` column; whether a repeated request's stored result
   is reused when a later EMA version changes a named constant such as `BOOTSTRAP_RESAMPLES` (C50; the constants
   are not part of a request's identity, `uncertainty.md`); the polynomial coefficients' intervals (0041).
-- **`uncertainty.md`:** its interface's line names C19 and C30 (applied).

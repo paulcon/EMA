@@ -1,7 +1,8 @@
 # Model interface
 
-**Status:** accepted. **Updated:** 2026-09-30. **Depends on:** OD-3 (0003, 0005), OD-6 (0014), OD-9 (0022),
-OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0015, 0020, 0021, 0024, 0025, 0028, 0029, 0030, 0031.
+**Status:** accepted. **Updated:** 2026-10-01 (0043, 0052). **Depends on:** OD-3 (0003, 0005), OD-6 (0014),
+OD-9 (0022), OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0015, 0020, 0021, 0024, 0025, 0028, 0029, 0030,
+0031.
 
 > The hardest thing to change later. This spec says what a model is to EMA: what it takes, what it returns,
 > how it fails, and what makes a new version. It was written from an interview on 2026-09-30 (TODO step 4).
@@ -166,8 +167,8 @@ A Python function model (U1's beam):
 ## Failures
 
 - **Never raised.** A failure at a point is a run's record, never an exception out of the adapter (M1).
-- **Status:** a run is `ok` when it read at least one model prediction (a missing one has its own reason,
-  0022), or `failed`, with one of three kinds:
+- **Status:** a run is `ok` when it finished cleanly and read at least one model prediction (0043; a missing one
+  has its own reason, 0022), or `failed`, with one of three kinds:
   - `error`: the Python function raised, or its child died; or the program exited with a nonzero code or a
     signal, or couldn't start. A nonzero exit is a failure even when the model predictions can be read.
   - `timeout`: the call ran past `timeout_s`.
@@ -209,7 +210,7 @@ A Python function model (U1's beam):
 | M1 | A failure at a point is a run's record: status `failed`, a kind, a reason, and NaN model predictions; the adapter never raises for a point. | A function that raises, a program that exits 2, a child killed by a signal, and a timeout each give a record of the right kind. |
 | M2 | Model code gets stdin from `/dev/null` and no variable from `.env`. | A model that reads stdin gets end of file; one that writes its environment lacks a variable set in `.env`. |
 | M3 | Editing a tracked file, or a covered field of the spec, changes the model version; moving the model's directory, or changing `keep`, `batch_size`, or `timeout_s`, doesn't. | One byte changed in each kind of tracked file; each field changed in turn; the directory moved. |
-| M4 | Each model prediction is read, or missing with its own reason; a run is failed only when none is read. | A command-line model with two parsers, one of which finds nothing: the run is `ok`, with one NaN and its reason. |
+| M4 | Each model prediction is read, or missing with its own reason; a run that finished cleanly is failed only when none is read (kind `unread`, 0043). | A command-line model with two parsers, one of which finds nothing: the run is `ok`, with one NaN and its reason. |
 | M5 | A model receives a value for every model parameter, held ones included. | A space that names one of three model parameters: the function receives all three, two at nominal. |
 | M6 | A space that crosses a limit is refused before any run, naming the model parameter and the limit. | `k` in (−1, 10) with `gt: 0`: refused, and no run made. |
 | M7 | A Python function returns a float, or a mapping by name; a missing name or a non-finite value is a missing model prediction; extra names are ignored. | Returns of `1.0`, `{"a": 1.0}`, `{"a": nan}`, and `{"a": 1.0, "zz": 2.0}`. |
@@ -230,11 +231,6 @@ A Python function model (U1's beam):
 
 ## What this spec asks of other documents
 
-- **Use cases** (accepted): U2's model spec example follows this spec (updated 2026-09-30).
-- **Designs (step 5):** a space may name a subset of the model parameters, with a scale for each; spaces that
-  cross limits are refused; whether a zero-width range holds a model parameter at another value (0023, 0024;
-  answered by 0033: a held value, not a zero-width range).
-- **Contracts (step 7):** the model adapter contract, from M1–M20.
 - **Data model (step 8):** model predictions keyed by run and name, each with a reason (0022); a run's failure
   kind, reason, host, program path, and batch (0025, 0029); settings stored with the model; stored shared
   copies (0030).

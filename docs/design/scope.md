@@ -1,7 +1,7 @@
 # Scope of v2.0
 
-**Status:** accepted. **Updated:** 2026-09-30 (0022, 0025, 0037, 0039). **Depends on:** OD-2 (0006), OD-5 (0012), OD-6 (0014),
-OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
+**Status:** accepted. **Updated:** 2026-10-01 (0022, 0025, 0037, 0039, 0050). **Depends on:** OD-2 (0006),
+OD-5 (0012), OD-6 (0014), OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
 
 > What the first release does, what it explicitly doesn't, and the size budgets that keep it small. When
 > something new comes up, the question is "is it in this file?", and if not, it waits for a later version.
@@ -21,6 +21,8 @@ OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
 | Interpretation | none (0017) |
 | Model output | kept in each run's directory for inspection outside EMA, with a setting to limit it, and a lookup (0020) |
 | Reports | one per diagnostic evaluation: Markdown with TeX math and PNG figures, the reference; a PDF through pandoc when installed (0018) |
+| Export | the runs a diagnostic result used, its design, and the result with its provenance, as CSV and JSON (U5; `export.md`, 0050) |
+| Reproduce | a stored diagnostic result recomputed from its provenance (U8, 0050) |
 
 - **Lines** draws m random lines, or takes lines the analyst gives, each an anchor and a direction (0012).
 - **The polynomial model's report** has U4's lean set (the residual and cross-validated error, the Sobol
@@ -49,14 +51,16 @@ OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
   in the run directories (0020, 0021).
 - **Models declared noisy:** later, as about one build step, plus a section on replicates in each diagnostic
   spec; `noisy: true` is refused. The point run still measures noise (P7, 0011, 0021).
-- **Surrogates:** no surrogate objects, and no export of fitted surrogates; analysts build surrogates in
-  their own tools from exported runs (`purpose.md`, U4).
+- **Surrogates:** no surrogate objects, and no function to evaluate a fit; a fit's coefficients are numbers in
+  its diagnostic result, exported with it (0041, 0050).
 - **v1's other diagnostics** (finite differences, Fourier, Morris, nonsmoothness, sampled Sobol, 2-D surfaces,
-  surrogate checks, the active subspace): later, each with its own spec and known answers (0012).
+  surrogate checks): later, each with its own spec and known answers (0012).
 - **Deleting kept run directories from EMA** (a clean-up command): the analyst deletes them by hand (0020).
 - **Interpretation, advice, and next steps:** later, labeled experimental and kept apart, under P2's rules
   (0017).
 - **An own chat loop:** not planned; the agent is an MCP server (0016).
+- **Live evals of the MCP server:** later, with their scenarios and monthly budget; the server is tested with a
+  scripted client (U9, 0050).
 - **Agent-written model code:** the agent drafts model specs only (0016).
 - **HTML reports; byte-identical PDFs:** later, if needed (0018).
 - **Two-model-parameter plots** (a failure map of failed and usable runs in each pair of model parameters, and
@@ -65,6 +69,11 @@ OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
   a, b < −0.8) and R10 (the a·c interaction). Kept ready now: figures are made from the stored runs and the
   diagnostic result alone, and every data card holds each point's run id, so a later figure needs no new runs
   and no change to any design or estimate (0037).
+- **Run budgets:** the approval, after its price, is the only cap on new runs; a later version may add budgets
+  with their own record (0050).
+- **Seams kept, implementations later:** other samplers, model parameter space shapes, and bases; chunked
+  designs; other interval methods; memory and CPU limits; a python output parser; a real simulator as a
+  reference model (R9); each in its spec (0050).
 
 ## Size budgets
 
@@ -116,4 +125,4 @@ OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
 | `core/surrogates.py`, `surrogate_build.py` | leave | no surrogates |
 | the other diagnostics | leave | not in v2.0 (0012) |
 | `agent/` (except approval's rules), grounding and split checks | leave | the agent is an MCP server whose tool results EMA renders (0016, 0019) |
-| `evals/` (repository root) | leave | U9 is tested with a scripted MCP client; live evals wait for OD-19 |
+| `evals/` (repository root) | leave; later (0050) | U9 is tested with a scripted MCP client; live evals are not in v2.0 |

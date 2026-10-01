@@ -1,7 +1,8 @@
 # Linear model
 
 **Status:** accepted. **Updated:** 2026-10-01. **Module:** `ema/diagnostics/linear_model.py`. **Depends on:**
-`shared.md`; `../designs.md`; records 0012, 0032, 0033, 0034, 0035, 0041, 0042.
+`shared.md`; `../designs.md`; `../uncertainty.md`; records 0012, 0032, 0033, 0034, 0035, 0041, 0042, 0044,
+0048, 0049, 0051, 0052.
 
 > A least-squares linear fit of the model prediction in unit coordinates, over a convergent design: its
 > coefficients, how well it fits, and how well it predicts runs it wasn't fitted to (0012, U4). Written from an
@@ -30,10 +31,10 @@
 | `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
 
 - **d** is the number of varied model parameters; the fit has d + 1 coefficients.
-- **The defaults** (interview, 2026-09-30): n_min = 2(d + 1), twice the coefficients, as U4 assumes; alpha =
-  0.7072, just above 1/√2, so the points about double per level (r = ½ for `random`: 18, 36, 72, 144, 288,
-  576, 1151 at d = 8); level 2, so 8(d + 1) points: 72 at d = 8, 32 at d = 3. With alpha = 0.5 the error
-  halves per level and the points grow 4× (18, 72, 288).
+- **The defaults:** n_min = 2(d + 1), twice the coefficients, as U4 assumes; alpha = 0.7072, just above 1/√2, so
+  the points about double per level (r = ½ for `random`: 18, 36, 72, 144, 288, 576, 1151 at d = 8); level 2,
+  so 8(d + 1) points: 72 at d = 8, 32 at d = 3. With alpha = 0.5 the error halves per level and the points grow
+  4× (18, 72, 288).
 - **A small n_min** is accepted (`../designs.md` refuses only sizes that aren't strictly increasing): the
   estimates need 2(d + 1) usable runs at level L (below), and a smaller level has "none" in the per-level table.
 - **Nested** in level with the same space, seed, and sampler (G7): level 3 after level 2 reuses every run, and
@@ -45,7 +46,7 @@
 Let the n_u usable runs of level L (`shared.md`, the precheck) have values y_k and unit coordinates
 u_k ∈ [−1, 1]^d (`../designs.md`: through the logarithm for a log range).
 
-**The fit** (interview, 2026-09-30):
+**The fit:**
 
 - **Model:** y ≈ β₀ + Σᵢ βᵢ uᵢ, by least squares over the usable runs, computed from a QR factorization of
   A = [1, U] (n_u × (d + 1)).
@@ -60,7 +61,7 @@ u_k ∈ [−1, 1]^d (`../designs.md`: through the logarithm for a log range).
 
 - **Relative residual:** ‖r‖ / ‖y − ȳ‖, with r = y − Aβ over the usable runs: units-free (P6), 0 for an exactly
   linear model prediction, 1 when the slopes explain nothing. U4's "residual norm", made relative.
-- **R²:** 1 − ‖r‖² / ‖y − ȳ‖², the square's complement; reported beside it (interview, 2026-09-30).
+- **R²:** 1 − ‖r‖² / ‖y − ȳ‖², the square's complement; reported beside it.
 
 **How well it predicts runs it wasn't fitted to:**
 
@@ -70,17 +71,18 @@ u_k ∈ [−1, 1]^d (`../designs.md`: through the logarithm for a log range).
   √(Σ_k (r_k / (1 − h_kk))²) / ‖y − ȳ‖.
 - **Why:** the in-sample residual is optimistic at small n, and LOO tracks the error on new runs. Over 50
   designs: R3 at 18 runs, in-sample 0.151, LOO 0.333, error on 10⁵ fresh points 0.316; at 72 runs, 0.213,
-  0.249, 0.247. 10-fold cross-validation gave the same (0.348, 0.250), with folds to seed (interview,
-  2026-09-30). A value above 1 means the fit predicts new runs worse than their mean does.
+  0.249, 0.247. 10-fold cross-validation gave the same (0.348, 0.250), with folds to seed. A value
+  above 1 means the fit predicts new runs worse than their mean does.
 
-**The levels, as observations** (interview, 2026-09-30): the fit on each level's usable runs among its first
-n_l points: its size, its coefficients, relative residual, R², and LOO error. The estimates are level L's; the
-earlier levels show how they move as the runs double. There is no check of the observed rate against the
-sampler's r (`../designs.md` asked): a check would compare with a threshold, which is interpretation (P2). A
-level with fewer than 2(d + 1) usable runs has "none" in its column.
+**The levels, as observations:** the fit on each level's usable runs among its first n_l points: its size, its
+coefficients, relative residual, R², and LOO error. The estimates are level L's; the earlier levels show how
+they move as the runs double. There is no check of the observed rate against the sampler's r (`../designs.md`
+asked): a check would compare with a threshold, which is interpretation (P2). A level with fewer than 2(d + 1)
+usable runs has "none" in its column.
 
 **Changes of units** (P6): y → a·y + b, with a > 0, gives β₀ → a·β₀ + b and βᵢ → a·βᵢ, and leaves the relative
-residual, R², the LOO error, and the notes unchanged. A log scale is part of the unit coordinates, so it changes
+residual, R², the LOO error, and the notes unchanged (exactly under a·y; within C5's tolerances under the shift,
+0048). A log scale is part of the unit coordinates, so it changes
 the fit (R1 with k linear is not exactly linear).
 
 **Failed runs** and runs missing the model prediction are left out of every estimate (P6), counted in the
@@ -88,20 +90,16 @@ header and the note (`shared.md`), and drawn in the shadow's strip.
 
 ## Uncertainty
 
-OD-12, for the linear model: **the bootstrap over the usable runs of level L** (interview, 2026-09-30),
-`shared.md`'s defaults.
+OD-12, for the linear model: **the bootstrap over the usable runs of level L**, as `../uncertainty.md` (The
+bootstrap) states it, from the linear model's stream (`LINEAR_BOOT_TAG`). What differs (0052):
 
-- **Resamples:** 1000 (`BOOTSTRAP_RESAMPLES`), each n_u indices drawn with replacement from the usable runs by
-  `Generator(PCG64(SeedSequence(seed, spawn_key=(LINEAR_BOOT_TAG,)))).integers(0, n_u, (1000, n_u))`. Every
-  estimate uses the same resamples.
-- **Coefficients, relative residual, R²:** refitted on each resample as drawn, duplicates included.
-- **LOO error:** recomputed on each resample's distinct runs (about 0.63·n_u of them), as scatter's binned index:
-  a left-out run's copy would stay in the fit, and make it optimistic. On R3 at 72 runs (LOO 0.249, standard
-  deviation 0.026 over designs), the median over resamples is 0.232 as drawn and 0.263 on distinct runs; on R7
-  at 40, 0.725, 0.691, and 0.767 (interview, 2026-09-30).
-- **Interval:** the 0.5th and 99.5th percentiles of the defined resampled values (`shared.md`, Bootstrap).
+- **On distinct runs:** the LOO error, as scatter's binned index: a left-out run's copy would stay in the fit,
+  and make it optimistic. The coefficients, relative residual, and R² are refitted on each resample as drawn. On
+  R3 at 72 runs (LOO 0.249, standard deviation 0.026 over designs), the median over resamples is 0.232 as drawn
+  and 0.263 on distinct runs; on R7 at 40, 0.725, 0.691, and 0.767.
 - **Undefined resamples:** a resample whose A has rank below d + 1, or whose distinct runs are fewer than d + 2
-  for LOO, is dropped for that estimate, and the line under the table says how many of the 1000, when any are.
+  for LOO. The rank is numpy's `matrix_rank` rule: the number of singular values above max(n_u, d + 1)·ε·σ_max,
+  ε the double's machine epsilon (0051).
 - **Three tables,** each with one line under it (`shared.md`): the coefficients; the fit (relative residual and
   R²); the LOO error ("… recomputed on the distinct runs of each resample").
 - **Why not the levels:** nested levels share runs, so their estimates move together. Over 100 designs, the span
@@ -112,9 +110,9 @@ OD-12, for the linear model: **the bootstrap over the usable runs of level L** (
 
 ### Later: intervals by subsampling the levels
 
-A convergent design allows another interval method (the owner's proposal, interview 2026-09-30): fit on many
-subsets of n₀ = n_(L−1) runs drawn without replacement from the n₁ = n_L usable runs, and read the variability
-from the spread of those estimates.
+A convergent design allows another interval method (the owner's proposal): fit on many subsets of n₀ = n_(L−1)
+runs drawn without replacement from the n₁ = n_L usable runs, and read the variability from the spread of those
+estimates.
 
 - **Its name and theory:** subsampling (Politis and Romano 1994; Politis, Romano and Wolf 1999), the delete-d
   jackknife (Wu 1986; Shao and Wu 1989), and, for n₀ = n₁/2, half-sampling (McCarthy 1969). The spread at n₀
@@ -146,10 +144,12 @@ from the spread of those estimates.
   catches first): no shadow.
 - **Runs not usable:** estimates from the usable runs of level L; each level's column in the per-level table
   uses its usable runs among its first n_l points.
+- **Figures** (0051): with no estimates (too few usable runs, all runs failed, or constant), none: the shadow,
+  the slopes, and the residuals each need the fit, so the report has no Figures section.
 
 ## Figures
 
-**`linear_model_shadow.png`** (U4's 1-D shadow; interview, 2026-09-30):
+**`linear_model_shadow.png`** (U4's 1-D shadow):
 
 - **x axis:** w·u, the usable runs' unit coordinates projected on w = β/‖β‖ (the slopes, normalized): the
   direction in which the fit rises. Labeled `w·u`; dimensionless, within [−√d, √d].
@@ -175,8 +175,8 @@ from the spread of those estimates.
 
 On R3 (the borehole, 8 model parameters, as U4's lens model) with the defaults and U4's seed 3: n_min = 18,
 alpha = 0.7072, level 2, 72 runs. The numbers are computed: the design from `default_rng(3).random((72, 8))`
-(the `random` sampler's rows, 0032), the bootstrap from the stream above (a scratch script, 2026-09-30; step 11
-checks them).
+(the `random` sampler's rows, 0032), the bootstrap from the linear model's stream (a scratch script,
+2026-09-30; step 11 checks them).
 
 ```markdown
 # Linear model: R3, y
@@ -187,7 +187,7 @@ checks them).
 | Model prediction | y: water flow through the borehole, m³/yr |
 | Space | rw [0.05, 0.15] m; r [100, 5e+04] m, log; Tu [6.307e+04, 1.156e+05] m²/yr; Hu [990, 1110] m; Tl [63.1, 116] m²/yr; Hl [700, 820] m; L [1120, 1680] m; Kw [9855, 1.204e+04] m/yr |
 | Held | none |
-| Design | convergent, n_min = 18, alpha = 0.7072, r = 0.5, level 2: 18, 36, 72 points; sampler random 1, seed 3 |
+| Design | convergent, n_min = 18, alpha = 0.7072, level 2: 18, 36, 72 points; sampler random 1 (rate ½), seed 3 |
 | Runs | 72: 72 new, 0 reused; 0 failed; 0 missing y; 72 usable |
 
 ## Estimates
@@ -199,20 +199,20 @@ under its table; it is not a confidence interval, and carries no coverage probab
 |---|---|---|
 | Intercept | 78.27 m³/yr | [74.39, 82.02] m³/yr |
 | rw | 69.19 m³/yr | [62.31, 77.66] m³/yr |
-| r | 3.089 m³/yr | [−4.032, 9.424] m³/yr |
-| Tu | 0.7283 m³/yr | [−7.785, 7.972] m³/yr |
+| r | 3.089 m³/yr | [-4.032, 9.424] m³/yr |
+| Tu | 0.7283 m³/yr | [-7.785, 7.972] m³/yr |
 | Hu | 9.323 m³/yr | [1.944, 16.68] m³/yr |
-| Tl | −0.2023 m³/yr | [−6.665, 5.679] m³/yr |
-| Hl | −16.3 m³/yr | [−23.51, −10.14] m³/yr |
-| L | −11.39 m³/yr | [−18.83, −4.943] m³/yr |
+| Tl | -0.2023 m³/yr | [-6.665, 5.679] m³/yr |
+| Hl | -16.3 m³/yr | [-23.51, -10.14] m³/yr |
+| L | -11.39 m³/yr | [-18.83, -4.943] m³/yr |
 | Kw | 7.478 m³/yr | [1.701, 14.31] m³/yr |
 
-y ≈ intercept + Σ slope·u, u the unit coordinates in [−1, 1] (r through its logarithm). Variability intervals:
+y ≈ intercept + Σ slope·u, u the unit coordinates in [-1, 1] (r through its logarithm). Variability intervals:
 bootstrap over the 72 usable runs, 1000 resamples, 0.5th to 99.5th percentiles, seed 3.
 
 | Fit | Estimate | Variability interval |
 |---|---|---|
-| Relative residual ‖r‖ / ‖y − mean‖ | 0.2335 | [0.1631, 0.2641] |
+| Relative residual ‖y - ŷ‖ / ‖y - mean‖ | 0.2335 | [0.1631, 0.2641] |
 | R² | 0.9455 | [0.9302, 0.9734] |
 
 Variability intervals: bootstrap over the 72 usable runs, 1000 resamples, 0.5th to 99.5th percentiles, seed 3.
@@ -230,7 +230,7 @@ runs of each resample, 0.5th to 99.5th percentiles, seed 3.
 |---|---|
 | Minimum | 10.24 m³/yr |
 | Maximum | 181.9 m³/yr |
-| (max − min) / max\|y\| | 0.9437 |
+| (max - min) / max\|y\| | 0.9437 |
 
 | The fit at each level | Level 0 | Level 1 | Level 2 |
 |---|---|---|---|
@@ -238,11 +238,11 @@ runs of each resample, 0.5th to 99.5th percentiles, seed 3.
 | Intercept | 79.67 | 77.82 | 78.27 |
 | rw | 69.78 | 71.31 | 69.19 |
 | r | 6.095 | 1.948 | 3.089 |
-| Tu | 5.239 | −1.636 | 0.7283 |
+| Tu | 5.239 | -1.636 | 0.7283 |
 | Hu | 18.79 | 12.09 | 9.323 |
-| Tl | −4.137 | −5.668 | −0.2023 |
-| Hl | −21.19 | −16.9 | −16.3 |
-| L | −18.25 | −14.83 | −11.39 |
+| Tl | -4.137 | -5.668 | -0.2023 |
+| Hl | -21.19 | -16.9 | -16.3 |
+| L | -18.25 | -14.83 | -11.39 |
 | Kw | 12.38 | 8.034 | 7.478 |
 | Relative residual | 0.1408 | 0.2038 | 0.2335 |
 | R² | 0.9802 | 0.9584 | 0.9455 |
@@ -277,9 +277,10 @@ e810 (72 new runs).
 
 ## Expected answers
 
-Each at n_min = 5000, alpha = 0.5, level 1 (20,000 runs), seed 0, `random` sampler. The tolerance is 5 × the
-estimate's standard deviation over 100 designs (seeds 1–100) at 20,000 runs, computed by a scratch script on
-2026-09-30; step 11 recomputes it with a separate script.
+Each at n_min = 5000, alpha = 0.5, level 1 (20,000 runs, `KNOWN_ANSWER_N`, `shared.md`), seed 0, `random`
+sampler. The tolerance is 5 (`KNOWN_ANSWER_SDS`, `shared.md`) × the estimate's standard deviation over 100
+designs (seeds 1–100) at 20,000 runs, computed by a scratch script on 2026-09-30; step 11 recomputes it with a
+separate script.
 
 | Reference model | Quantity | Expected | Tolerance | Source |
 |---|---|---|---|---|
@@ -296,18 +297,17 @@ estimate's standard deviation over 100 designs (seeds 1–100) at 20,000 runs, c
 | R4a | notes; estimates | the "constant" note; none | exact | trivial |
 | R4b | estimates | present | exact | 0035 |
 | R5, y and z | every estimate | equal to the linear model computed on the usable runs alone | exact | by construction (U3) |
-| R3, defaults, seed 3 | the report | the mock report above | byte-identical (golden report) | this spec |
+| R3, defaults, seed 3 | the report | the mock report above | golden report (`shared.md`: structure, and numbers within one unit in the 4th digit) | this spec |
 
 ## Named constants
 
 | Name | Value | Meaning | Why this value |
 |---|---|---|---|
-| `LINEAR_NMIN` | 2(d + 1) | the default size of level 0 | twice the coefficients, as U4 assumes (interview, 2026-09-30) |
-| `LINEAR_ALPHA` | 0.7072 | the default error factor per level | just above 1/√2: the points about double per level (interview, 2026-09-30) |
-| `LINEAR_LEVEL` | 2 | the default last level | U4's: 8(d + 1) points (interview, 2026-09-30) |
-| `LINEAR_MIN_RUNS` | 2(d + 1) | the fewest usable runs for estimates | resamples keep about 1.3(d + 1) distinct runs, so few are rank-deficient (interview, 2026-09-30) |
+| `LINEAR_NMIN` | 2(d + 1) | the default size of level 0 | twice the coefficients, as U4 assumes |
+| `LINEAR_ALPHA` | 0.7072 | the default error factor per level | just above 1/√2: the points about double per level |
+| `LINEAR_LEVEL` | 2 | the default last level | U4's: 8(d + 1) points |
+| `LINEAR_MIN_RUNS` | 2(d + 1) | the fewest usable runs for estimates | resamples keep about 1.3(d + 1) distinct runs, so few are rank-deficient |
 | `LINEAR_BOOT_TAG` | 2³² + 2 | the spawn key of the linear model's bootstrap stream | the next diagnostic tag after scatter's (`shared.md`) |
-| `KNOWN_ANSWER_N` | 20,000 | the size of the known-answer designs | as scatter's: tolerances of 0.006–0.9 at 5 standard deviations |
 
 ## Requirements
 
@@ -319,26 +319,12 @@ estimate's standard deviation over 100 designs (seeds 1–100) at 20,000 runs, c
 | LM4 | Intervals: 1000 resamples from the linear model's stream, the same for every estimate; LOO on each resample's distinct runs; the 0.5th and 99.5th percentiles; undefined resamples dropped and counted. | Changing `LINEAR_BOOT_TAG` changes the intervals, not the design (S8); a fixture at 2(d + 1) runs: the count under the table. |
 | LM5 | The per-level table: each level fitted on its usable runs among its first n_l points; "none" below 2(d + 1). | R3 at the defaults (the mock report); R5 where level 0 has too few usable runs. |
 | LM6 | Fewer than 2(d + 1) usable runs: counts and a note, no estimates; the observations stay. | R5 in a space where 2d + 1 runs are usable; 2(d + 1). |
-| LM7 | y → a·y + b (a a power of 2) maps the coefficients as stated, and leaves the relative residual, R², the LOO error, and the notes unchanged. | R2 with a = 2⁻¹⁰, b = 3. |
+| LM7 | y → a·y + b (a a power of 2) maps the coefficients as stated, and leaves the relative residual, R², the LOO error, and the notes unchanged: exactly under a·y; within C5's tolerances under the shift (0048). | R2 with a = 2⁻¹⁰, b = 3. |
 | LM8 | Three figures: the shadow on w = β/‖β‖ with its strip, the slopes with their intervals, the residual histogram with ⌊√n_u⌋ bins. | R5 at the defaults: the strip's count equals the header's. |
 | LM9 | Nesting: level L + 1 after level L reuses every run; the first points are a scatter's with the same seed. | R3: level 3 after level 2 makes 72 new runs; U5. |
 | LM10 | The known answers at 20,000 runs, and the golden report. | Expected answers. |
 
-## Tests it implies
-
-- The known-answer tests and the golden report in "Expected answers" (slow tier at 20,000 runs).
-- `shared.md`'s S1–S10.
-- The diagnostic contract (`../contracts.md`, step 7): all runs failed; 2d + 1 and 2(d + 1) usable runs; a
-  constant model prediction; R4b; y → a·y + b; d = 1 and d = 20.
-- The interval-method seam: a fake method registered in the tests replaces the bootstrap, and the report's
-  lines name it.
-
 ## What this spec asks of other documents
 
-- **`shared.md`:** the linear model's spawn tag, 2³² + 2 (applied).
-- **Uncertainty (step 7):** the linear model's bootstrap, LOO on distinct runs, and why not the levels; the
-  interval-method interface, and subsampling as a later method.
-- **`../designs.md`'s questions for OD-12** (step 7): the linear model needs one level for its intervals, and
-  checks no rate against r.
 - **Reference models (step 11):** the expected answers above; R3's by a separate brute-force script.
 - **Architecture (step 9):** the interval-method interface; estimators as functions of run indices.

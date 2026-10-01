@@ -1,6 +1,6 @@
 # 0016. Ship an MCP server in v2.0, with use case U9
 
-**Date:** 2026-09-29. **Status:** accepted. **Resolves:** OD-7.
+**Date:** 2026-09-29. **Status:** accepted; its live evals amended by 0050 (later). **Resolves:** OD-7.
 
 ## Context
 

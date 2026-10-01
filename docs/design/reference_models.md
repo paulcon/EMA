@@ -1,6 +1,6 @@
 # Reference models
 
-**Status:** draft. **Updated:** 2026-09-30. **Depends on:** records 0009, 0021, 0022, 0024, 0027, 0030.
+**Status:** draft. **Updated:** 2026-10-01 (0052). **Depends on:** records 0009, 0021, 0022, 0024, 0027, 0030.
 
 > The models v2 is developed and verified against, each with the answers a correct diagnostic must give. With
 > these, "done" means "matches what was worked out independently", not "the tests Claude wrote pass". Each
@@ -196,8 +196,10 @@ f = g(a)·g(b), g(u) = 1/(1 + 4u²); a, b in [−1, 1], linear, nominal 0.
 
 ## Expected answers
 
-> Per model, the quantities the diagnostics in v2.0 must reproduce, with tolerances and sources. Each
-> diagnostic spec's "Expected answers" table lists its own; step 11 gathers them here, and checks each against
-> an independent source.
+> An index, not a copy (0052): each diagnostic spec's "Expected answers" table holds its own expected values
+> and tolerances, citing the model's truths (formulas, analytic values) in "The models" above, their one
+> home. Step 11 fills one row per model and diagnostic, and checks each value against an independent source.
 
-<…>
+| Model | Diagnostic spec table | Independent check (script, seed, result) |
+|---|---|---|
+| <R…> | <`diagnostics/<name>.md`, Expected answers> | <…> |
