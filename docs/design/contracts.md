@@ -1,7 +1,7 @@
 # Contracts and degenerate cases
 
 **Status:** accepted; C46–C52 and C56 cite `data_model.md`'s invariants (0054, 0055); C53–C55 provisional until
-architecture (step 9) and guides (step 13). **Updated:** 2026-10-01 (0054, 0055). **Depends on:** P1–P7; `scope.md`; `model_interface.md` (M1–M21),
+the guides (step 13). **Updated:** 2026-10-01 (0054, 0055, 0056). **Depends on:** P1–P7; `scope.md`; `model_interface.md` (M1–M21),
 `designs.md` (G1–G17), `diagnostics/shared.md` (S1–S10) and the six diagnostic specs, `uncertainty.md`
 (V1–V7); records 0008, 0010, 0011, 0015–0019, 0022, 0025–0030, 0032–0043, 0045–0048, 0051, 0052, 0054, 0055.
 
@@ -13,7 +13,7 @@ architecture (step 9) and guides (step 13). **Updated:** 2026-10-01 (0054, 0055)
 ## What a contract is here
 
 - **A contract** is a list of promises every implementation of one interface keeps, each checked by one
-  `check_*` function in `tests/contracts/<interface>.py` (`architecture.md` §10): `diagnostic.py`,
+  `check_*` function in `tests/contracts/<interface>.py` (`architecture.md` §9): `diagnostic.py`,
   `design.py`, `sampler.py`, `basis.py`, `interval.py`, `model.py`, `store.py`, `workspace.py`, and
   `tools.py`, each run over every registered implementation with `pytest.mark.parametrize`.
 - **This file holds** the promises that hold for every implementation, each with an id C1…, the spec
@@ -195,13 +195,13 @@ added in the interview, after C55; ids are not renumbered.
 
 ## Workspace and MCP contracts
 
-Provisional until `architecture.md` (step 9) and the guides (step 13). `architecture.md` §10 runs the workspace
+Provisional until the guides (step 13). `architecture.md` §9 runs the workspace
 contract over the guides' examples; C53 adds the use cases.
 
 | Id | Promise | Generalizes | Check | Negative control |
 |---|---|---|---|---|
 | C53 | Each use case U1–U9 runs as written, and meets its "Done when" (no budgets in v2.0, 0050). | `use_cases.md` | `check_use_case`, one parametrized check over the use cases, slow tier | a workspace that runs before showing the price fails every use case that makes a new run |
-| C54 | Each CLI command's result equals the workspace function it calls. | the held principle "One-way layers" | `check_cli_matches_workspace` | a command that formats its own numbers |
+| C54 | Each CLI command's result equals the workspace function it calls. | AR3 (`architecture.md`, 0056) | `check_cli_matches_workspace` | a command that formats its own numbers |
 | C55 | Every MCP tool returns the envelope, has a description for every schema field, and marks errors `retryable` or not; every number in a tool result equals the stored value it names. | P1, 0016, 0019, U9 | `check_tool` | a tool that rounds a number itself |
 
 ## Other tests the principles name
@@ -251,11 +251,8 @@ C16, C46, and C52.
 
 ## What this spec asks of other documents
 
-- **Architecture (step 9):** the registries; each diagnostic's declarations for the checks (above); a
-  progress callback during the analysis, which C49 interrupts from (`on_progress` is on the run service only;
-  PM10 asks for the analysis phase); §10's contract table: the model contract over a Python function, a batch
-  Python function, and a command-line model (0025, 0026: every Python model isolated), rows for the sampler,
-  basis, and interval-method contracts, and the workspace contract over the use cases too (C53).
+- **Architecture (step 9):** done (`architecture.md` §6 and §9, 0056): the registries; each diagnostic's
+  declarations for the checks; the progress callback during the analysis; §9's contract table.
 - **Data model (step 8):** answered by `data_model.md`: invariants I1–I12, cited above; the store test at
   `tests/contracts/store.py`; the reuse key, with EMA's and the libraries' versions (0054); replay from a
   provenance (0055).

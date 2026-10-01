@@ -1,6 +1,6 @@
 # Principles
 
-**Status:** accepted. **Updated:** 2026-10-01 (P1 clarified by 0019; P7's "Open" settled by 0021; held candidate updated by 0026; P3's hash settings by 0029, and its tracked files by 0031; P2's list by 0034; P6's constant by 0035, and its check by 0036; P3's budgets by 0050; P3, P4, P6, and P7 worded by 0051).
+**Status:** accepted. **Updated:** 2026-10-01 (P1 clarified by 0019; P7's "Open" settled by 0021; held candidate updated by 0026; P3's hash settings by 0029, and its tracked files by 0031; P2's list by 0034; P6's constant by 0035, and its check by 0036; P3's budgets by 0050; P3, P4, P6, and P7 worded by 0051; the candidate "One-way layers" answered by architecture rules, and P2's pointer, by 0056).
 
 ## Accepted
 
@@ -37,7 +37,7 @@ constant, documented in the spec that uses it.
   together, so a change is visible.
 - **Enforced by:** separate types: `DiagnosticResult` has no field for a verdict, and `interpret()` in
   `ema.experimental` returns a separate `Interpretation`. An import-linter contract: nothing in layers 0–3
-  imports `ema.experimental` (`architecture.md` §11). Separate storage: interpretations have their own table,
+  imports `ema.experimental` (`architecture.md` §10, which adds the contract with the package). Separate storage: interpretations have their own table,
   keyed by the diagnostic result and the version of the rules, and their own renderer. Ruff's
   magic-value-comparison rule (PLR2004) in `ema.experimental`.
 - **Tested by:** a test that builds a report with and without interpretations and requires the main body to be
@@ -166,17 +166,8 @@ as replicates, and the diagnostic result reports the measured variation.
 ## Candidates
 
 > Held until the step that decides what they depend on. Candidates dropped on 2026-09-29, and why, are in
-> record 0007 (`../decisions/0007-choose-the-principles.md`).
+> record 0007 (`../decisions/0007-choose-the-principles.md`). "One-way layers" is answered by the architecture
+> rules AR1–AR7 (`architecture.md` §1, 0056).
 
 - **User code runs isolated, without EMA's secrets.** Split from "Nothing runs without approval" (now P3).
   OD-11 is decided: every Python model runs in an isolated child process (0026). Waits on `trust.md`.
-- **One-way layers.** Each layer imports only from the layers below it. The interfaces (`ema.cli`, and
-  `ema.mcp`, in v2.0 by 0016) hold no logic, and `ema.workspace` is the one place that orchestrates. Layers 0–1
-  (types, numerics, designs) do no I/O. Held until `architecture.md` is accepted (step 9). Answers so far:
-  - Why: with all logic in the workspace, the notebook, the CLI, and a later agent behave the same; layers 0–1
-    without I/O can be checked with known-answer tests and no fixtures.
-  - Enforced by: import-linter's layers contract (`architecture.md` §11); a forbidden contract keeping `os`,
-    `pathlib`, `subprocess`, `sqlite3`, and other I/O libraries out of layers 0–1; each CLI command parses its
-    arguments, calls one workspace function, and formats the result.
-  - Tested by: `uv run lint-imports` in the fast tier; a test that every CLI command's result equals the result
-    of the workspace function it calls.

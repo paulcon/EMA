@@ -1,13 +1,13 @@
 # Model interface
 
-**Status:** accepted. **Updated:** 2026-10-01 (0043, 0052, 0053, 0054). **Depends on:** OD-3 (0003, 0005), OD-6 (0014),
+**Status:** accepted. **Updated:** 2026-10-01 (0043, 0052, 0053, 0054, 0056). **Depends on:** OD-3 (0003, 0005), OD-6 (0014),
 OD-9 (0022), OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0015, 0020, 0021, 0024, 0025, 0028, 0029, 0030,
 0031.
 
 > The hardest thing to change later. This spec says what a model is to EMA: what it takes, what it returns,
 > how it fails, and what makes a new version. It was written from an interview on 2026-09-30 (TODO step 4).
-> `architecture.md` §3 and §5 have stubs for `ModelParameter`, `ModelSpec`, `Model`, and the adapters, which
-> step 9 brings in line with this spec.
+> `architecture.md` §3 and §5 have the stubs for `ModelParameter`, `ModelSpec`, and the adapters' three phases,
+> which follow this spec.
 
 ## The model spec
 

@@ -41,7 +41,7 @@ Write one when a choice:
 | 0013 | Leave quadrature and sparse grids for a later version | accepted | 2026-09-29 |
 | 0014 | Support Python functions and command-line simulation codes in v2.0 | accepted | 2026-09-29 |
 | 0015 | Run one model run at a time in v2.0, ready for parallel and remote runs later | accepted; its run-at-a-time wording amended by 0025; its platform question by 0029; its shared files by 0030 | 2026-09-29 |
-| 0016 | Ship an MCP server in v2.0, with use case U9 | accepted; its live evals amended by 0050 (later); its tool list amended by 0053 (export) | 2026-09-29 |
+| 0016 | Ship an MCP server in v2.0, with use case U9 | accepted; its live evals amended by 0050 (later); its tool list amended by 0053 (export) and 0056 (figures as resources) | 2026-09-29 |
 | 0017 | Leave experimental interpretation out of v2.0 | accepted | 2026-09-29 |
 | 0018 | Write reports in Markdown with TeX math, and make PDFs with pandoc when it is installed | accepted | 2026-09-29 |
 | 0019 | Clarify that P1 covers what EMA produces, including its tool results | accepted | 2026-09-29 |
@@ -81,3 +81,4 @@ Write one when a choice:
 | 0053 | Reserve the `ema_` prefix in model names, and offer export through the MCP server | accepted | 2026-10-01 |
 | 0054 | Reuse a diagnostic result only with the same runs and versions; show its own approval; let the latest loading of a name win | accepted; its example and item 4 amended by 0055 | 2026-10-01 |
 | 0055 | Replay a diagnostic result from a provenance that survives its deletion; write ids in reports at a fixed length; correct 0054's example | accepted | 2026-10-01 |
+| 0056 | Make the layers architecture rules, use a Workspace object, serve figures as MCP resources, type the use cases against the workspace, add three store reads, and allow a Store per thread | accepted | 2026-10-01 |

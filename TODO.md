@@ -31,16 +31,11 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 ## How v2 is built
 
 - [x] **8. Data model.** `docs/design/data_model.md`. Records: 0054, 0055.
-- [ ] **9. Architecture and the workspace layer.** `docs/design/architecture.md` (formerly `api_spec_draft.md`).
-  - Also: drop the `Executor` classes (0015); drop `ema.experimental` from v2.0 (0017); the MCP tools and the
-    server's instructions (0016, 0019); asking for a PDF (0018); the run-directory lookup (0020); within the
-    budgets in `scope.md`.
-  - Also: the asks in `docs/notes/consistency_review_2026-10-01.md`, "Step 9 inputs" (renames to the
-    glossary's words, the interfaces the specs name, the approval module, the MCP tool set, the name count).
-  - Decide: OD-16 (`Workspace` object), and §12's items still open (where `version_hash` lives; whether
-    `report` imports `diagnostics`); the rest of §12 is settled by records.
-  - Decide: the held principle "One-way layers" (`docs/design/principles.md`, Candidates).
+- [x] **9. Architecture and the workspace layer.** `docs/design/architecture.md` (formerly `api_spec_draft.md`).
+  Records: 0056 (OD-16; "One-way layers" as architecture rules AR1–AR7).
 - [ ] **10. Trust boundary.** `docs/design/trust.md`.
+  - Also: `architecture.md`'s asks (the environment `execute` passes, the `ema mcp` directory and its flag, v1's
+    approval rules in `ema.approval`, the write path shown in `save_model`'s confirmation).
   - Decide: the held principle "User code runs isolated, without EMA's secrets" (`docs/design/principles.md`,
     Candidates), after OD-11.
   - Decide: whether "user code" (what the trust boundary runs) gets a glossary row; the specs also say "model

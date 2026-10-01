@@ -2,7 +2,8 @@
 
 **Status:** accepted. **Updated:** 2026-10-01 (U9 added by 0016; U2's model spec follows `model_interface.md`;
 U3's failure map dropped by 0037; U2's per-line numbers by 0038; U4's polynomial figures by 0039; U4's budget
-dropped, and the features no use case exercises named, by 0050; asks trimmed by 0052).
+dropped, and the features no use case exercises named, by 0050; asks trimmed by 0052; typed steps follow
+`architecture.md` §7 by 0056).
 
 > Each use case is a short scenario from the analyst's side: who they are, what model they have, what they
 > want to learn, what they type (in Python or the CLI), what EMA asks them, and the report they get. Write
@@ -13,8 +14,8 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
 >   is revised.
 > - **Length.** U1–U4 are written in full. U5–U9 are variations that start from an earlier use case: each
 >   has only its steps, what EMA asks, and "Done when".
-> - **Typed steps** are in Python, against `ema.workspace` as drafted in `architecture.md` §7, so they are
->   provisional until that spec is accepted. One use case is also shown as CLI commands.
+> - **Typed steps** are in Python, against `ema.workspace` as `architecture.md` §7 specifies (0056). One use
+>   case is also shown as CLI commands.
 > - **Not in a use case.** The lines diagnostic, the run-directory lookup, PDF output, `keep`, and batch
 >   Python models are tested by their specs' tests and the contracts, not by a use case (0050).
 
@@ -38,7 +39,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
   the same steps on reference model R2 (Ishigami), whose answers are known.
 - **Question:** over this model parameter space, which model parameters does the model prediction change
   with, and how: trends, spread, anything odd? The answer is the analyst's to draw from the figures (P2).
-- **Steps, as typed:** the price is shown in the approval question; `estimate` exists for an analyst who
+- **Steps, as typed:** the price is shown in the approval question; `price` exists for an analyst who
   wants the price without being asked, but U1 doesn't need it.
 
   ```python
@@ -52,7 +53,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
   space = {"E": (190e9, 210e9), "L": (1.0, 2.0), "P": (1e3, 5e3)}
   result = ws.run("beam", "scatter", space, n=200, seed=1,
                   approve=ema.ask)   # shows the price, asks y/n
-  print(result.report())
+  print(ws.report(result))
   ```
 
 - **What EMA asks, and when:** two approvals (P3). `test_model` asks for its one run: 1 new, 0 reused, time
@@ -163,7 +164,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
      ws.test_model("heat", approve=ema.ask)
      space = {"k": (30.0, 60.0), "q": (1e4, 5e4), ...}
      result = ws.run("heat", "coordinate_lines", space, n=17, approve=ema.ask)
-     print(result.report())
+     print(ws.report(result))
      ```
 
 - **What EMA asks, and when:** every approval shows the price and the model version (P3). The first approval
@@ -209,7 +210,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
   ```python
   wide = {"k": (5.0, 60.0), "q": (1e4, 2e5), ...}
   r1 = ws.run("heat", "scatter", wide, n=200, seed=2, approve=ema.ask)
-  print(r1.report())                   # 34 of 200 runs failed: 30 errors, 4 timeouts
+  print(ws.report(r1))                 # 34 of 200 runs failed: 30 errors, 4 timeouts
   ws.failed_runs(r1.result_id)         # each failed run: its point and its reason
 
   # a polynomial model with too few usable runs (U4's diagnostic), in a space where most runs fail
@@ -281,8 +282,11 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
   space = {...}   # 8 model parameters
   r1 = ws.run("lens", "linear_model", space, level=2, seed=3, approve=ema.ask)
   r2 = ws.run("lens", "polynomial_model", space, degree=2, level=2, seed=3, approve=ema.ask)
-  r3 = ws.run("lens", "polynomial_model", space, degree=3, level=2, seed=3, approve=ema.ask)
-  #   asks: 960 new runs, about 80 min; the analyst declines
+  try:
+      r3 = ws.run("lens", "polynomial_model", space, degree=3, level=2, seed=3, approve=ema.ask)
+      #   asks: 960 new runs, about 80 min; the analyst declines
+  except ema.ApprovalDeclined:
+      pass                             # declined: no runs made
   r3 = ws.run("lens", "polynomial_model", space, degree=3, level=1, seed=3, approve=ema.ask)
   ```
 
@@ -354,8 +358,11 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
 
      ```python
      # beam.py edited
-     ws.run("beam", "scatter", space, n=200, seed=1, approve=ema.ask)
-     #   refused: beam.py changed since the model was loaded; load it again to make a new model version
+     try:
+         ws.run("beam", "scatter", space, n=200, seed=1, approve=ema.ask)
+     except ema.ModelChanged as e:
+         print(e)   # refused: beam.py changed since the model was loaded; load it again to make a new
+                    # model version
      ws.load_model("beam/model.json")   # new model version beam@3f2a (was beam@91c0): beam.py changed
      r = ws.run("beam", "scatter", space, n=200, seed=1, approve=ema.ask)
      ws.list_results(model="beam")      # U1's diagnostic result and this one, each with its model version
@@ -394,12 +401,12 @@ written.
 
   ```python
   p = ws.run("heat", "point_run", repeats=10, approve=ema.ask)   # at the nominal point
-  print(p.report())
+  print(ws.report(p))
   r = ws.run("heat", "scatter", space, n=200, seed=4, approve=ema.ask)
-  print(r.report())   # carries the note
+  print(ws.report(r))   # carries the note
   ```
 
-  The point run needs no model parameter space; `run`'s signature in `architecture.md` §7 must allow that.
+  The point run needs no model parameter space (`architecture.md` §7).
 - **What EMA asks, and when:** the point run asks for 10 new runs (replicates 1 to 10), 1 reused (the test
   run at nominal, replicate 0), about 20 min. Scatter asks as usual.
 - **What they get:** the point run's report gives the model prediction at the point, and its measured
@@ -443,7 +450,7 @@ written.
   server, in a fresh workspace, and asks in their own words to set up `beam.py` as a model, test it, and
   run scatter over the same model parameter space with n = 200 and seed 1. The client's agent calls:
   `propose_model` (a model spec for `beam.py`), `save_model`, `test_model`, `run_diagnostic`, and
-  `get_result`, and the analyst opens the report through its resource, `ema://results/{id}/report`.
+  `results`, and the analyst opens the report through its resource, `ema://results/{id}/report`.
 - **What EMA asks, and when:** three elicitations: the model spec, before it is saved (the model
   parameters, units, nominal values, and the file); the test run: 1 new, 0 reused, time unknown; and
   scatter: 200 new, 0 reused, about 0.2 s. The client's agent answers none of them.
@@ -464,7 +471,7 @@ written.
 - **Architecture (step 9), `ema.workspace`:**
   - `test_model` takes `approve`, since its run is a new run (U1);
   - `run` for the point run needs no model parameter space (U7);
-  - new names: `failed_runs` (U3), `reproduce` (U8), and `retry_failed` on `run` and `estimate` (0010);
+  - new names: `failed_runs` (U3), `reproduce` (U8), and `retry_failed` on `run` and `price` (0010);
     with `ema.ask`, the public names are near the budget of 20 (scope);
   - `run` re-hashes the model's files first, and refuses if they changed since the model was loaded (U6);
   - the first approval for a model version shows the command, the input deck template, and the files (U2);

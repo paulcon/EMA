@@ -4,9 +4,9 @@
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`): steps 1–8 done; the consistency review's decisions
+- Writing the design documents by hand (`TODO.md`): steps 1–9 done; the consistency review's decisions
   (records 0043–0052) applied.
-- Next: step 9, architecture and the workspace layer (`docs/design/architecture.md`).
+- Next: step 10, the trust boundary (`docs/design/trust.md`).
 
 ## Done
 
@@ -33,11 +33,19 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   latest loading of a name) and 0055 (replay from a provenance, ids in reports, 0054's example), applied to
   `contracts.md` (C46–C52 and C56 cite I1–I12), `shared.md`, `coordinate_lines.md`, `model_interface.md`,
   and the glossary.
+- 2026-10-01: step 9, architecture accepted (`docs/design/architecture.md`: layers, architecture rules
+  AR1–AR7, every module's public names; 19 workspace names, 13 CLI commands, 10 MCP tools; about 7,860 source
+  lines estimated), from an interview and four independent consistency reviews (31, 17, 15, then 11 findings,
+  all fixed); OD-16 decided; record 0056 (the layers as architecture rules, a `Workspace` object, figures as
+  MCP resources, the use cases typed against the workspace, store reads Q13–Q15, a `Store` per thread),
+  applied to `principles.md`, `use_cases.md`, `data_model.md`, `contracts.md`, `model_interface.md`, the
+  README, and 0016's status.
 
 ## Next
 
-- Step 9, architecture and the workspace layer (`docs/design/architecture.md`): `TODO.md` step 9, with the
-  review's "Step 9 inputs" and `data_model.md`'s asks.
+- Step 10, the trust boundary (`docs/design/trust.md`): `TODO.md` step 10, with the review's "Step 10
+  inputs" and `architecture.md`'s asks (the environment `execute` passes, the `ema mcp` directory, v1's
+  approval rules in `ema.approval`, the write path in `save_model`'s confirmation).
 
 ## Specs
 
@@ -52,9 +60,9 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
 | `docs/design/designs.md` | accepted |
 | `docs/design/diagnostics/` | accepted: `shared.md` and the six diagnostics |
 | `docs/design/uncertainty.md` | accepted |
-| `docs/design/contracts.md` | accepted (C53–C55 provisional until steps 9 and 13) |
-| `docs/design/data_model.md` | accepted (Q1–Q12, W1–W6, I1–I12) |
-| `docs/design/architecture.md` | draft |
+| `docs/design/contracts.md` | accepted (C53–C55 provisional until step 13) |
+| `docs/design/data_model.md` | accepted (Q1–Q15, W1–W6, I1–I12) |
+| `docs/design/architecture.md` | accepted (AR1–AR7) |
 | `docs/design/trust.md` | empty |
 | `docs/design/export.md` | accepted (E1–E7) |
 | `docs/design/reference_models.md` | draft (the list; expected answers at step 11) |
@@ -74,12 +82,8 @@ code exists). Claude Code builds only from accepted specs.
 
 | Id | Question | Options | Suggested | Blocks |
 |---|---|---|---|---|
-| OD-16 | `Workspace` object or module functions | object; functions | object | architecture |
 | OD-17 | Python version (the package stays `ema`) | 3.12, 3.13, 3.14 | <…> | setup |
 | OD-18 | Tooling | uv and a lockfile; docs in Sphinx or MkDocs; CI | uv; <…> | setup |
-
-The items still open in `docs/design/architecture.md` §12 (the rest are struck, with their records) join this
-table when you reach step 9.
 
 ## Decided
 
@@ -102,5 +106,6 @@ What each decided is the record's title (`docs/decisions/README.md`).
 | OD-13 | 0032 | 2026-09-30 |
 | OD-14 | 0013 | 2026-09-29 |
 | OD-15 | 0050 | 2026-10-01 |
+| OD-16 | 0056 | 2026-10-01 |
 | OD-19 | 0050 | 2026-10-01 |
 | OD-20 | 0027 | 2026-09-30 |

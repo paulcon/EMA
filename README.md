@@ -35,6 +35,7 @@ Everything that code or tests may cite has an id, so a docstring, a test, or a c
 | S | requirement shared by every diagnostic | `docs/design/diagnostics/shared.md` |
 | PT, SC, CL, LN, LM, PM | requirement of one diagnostic: point run, scatter, coordinate lines, lines, linear model, polynomial model | `docs/design/diagnostics/<name>.md` |
 | V | variability interval requirement | `docs/design/uncertainty.md` |
+| AR | architecture rule | `docs/design/architecture.md` |
 | C | contract promise | `docs/design/contracts.md` |
 | T | trust-boundary rule | `docs/design/trust.md` |
 | E | export requirement | `docs/design/export.md` |
