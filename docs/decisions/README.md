@@ -79,3 +79,5 @@ Write one when a choice:
 | 0051 | Settle the review's smaller rules: empty sections, rank, anchors, spawn streams, and four wordings | accepted | 2026-10-01 |
 | 0052 | Give each rule one home, trim the specs' history, and write down the decision conventions | accepted | 2026-10-01 |
 | 0053 | Reserve the `ema_` prefix in model names, and offer export through the MCP server | accepted | 2026-10-01 |
+| 0054 | Reuse a diagnostic result only with the same runs and versions; show its own approval; let the latest loading of a name win | accepted; its example and item 4 amended by 0055 | 2026-10-01 |
+| 0055 | Replay a diagnostic result from a provenance that survives its deletion; write ids in reports at a fixed length; correct 0054's example | accepted | 2026-10-01 |

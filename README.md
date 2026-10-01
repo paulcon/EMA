@@ -60,7 +60,7 @@ docs/design/
   diagnostics/shared.md       what every diagnostic shares: report layout, precheck, figures (S1…)
   uncertainty.md              V1…; one interval method per diagnostic
   contracts.md                C1…, and the degenerate cases
-  data_model.md               Q/W/I…, from the data model template
+  data_model.md               Q1…, W1…, I1…: the store's tables, reads, writes, and invariants
   architecture.md             packages, layers, modules, and their public names
   trust.md                    T1…
   export.md                   the export's files and their read-back (0050)

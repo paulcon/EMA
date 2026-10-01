@@ -4,9 +4,9 @@
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`): steps 1–7 done; the consistency review's decisions
+- Writing the design documents by hand (`TODO.md`): steps 1–8 done; the consistency review's decisions
   (records 0043–0052) applied.
-- Next: step 8, the data model (`docs/design/data_model.md`).
+- Next: step 9, architecture and the workspace layer (`docs/design/architecture.md`).
 
 ## Done
 
@@ -28,11 +28,16 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   and applied; `docs/design/export.md` added (empty); OD-15 and OD-19 decided (0050).
 - 2026-10-01: export spec accepted (`docs/design/export.md`, E1–E7), from an interview; record 0053 (the `ema_`
   prefix reserved, M21; export through MCP).
+- 2026-10-01: step 8, data model accepted (`docs/design/data_model.md`: Q1–Q12, W1–W6, I1–I12), from an
+  interview and an independent consistency check; records 0054 (the reuse key, a result's own approval, the
+  latest loading of a name) and 0055 (replay from a provenance, ids in reports, 0054's example), applied to
+  `contracts.md` (C46–C52 and C56 cite I1–I12), `shared.md`, `coordinate_lines.md`, `model_interface.md`,
+  and the glossary.
 
 ## Next
 
-- Step 8, the data model (`docs/design/data_model.md`, from its template): `TODO.md` step 8, with the review's
-  "Step 8 inputs".
+- Step 9, architecture and the workspace layer (`docs/design/architecture.md`): `TODO.md` step 9, with the
+  review's "Step 9 inputs" and `data_model.md`'s asks.
 
 ## Specs
 
@@ -47,8 +52,8 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
 | `docs/design/designs.md` | accepted |
 | `docs/design/diagnostics/` | accepted: `shared.md` and the six diagnostics |
 | `docs/design/uncertainty.md` | accepted |
-| `docs/design/contracts.md` | accepted (C46–C56 provisional until steps 8, 9, and 13) |
-| `docs/design/data_model.md` | template |
+| `docs/design/contracts.md` | accepted (C53–C55 provisional until steps 9 and 13) |
+| `docs/design/data_model.md` | accepted (Q1–Q12, W1–W6, I1–I12) |
 | `docs/design/architecture.md` | draft |
 | `docs/design/trust.md` | empty |
 | `docs/design/export.md` | accepted (E1–E7) |
@@ -73,8 +78,8 @@ code exists). Claude Code builds only from accepted specs.
 | OD-17 | Python version (the package stays `ema`) | 3.12, 3.13, 3.14 | <…> | setup |
 | OD-18 | Tooling | uv and a lockfile; docs in Sphinx or MkDocs; CI | uv; <…> | setup |
 
-The items still open in `docs/design/architecture.md` §12 (the rest are struck, with their records) and the
-`<…>` in `docs/design/data_model.md` join this table when you reach those steps.
+The items still open in `docs/design/architecture.md` §12 (the rest are struck, with their records) join this
+table when you reach step 9.
 
 ## Decided
 

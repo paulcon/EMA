@@ -1,6 +1,6 @@
 # Model interface
 
-**Status:** accepted. **Updated:** 2026-10-01 (0043, 0052, 0053). **Depends on:** OD-3 (0003, 0005), OD-6 (0014),
+**Status:** accepted. **Updated:** 2026-10-01 (0043, 0052, 0053, 0054). **Depends on:** OD-3 (0003, 0005), OD-6 (0014),
 OD-9 (0022), OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0015, 0020, 0021, 0024, 0025, 0028, 0029, 0030,
 0031.
 
@@ -198,8 +198,8 @@ A Python function model (U1's beam):
 - **Checked before each call:** the tracked files are hashed in full before every call, about 1 s per GB; a
   call whose model version no longer matches is refused, naming the file (U6).
 - **Not in the model:** the model parameter space and scales belong to the design (0005, 0024).
-- **Settings** (`keep`, `batch_size`, `timeout_s`) are stored with the model; the latest loading's values
-  apply.
+- **Settings:** the location and the settings (`keep`, `batch_size`, `timeout_s`) are stored with each loading;
+  a model name means its latest loading's model version, directory, and settings (0054).
 
 ## Requirements
 

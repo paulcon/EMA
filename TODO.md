@@ -30,21 +30,7 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 
 ## How v2 is built
 
-- [ ] **8. Data model.** `docs/design/data_model.md` (from the template).
-  - Done first: the export spec, `docs/design/export.md` (accepted, 0050, 0053); the data model stores what an
-    export reads (its "What this spec asks").
-  - Claude can help: check that every question in its §2 has a query, and that the tables match the model
-    interface and designs specs.
-  - Also: each run's host (0015) and run directory (0020); model predictions in their own table, with no blob
-    store (0021).
-  - Also, from `contracts.md` (step 7): invariants I1… for C46–C52 and C56; the template's I4 against 0010 (a
-    failed run reused, a retry stored beside it); the store test at `tests/contracts/store.py`; a run's failure
-    kind and reason, host, and resolved program path; whether a stored result is reused after a named constant
-    such as `BOOTSTRAP_RESAMPLES` changes; the polynomial coefficients with their intervals (0041).
-  - Also, the asks the consistency review (2026-10-01) found missing here:
-    `docs/notes/consistency_review_2026-10-01.md`, "Step 8 inputs" (design identity, the stored-result reuse
-    key, model name → model version, the current run at a key, approvals, hashing and ids, and the asks the
-    specs and records make of this step).
+- [x] **8. Data model.** `docs/design/data_model.md`. Records: 0054, 0055.
 - [ ] **9. Architecture and the workspace layer.** `docs/design/architecture.md` (formerly `api_spec_draft.md`).
   - Also: drop the `Executor` classes (0015); drop `ema.experimental` from v2.0 (0017); the MCP tools and the
     server's instructions (0016, 0019); asking for a PDF (0018); the run-directory lookup (0020); within the

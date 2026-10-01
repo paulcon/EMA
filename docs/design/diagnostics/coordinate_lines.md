@@ -1,6 +1,7 @@
 # Coordinate lines
 
-**Status:** accepted. **Updated:** 2026-10-01. **Module:** `ema/diagnostics/coordinate_lines.py`. **Depends on:**
+**Status:** accepted. **Updated:** 2026-10-01 (the mock's Provenance, 0054). **Module:**
+`ema/diagnostics/coordinate_lines.py`. **Depends on:**
 `shared.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0051, 0052.
 
 > The model prediction along one line per varied model parameter, through an anchor, and the spectrum of each
@@ -245,8 +246,7 @@ the tail fit and the floor of 10⁻¹⁰. Data cards: `coordinate_lines_a.json`,
 ## Provenance
 
 EMA 2.0.0; numpy 2.3.1, scipy 1.16.0, matplotlib 3.10.0; model version R8@2c7a; request: coordinate lines,
-space as above, n = 17, anchor {}, prediction y, seed 0; runs: 97; approvals: 0a17 (1 new run, the test
-run), 1c9e (96 new runs; stopped after 40), 7d03 (56 new runs).
+space as above, n = 17, anchor {}, prediction y, seed 0; runs: 97; approvals: 7d03 (56 new runs).
 ```
 
 At n = 17 the kink along a (0.1811) and the analytic line along c (0.1957) are close. A rerun at n = 33 reuses

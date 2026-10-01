@@ -1,7 +1,7 @@
 # Glossary
 
 **Status:** accepted. **Updated:** 2026-10-01 (records 0022–0024, 0031, 0033, 0034, 0039, 0041–0043, 0049,
-0050).
+0050, 0055).
 
 > One word per idea, in your nomenclature, linked to the standard terms so readers (and the agent) can
 > connect them. The code, the docs, and the messages use these words. The Avoid column is advice for prose,
@@ -53,6 +53,7 @@
 | diagnostic | a formula or method that produces the diagnostic result for a given model and design, looking for one kind of structure (0006) | sensitivity analysis method, test | diagnostic test |
 | diagnostic evaluation | one execution of a diagnostic for a particular model and design, which produces the numbers of the diagnostic result; the unit of work (0006) | | diagnostic run |
 | request | what one diagnostic evaluation is asked for: the model version, the model prediction, the diagnostic, its parameters, the model parameter space, and the seed; it decides the design (P4, 0006, 0046, 0049) | | |
+| reuse key | what makes a request a repeat: its model version, the request, the runs its design resolves to, and EMA's and the libraries' versions; a request whose reuse key has a stored diagnostic result gets that result (C50, 0054, 0055) | cache key | |
 | diagnostic parameter | a setting of a diagnostic that the user chooses, such as the number of points or the seed; not a model parameter (0003) | hyperparameter, option | parameter (alone, where it could mean a model parameter) |
 | diagnostic result | what a diagnostic evaluation produces: estimates, observations, counts, notes, and figures, and the provenance recorded with them (P5, 0034); never interpretation (P2) | | |
 | estimate | a number with its variability interval and the method that made the interval; the interval is "none", with the reason, when the method gives none for that diagnostic evaluation (`uncertainty.md`, 0041) | | |

@@ -1,9 +1,9 @@
 # Contracts and degenerate cases
 
-**Status:** accepted; C46–C56 provisional until the data model (step 8), architecture (step 9), and guides
-(step 13). **Updated:** 2026-10-01. **Depends on:** P1–P7; `scope.md`; `model_interface.md` (M1–M21),
+**Status:** accepted; C46–C52 and C56 cite `data_model.md`'s invariants (0054, 0055); C53–C55 provisional until
+architecture (step 9) and guides (step 13). **Updated:** 2026-10-01 (0054, 0055). **Depends on:** P1–P7; `scope.md`; `model_interface.md` (M1–M21),
 `designs.md` (G1–G17), `diagnostics/shared.md` (S1–S10) and the six diagnostic specs, `uncertainty.md`
-(V1–V7); records 0008, 0010, 0011, 0015–0019, 0022, 0025–0030, 0032–0043, 0045–0048, 0051, 0052.
+(V1–V7); records 0008, 0010, 0011, 0015–0019, 0022, 0025–0030, 0032–0043, 0045–0048, 0051, 0052, 0054, 0055.
 
 > The promises each interface makes, written so each becomes one `check_*` function run over every
 > implementation (`../notes/v1/lessons_learned_answers_2026-09-27.md` §4). This file is the test plan: Claude
@@ -179,19 +179,19 @@ and stay `model_interface.md`'s own tests.
 
 ## Store contract
 
-`tests/contracts/store.py`. Provisional: the data model (step 8) writes its invariants I1…, and each promise
-here then cites them. C56 was added in the interview, after C55; ids are not renumbered.
+`tests/contracts/store.py`. Each promise cites the invariants it rests on (`data_model.md` §9, I1–I12). C56 was
+added in the interview, after C55; ids are not renumbered.
 
 | Id | Promise | Generalizes | Check | Negative control |
 |---|---|---|---|---|
-| C46 | Runs are keyed by model version, point, and replicate; a stored run is reused; a deterministic model gets no second run at a stored point, except the point run's replicates and a retry of a failed run (0010). | P3, P7, 0010, 0011 | `check_reuse` | keys points by their values printed to 6 significant digits |
-| C47 | A failed run is reused unless retry is asked; the price counts the reused failed runs ("200 reused, of which 34 failed"), and the report's note says how many and that `retry_failed` runs them again; with retry asked, exactly the design's failed points run again, each stored beside the failed run it replaces. | 0010, U3 | `check_failed_reused` | retries failed runs without being asked |
-| C48 | No more new runs than approved, counted when a run starts; with k of n points stored, the price says n − k new, and n − k runs are made; with no stored durations for the model version, the price's time is "unknown"; two designs in different model parameter spaces reuse the runs at their shared points. | P3, 0015, M8 | `check_approval_cap` | counts runs when they finish |
-| C49 | An interrupted diagnostic evaluation keeps every finished run and stores no diagnostic result, and stores no record of a run stopped partway (`model_interface.md`, 0028, 0051); a rerun makes no new run for the finished runs, and gives the same result. | 0015, 0028, 0051, PM10 | `check_interrupt` | one transaction per diagnostic evaluation; stores the stopped run as failed |
-| C50 | A repeated request returns the stored diagnostic result, with no new computation, no new run, and no approval asked, and a byte-identical report. | `shared.md` (The report) | `check_repeat` | recomputes |
-| C51 | No diagnostic result without its provenance, the runs it used, and their approvals, written in one transaction; deleting a result and rerunning from its provenance gives an identical result; changing the seed, or the model version, and rerunning gives provenance records that differ in that field and in what it decides (the runs used and their approvals, when the design or the model version changes), and in nothing else. | P5 | `check_provenance` | writes the result before its provenance |
-| C52 | A model version measured noisy is recorded with the point run that measured it, for that model prediction; earlier diagnostic results are unchanged. | P7, PT4, PT5, U7 | `check_measured_noisy` | rewrites earlier results' notes |
-| C56 | The batch handed to a diagnostic is in the design's order, whatever order its runs finished in; so the diagnostic result doesn't depend on that order. | 0015, P4 | `check_design_order` | hands runs over in the order they finished |
+| C46 | Runs are keyed by model version, point, and replicate; a stored run is reused; a deterministic model gets no second run at a stored point, except the point run's replicates and a retry of a failed run (0010). | P3, P7, 0010, 0011; I2, I3 | `check_reuse` | keys points by their values printed to 6 significant digits |
+| C47 | A failed run is reused unless retry is asked; the price counts the reused failed runs ("200 reused, of which 34 failed"), and the report's note says how many and that `retry_failed` runs them again; with retry asked, exactly the design's failed points run again, each stored beside the failed run it replaces. | 0010, U3; I2 | `check_failed_reused` | retries failed runs without being asked |
+| C48 | No more new runs than approved, counted when a run starts; with k of n points stored, the price says n − k new, and n − k runs are made; with no stored durations for the model version, the price's time is "unknown"; two designs in different model parameter spaces reuse the runs at their shared points. | P3, 0015, M8; I4 | `check_approval_cap` | counts runs when they finish |
+| C49 | An interrupted diagnostic evaluation keeps every finished run and stores no diagnostic result, and stores no record of a run stopped partway (`model_interface.md`, 0028, 0051); a rerun makes no new run for the finished runs, and gives the same result. | 0015, 0028, 0051, PM10; I1, I5 | `check_interrupt` | one transaction per diagnostic evaluation; stores the stopped run as failed |
+| C50 | A repeated request (the same reuse key: request, runs resolved, and EMA's and the libraries' versions; `data_model.md`) returns the stored diagnostic result, with no new computation, no new run, and no approval asked, and a byte-identical report; a request whose runs or versions changed is a new diagnostic evaluation. | `shared.md` (The report); 0054; I7 | `check_repeat` | recomputes; returns the stored result after a retry |
+| C51 | No diagnostic result without its provenance, the runs it used, and their approvals, written in one transaction; deleting a result and replaying the provenance it had (from `get_result` or an export) gives an identical result; changing the seed, or the model version, and rerunning gives provenance records that differ in that field and in what it decides (the runs used and their approvals, when the design or the model version changes), and in nothing else. | P5, 0054, 0055; I8 | `check_provenance` | writes the result before its provenance |
+| C52 | A model version measured noisy is recorded with the point run that measured it, for that model prediction; earlier diagnostic results are unchanged. | P7, PT4, PT5, U7; I10 | `check_measured_noisy` | rewrites earlier results' notes |
+| C56 | The batch handed to a diagnostic is in the design's order, whatever order its runs finished in; so the diagnostic result doesn't depend on that order. | 0015, P4; I9 | `check_design_order` | hands runs over in the order they finished |
 
 ## Workspace and MCP contracts
 
@@ -256,9 +256,6 @@ C16, C46, and C52.
   PM10 asks for the analysis phase); §10's contract table: the model contract over a Python function, a batch
   Python function, and a command-line model (0025, 0026: every Python model isolated), rows for the sampler,
   basis, and interval-method contracts, and the workspace contract over the use cases too (C53).
-- **Data model (step 8):** invariants I1… for C46–C52 and C56; the template's I4 (one run per key with a
-  reusable status) against 0010 (a failed run reused, a retry stored beside it); its store test at
-  `tests/contracts/store.py`, not `tests/test_store_contract.py`; a run's failure kind and reason, host, and
-  resolved program path (C31, C44), in place of one `error` column; whether a repeated request's stored result
-  is reused when a later EMA version changes a named constant such as `BOOTSTRAP_RESAMPLES` (C50; the constants
-  are not part of a request's identity, `uncertainty.md`); the polynomial coefficients' intervals (0041).
+- **Data model (step 8):** answered by `data_model.md`: invariants I1–I12, cited above; the store test at
+  `tests/contracts/store.py`; the reuse key, with EMA's and the libraries' versions (0054); replay from a
+  provenance (0055).

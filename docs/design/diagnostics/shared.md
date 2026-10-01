@@ -1,7 +1,7 @@
 # What every diagnostic shares
 
-**Status:** accepted. **Updated:** 2026-10-01. **Depends on:** P1, P2, P4, P5, P6; records 0004, 0010, 0018,
-0022, 0034, 0035, 0040, 0042, 0044, 0049, 0051, 0052.
+**Status:** accepted. **Updated:** 2026-10-01 (0054, 0055). **Depends on:** P1, P2, P4, P5, P6; records 0004, 0010,
+0018, 0022, 0034, 0035, 0040, 0042, 0044, 0049, 0051, 0052, 0054, 0055.
 
 > The parts of a diagnostic's spec that are the same for all six: the report's layout, how numbers are
 > written, the precheck, how runs that aren't usable are counted and drawn, and where a diagnostic's own
@@ -30,17 +30,20 @@ One report per diagnostic evaluation, in Markdown with TeX math and PNG figures 
 5. **Observations** (0034): numbers read or computed directly from the usable runs, with no interval.
 6. **Figures:** each PNG, its caption, and the name of its data card.
 7. **Provenance** (P5): EMA's version, the library versions, the model version, the request, the runs used,
-   and the approvals.
+   and the approval of its new runs (0054).
 
 - **An empty section is left out** (S1, 0051), with its opening sentence: a report with no estimates has no
   Estimates section, and no explanation of intervals. Each diagnostic spec's degenerate cases list the figures
   it still draws.
-- **A repeated request** returns the stored diagnostic result, so the header's new and reused counts are those
-  of the diagnostic evaluation that made it, and the report is byte-identical (U1, U2, U8).
+- **A repeated request** (the same reuse key, `../data_model.md`) returns the stored diagnostic result, so the
+  header's new and reused counts are those of the diagnostic evaluation that made it, and the report is
+  byte-identical (U1, U2, U8).
 - **Numbers** (0044): every computed number in the report is `format(x, ".4g")` of the stored double, with an
   ASCII minus: 0.3139, 2236, 1.2e-07, -0.009447. Counts, sizes, seeds, degrees, and levels are printed in full;
   ids and hashes are not numbers. The diagnostic result and the data cards keep full doubles. A narrow interval
   may print both ends the same.
+- **Ids** (0055) are written as their first 12 hex digits (a model version as `name@` and 12); the mocks'
+  shorter ids are placeholders.
 - **Units:** a number with units is followed by them ("412.3 K"); dimensionless numbers have none.
 
 ### Estimates
