@@ -31,8 +31,8 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 ## How v2 is built
 
 - [ ] **8. Data model.** `docs/design/data_model.md` (from the template).
-  - First: the export spec, `docs/design/export.md` (0050): what an export holds, its files and columns, and
-    reading it back; the data model stores what it reads.
+  - Done first: the export spec, `docs/design/export.md` (accepted, 0050, 0053); the data model stores what an
+    export reads (its "What this spec asks").
   - Claude can help: check that every question in its §2 has a query, and that the tables match the model
     interface and designs specs.
   - Also: each run's host (0015) and run directory (0020); model predictions in their own table, with no blob

@@ -1,7 +1,7 @@
 # Contracts and degenerate cases
 
 **Status:** accepted; C46–C56 provisional until the data model (step 8), architecture (step 9), and guides
-(step 13). **Updated:** 2026-10-01. **Depends on:** P1–P7; `scope.md`; `model_interface.md` (M1–M20),
+(step 13). **Updated:** 2026-10-01. **Depends on:** P1–P7; `scope.md`; `model_interface.md` (M1–M21),
 `designs.md` (G1–G17), `diagnostics/shared.md` (S1–S10) and the six diagnostic specs, `uncertainty.md`
 (V1–V7); records 0008, 0010, 0011, 0015–0019, 0022, 0025–0030, 0032–0043, 0045–0048, 0051, 0052.
 

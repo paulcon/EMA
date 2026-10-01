@@ -37,6 +37,7 @@ Everything that code or tests may cite has an id, so a docstring, a test, or a c
 | V | variability interval requirement | `docs/design/uncertainty.md` |
 | C | contract promise | `docs/design/contracts.md` |
 | T | trust-boundary rule | `docs/design/trust.md` |
+| E | export requirement | `docs/design/export.md` |
 | Q, W, I | data-model question, write, invariant | `docs/design/data_model.md` |
 | R | reference model | `docs/design/reference_models.md` |
 

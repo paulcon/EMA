@@ -6,7 +6,7 @@
 
 - Writing the design documents by hand (`TODO.md`): steps 1–7 done; the consistency review's decisions
   (records 0043–0052) applied.
-- Next: the export spec (`docs/design/export.md`, 0050), then step 8, the data model.
+- Next: step 8, the data model (`docs/design/data_model.md`).
 
 ## Done
 
@@ -26,11 +26,11 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
 - 2026-10-01: consistency review of every design document by ten independent reviewers
   (`docs/notes/consistency_review_2026-10-01.md`): plain errors corrected in place; records 0043–0052 accepted
   and applied; `docs/design/export.md` added (empty); OD-15 and OD-19 decided (0050).
+- 2026-10-01: export spec accepted (`docs/design/export.md`, E1–E7), from an interview; record 0053 (the `ema_`
+  prefix reserved, M21; export through MCP).
 
 ## Next
 
-- The export spec (`docs/design/export.md`, 0050): what an export holds, its files and columns, and reading
-  it back.
 - Step 8, the data model (`docs/design/data_model.md`, from its template): `TODO.md` step 8, with the review's
   "Step 8 inputs".
 
@@ -51,7 +51,7 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
 | `docs/design/data_model.md` | template |
 | `docs/design/architecture.md` | draft |
 | `docs/design/trust.md` | empty |
-| `docs/design/export.md` | empty (before step 8, 0050) |
+| `docs/design/export.md` | accepted (E1–E7) |
 | `docs/design/reference_models.md` | draft (the list; expected answers at step 11) |
 
 Statuses: empty → draft → accepted (a template is filled in to become a draft; guides are outlines until the

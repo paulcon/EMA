@@ -1,6 +1,6 @@
 # Model interface
 
-**Status:** accepted. **Updated:** 2026-10-01 (0043, 0052). **Depends on:** OD-3 (0003, 0005), OD-6 (0014),
+**Status:** accepted. **Updated:** 2026-10-01 (0043, 0052, 0053). **Depends on:** OD-3 (0003, 0005), OD-6 (0014),
 OD-9 (0022), OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0015, 0020, 0021, 0024, 0025, 0028, 0029, 0030,
 0031.
 
@@ -14,7 +14,8 @@ OD-9 (0022), OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0015, 0020, 0021,
 - **A JSON file,** `model.json` by convention. Relative paths in it resolve against its own directory, the
   model's directory. EMA reads and writes it with the standard library (the MCP server's `save_model`, 0016).
 - **Names:** a model's name is lowercase letters, digits, `_`, and `-`. Model parameter and model prediction
-  names are Python identifiers, unique across both lists, so they work as keyword arguments and in templates.
+  names are Python identifiers, unique across both lists, so they work as keyword arguments and in templates;
+  none may start with `ema_`, the prefix of EMA's columns in an export (`export.md`, 0053).
 - **The model version id** is `name@` and the first 12 hexadecimal digits of the version hash; the store keeps
   the full hash.
 - **`noisy`** is allowed only as `false` (the default); `noisy: true` is refused at loading, with a message
@@ -227,6 +228,7 @@ A Python function model (U1's beam):
 | M18 | `noisy: true` is refused at loading. | A spec with `noisy: true`. |
 | M19 | Each run records its host and its program's resolved path. | A command found on `PATH`: the record holds its absolute path. |
 | M20 | A command runs without a shell, in its own process group, which a timeout or Ctrl-C kills whole. | A command whose argument holds `;` is passed literally; a program that starts a child and sleeps: both are gone after the timeout. |
+| M21 | A model parameter or model prediction name that starts with `ema_` is refused at loading, naming it (0053). | A spec with a model prediction `ema_status`, as M18's test is for `noisy: true`. |
 
 
 ## What this spec asks of other documents
