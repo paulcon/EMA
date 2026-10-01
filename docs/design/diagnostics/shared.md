@@ -1,7 +1,7 @@
 # What every diagnostic shares
 
-**Status:** draft. **Updated:** 2026-09-30. **Depends on:** P1, P2, P4, P5, P6; records 0004, 0010, 0018,
-0022, 0034 (proposed), 0035 (proposed).
+**Status:** accepted. **Updated:** 2026-09-30. **Depends on:** P1, P2, P4, P5, P6; records 0004, 0010, 0018,
+0022, 0034, 0035, 0040.
 
 > The parts of a diagnostic's spec that are the same for all six: the report's layout, how numbers are
 > written, the precheck, how runs that aren't usable are counted and drawn, and where a diagnostic's own
@@ -190,7 +190,7 @@ The defaults for any diagnostic whose spec chooses the bootstrap (OD-12), set in
 
 ## What this file asks of other documents
 
-- **Records 0034 and 0035** (proposed): the glossary's "observation" row and P2's list; P6's flatness wording.
+- **Records 0034 and 0035** (accepted, applied): the glossary's "observation" row and P2's list; P6's flatness wording.
 - **Reference models:** R4b's expected answers are estimates (0035).
 - **Uncertainty (step 7):** the rule for "none" in an interval cell; the spawn tags' range.
 - **Contracts (step 7):** S1–S10 in the diagnostic contract; the unit-invariance check keeps distinct values

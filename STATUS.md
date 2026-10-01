@@ -4,30 +4,8 @@
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`): steps 1–5 done; step 6 (diagnostic specs) in progress.
-  - Done, in draft: the reference model list (`docs/design/reference_models.md`, R1–R11, settled first); the
-    shared parts (`docs/design/diagnostics/shared.md`); the point run (`point_run.md`); scatter
-    (`scatter.md`). Records 0034 (observations) and 0035 (constant means exactly constant) and 0036 (a result
-    with observations only) accepted and applied; 0037 (no failure map of pairs) accepted and applied.
-  - Done, in draft: coordinate lines (`coordinate_lines.md`): each line's Gram spectrum (discrete Legendre
-    coefficients on its n points) and its decay rate in decades per degree, as observations with no interval;
-    n = 17 by default, n ≥ 7. Record 0038 (U2's per-line number, `designs.md`'s "Fourier spectra") accepted
-    and applied.
-  - Accepted: lines (`lines.md`): m random lines (5) or given lines, n = 17; each line analyzed as a
-    coordinate line, plus its length; a table of each line's ends; no summary across lines. It relies on
-    `coordinate_lines.md` and `shared.md`, still drafts.
-  - Accepted: the linear model (`linear_model.md`): least squares in unit coordinates over a convergent
-    design (n_min 2(d + 1), alpha 0.7072, level 2); relative residual, R², leave-one-out error; bootstrap
-    intervals; the fit at each level as observations; subsampling intervals planned as a later method.
-  - Accepted: the polynomial model (`polynomial_model.md`): least squares in the orthonormal Legendre
-    terms of total degree ≤ p (default 2; a `basis` seam), over a convergent design (n_min 2P, alpha 0.7072,
-    level 2); relative residual, R², LOO; the Sobol indices of the fitted polynomial; the root energy √E_k at
-    each total degree, with no rate; bootstrap intervals; no cap on terms, with progress during the analysis.
-    Record 0039 (the polynomial model plots y against its fitted and held-out predictions; its shadows come
-    with the active subspace) accepted and applied to U4, scope, and the glossary.
-  - Next: review and accept the drafts `shared.md`, `point_run.md`, `scatter.md`,
-    `coordinate_lines.md`; then record OD-12 (the point run, coordinate lines, lines: none; scatter, the linear
-    and polynomial models: the bootstrap), and close step 6.
+- Writing the design documents by hand (`TODO.md`): steps 1–6 done.
+- Next: step 7, `docs/design/uncertainty.md` from record 0040's table, and `docs/design/contracts.md`.
 
 ## Done
 
@@ -96,11 +74,21 @@
   coordinates, refinable n → 2n − 1; coordinate lines share a centered anchor when n is odd; random lines
   each from their own stream. Requirements G1–G17. TODO step 5 done.
 
+- 2026-09-30: diagnostic specs accepted (`docs/design/diagnostics/`), from interviews, one per diagnostic,
+  with the shared parts in `shared.md` (S1–S10): the point run (PT1–PT9), scatter (SC1–SC10), coordinate
+  lines (CL1–CL10), lines (LN1–LN9), the linear model (LM1–LM10), and the polynomial model (PM1–PM12), each with
+  a computed mock report and expected answers. The reference model list R1–R11 settled first
+  (`reference_models.md`, draft until step 11). Records 0034–0040 accepted: observations (0034); constant means
+  exactly constant (0035); a result with observations only (0036); no failure map of pairs (0037); coordinate
+  lines' Gram spectrum and decay rate as observations (0038); the polynomial model's fit plots, its shadows
+  later with the active subspace (0039); OD-12, the interval method per diagnostic (0040). U1's and U7's
+  "Decide:" lines settled in scatter's and the point run's specs. TODO step 6 done.
+
 ## Next
 
-- Step 6: the six diagnostic specs, with what `designs.md` asks of them: each diagnostic's design parameters
-  and defaults (the linear and polynomial models' n_min and alpha, the point run's repeats, coordinate lines'
-  n, the lines diagnostic's m, n, or given lines), and the held model parameters in each report's header.
+- Step 7: `uncertainty.md` (the interval-method interface, the bootstrap's defaults, the distinct-runs rule, the
+  spawn tags, from 0040) and `contracts.md` (the diagnostic contract from S1–S10 and each spec's contract
+  checks; the design generator contract from G1–G17; a negative control for each promise).
 
 ## Specs
 
@@ -113,7 +101,7 @@
 | `docs/design/use_cases.md` | accepted |
 | `docs/design/model_interface.md` | accepted |
 | `docs/design/designs.md` | accepted |
-| `docs/design/diagnostics/` | `lines.md`, `linear_model.md`, `polynomial_model.md` accepted; `shared.md`, `point_run.md`, `scatter.md`, `coordinate_lines.md` draft |
+| `docs/design/diagnostics/` | accepted: `shared.md` and the six diagnostics |
 | `docs/design/uncertainty.md` | empty |
 | `docs/design/contracts.md` | empty |
 | `docs/design/data_model.md` | template |
@@ -134,7 +122,6 @@ Statuses: empty → draft → accepted. Claude Code builds only from accepted sp
 
 | Id | Question | Options | Suggested | Blocks |
 |---|---|---|---|---|
-| OD-12 | The interval method for each v2.0 diagnostic | bootstrap; convergence; cross-validation; held-out error | <per diagnostic> | uncertainty, diagnostic specs |
 | OD-15 | Budgets | per call; per workspace; none in v2.0 | per call | workspace, data model |
 | OD-16 | `Workspace` object or module functions | object; functions | object | architecture |
 | OD-17 | Python version (the package stays `ema`) | 3.12, 3.13, 3.14 | <…> | setup |
@@ -159,6 +146,7 @@ you reach those steps.
 | OD-9 | Several scalar model predictions per model, in the spec and code from v2.0; a missing one is NaN with its reason; a diagnostic evaluation analyzes one | 0022 | 2026-09-30 |
 | OD-10 | No fixed values or constants: a model parameter that a design's space leaves out is held at its nominal value; every point is complete | 0023 | 2026-09-30 |
 | OD-11 | Every Python model runs in an isolated child process, one long-lived child per model version, with a timeout; no in-process option; no memory or CPU limits in v2.0 | 0026 | 2026-09-30 |
+| OD-12 | The bootstrap (1000 resamples, 0.5–99.5 percentiles) for scatter and the linear and polynomial models; no intervals for the point run, coordinate lines, and lines, whose numbers are observations | 0040 | 2026-09-30 |
 | OD-13 | Uniform points from numpy's PCG64 raw stream (the `random` sampler), behind a sampler interface; Sobol, Halton, Latin hypercube, and minimum-distance samplers later | 0032 | 2026-09-30 |
 | OD-14 | Quadrature and sparse grids in a later version | 0013 | 2026-09-29 |
 | OD-20 | Three output parser kinds, each returning one scalar: regex, json, and csv; no python parser (a wrapper script writing JSON instead) | 0027 | 2026-09-30 |

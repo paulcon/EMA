@@ -1,6 +1,6 @@
 # Coordinate lines
 
-**Status:** draft. **Updated:** 2026-09-30. **Module:** `ema/diagnostics/coordinate_lines.py`. **Depends on:**
+**Status:** accepted. **Updated:** 2026-09-30. **Module:** `ema/diagnostics/coordinate_lines.py`. **Depends on:**
 `shared.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038.
 
 > The model prediction along one line per varied model parameter, through an anchor, and the spectrum of each

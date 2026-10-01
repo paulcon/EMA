@@ -1,6 +1,6 @@
 # Scatter
 
-**Status:** draft. **Updated:** 2026-09-30. **Module:** `ema/diagnostics/scatter.py`. **Depends on:**
+**Status:** accepted. **Updated:** 2026-09-30. **Module:** `ema/diagnostics/scatter.py`. **Depends on:**
 `shared.md`; `../designs.md`; records 0012, 0032, 0034, 0035, 0037.
 
 > The model prediction against each model parameter, over a uniform design (U1). Written from an interview on

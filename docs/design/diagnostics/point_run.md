@@ -1,6 +1,6 @@
 # Point run
 
-**Status:** draft. **Updated:** 2026-09-30. **Module:** `ema/diagnostics/point_run.py`. **Depends on:**
+**Status:** accepted. **Updated:** 2026-09-30. **Module:** `ema/diagnostics/point_run.py`. **Depends on:**
 `shared.md`; P7; records 0011, 0021, 0022, 0034, 0035, 0036.
 
 > The model prediction at one point, and its measured variation over repeated runs there (0012, P7, 0011).

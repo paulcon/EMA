@@ -1,6 +1,6 @@
 # Designs
 
-**Status:** accepted. **Updated:** 2026-09-30 (the lines' spectra named by 0038). **Depends on:** OD-13 (0032); records 0005, 0012, 0013, 0023, 0024, 0033.
+**Status:** accepted. **Updated:** 2026-09-30 (the lines' spectra named by 0038; OD-12's questions answered by 0040). **Depends on:** OD-13 (0032); records 0005, 0012, 0013, 0023, 0024, 0033.
 
 > The design generators in v2.0, from `../notes/v1/ema-redesign.md` and scope's Designs row (point, uniform,
 > convergent, and lines: coordinate, random, or given; 0012). For each: what the user provides, the points it
@@ -194,8 +194,8 @@ values.
 
   each computed from n_min, not from the level before. Level l has the first n_l points of one uniform design
   with the same seed, space, and sampler, so the whole design is the uniform design of n_L points (U5:
-  scatter's 200 points are its first 200). Whether a diagnostic needs at least two levels for its
-  variability interval, and whether it checks the observed rate against r, are for OD-12 (step 7).
+  scatter's 200 points are its first 200). No diagnostic needs two levels for its variability interval, and
+  none checks the observed rate against r (0040).
 - **Exact rounding:** n_min is an integer ≥ 1; alpha is read as the decimal it is written as (`0.9` is 9/10,
   not the nearest double), and n_l is computed in exact rational arithmetic (for `random`, the exponent 2l is
   an integer), then rounded up, with no tolerance. A later sampler whose 1/r isn't an integer brings its own
@@ -236,8 +236,8 @@ values.
 - **Diagnostic specs (step 6):** each diagnostic's design parameters and defaults: the linear and polynomial
   models' n_min and alpha; the point run's repeats; coordinate lines' n and what the report shows when the
   lines share no point; the lines diagnostic's m, n, or given lines. Reports list held model parameters.
-- **Uncertainty (step 7, OD-12):** whether a diagnostic needs two or more levels of a convergent design, and
-  whether it checks the observed rate against the sampler's r.
+- **Uncertainty (step 7):** answered by 0040 (OD-12): no diagnostic needs two or more levels of a convergent
+  design for its interval, and none checks the observed rate against the sampler's r.
 - **Contracts (step 7):** the design generator contract, from G1–G17.
 - **Data model (step 8):** a design's identity is its request (kind, space, generator parameters, seed,
   sampler and version, generator version), not its points; runs are keyed by complete points.

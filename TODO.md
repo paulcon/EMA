@@ -33,15 +33,18 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 - [x] **5. Designs.** `docs/design/designs.md`.
   - Decided: OD-13 (0032); record 0033 accepted (held values; glossary rows for design generator, sampler,
     and nested; the sampler's rate).
-- [ ] **6. Diagnostic specs**, one per v2.0 diagnostic, from `docs/design/diagnostics/_template.md`.
+- [x] **6. Diagnostic specs**, one per v2.0 diagnostic, from `docs/design/diagnostics/_template.md`.
   - You: draw each mock report by hand, and fill in the expected answers.
-  - Decide: the per-model-parameter estimate in scatter's report (U1: for example, a rank correlation).
+  - Decided (`scatter.md`): the per-model-parameter estimates in scatter's report are Spearman's rank
+    correlation and a bias-adjusted binned first-order index, with bootstrap intervals.
   - Decided (0038): the per-line number in coordinate lines' report is the decay rate of its Gram spectrum, an
     observation with no interval.
-  - Decide: the point run's measured variation (U7): which numbers, and what its tolerance for "varies" is
-    relative to (P6), since one point has no range.
+  - Decided (`point_run.md`): the point run's measured variation (U7) is observations only; "varies" is exact
+    (two usable runs differ as doubles, as 0035), with no tolerance.
+  - Decided: OD-12 (0040): the bootstrap for scatter and the linear and polynomial models; none for the point
+    run, coordinate lines, and lines.
 - [ ] **7. Uncertainty; contracts and degenerate cases.** `docs/design/uncertainty.md`, `contracts.md`.
-  - Decide: OD-12 (the interval method per diagnostic).
+  - Decided: OD-12 (0040); `uncertainty.md` is written from its table.
   - Claude can help: draft the negative control for each promise.
 
 ## How v2 is built
