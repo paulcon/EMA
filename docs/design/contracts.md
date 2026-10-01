@@ -97,10 +97,10 @@ The cases the contracts run against.
 | C9 | Every degenerate case gives a diagnostic result with an estimate, an observation, or a note; a diagnostic whose spec promises estimates gives estimates or a note. | 0036, P6 | `check_never_empty` | returns no note and no observation for a constant model prediction |
 | C10 | With one or more usable runs, the shared observations (minimum, maximum, relative spread), labeled with what they are of ("of the n usable runs"; the point run's "of the 5 runs at the point"). | `shared.md` (Observations), 0034 | `check_shared_observations` | leaves out the relative spread |
 | C11 | The report: S1's sections in order, empty Notes left out, and the Estimates section left out by a diagnostic whose spec has none (the point run, PT2; coordinate lines and lines); the header's rows (S2; the point run's Point row in place of Space and Held); every number `format(x, ".4g")` of its stored double (S3); one line under each estimates table naming its method and settings, and the Estimates section opening with `EXPLAIN_INTERVALS`, the report's only "confidence interval" (S4, 0042); a "none" interval cell with its reason (V6). | S1–S4, V6, PT2 | `check_report` | numbers to 6 digits; an estimates table with no line under it; "Not confidence intervals." under each table |
-| C12 | Every figure has a PNG and a data card; every point drawn from a run has its run id (a point drawn from an estimate, such as a slope or a Gram coefficient, has none); every axis is labeled `name [units]`, or `name` when dimensionless; no panel for a held model parameter. In every panel with a strip (along a model parameter, `shared.md`; the replicate, `point_run.md`; the distance along a line, `lines.md`; w·u and ŷ, the linear and polynomial models), each run of that panel's runs that isn't usable appears once, with its kind (a run shared by lines appears in each line's panel); where the panel's runs are all the runs, the strip's count equals the header's. | S9, 0018 | `check_figures` | leaves failed runs out of the strip |
+| C12 | Every figure has a PNG and a data card; every point drawn from a run has its run id (a point drawn from a computed number, such as a slope or a Gram coefficient, has none); every axis is labeled `name [units]`, or `name` when dimensionless; no panel for a held model parameter. In every panel with a strip (along a model parameter, `shared.md`; the replicate, `point_run.md`; the distance along a line, `lines.md`; w·u and ŷ, the linear and polynomial models), each run of that panel's runs that isn't usable appears once, with its kind (a run shared by lines appears in each line's panel); where the panel's runs are all the runs, the strip's count equals the header's. | S9, 0018 | `check_figures` | leaves failed runs out of the strip |
 | C13 | The design's size, computed from the request before building, equals its rows; its distinct (point, replicate) keys are the runs the price counts (0011). | P3, G3 | `check_price` | a size off by one |
 | C14 | Changing a diagnostic parameter whose spec says "Changes the design? no" leaves the design bit for bit; changing one marked "yes" changes it, or is refused, or leaves it bit for bit where its spec says so (lines' `seed` with given lines; the polynomial model's `degree` with `n_min` given). | the specs' diagnostic parameter tables | `check_design_parameters` | `prediction` moves the design |
-| C15 | Each nesting the diagnostic's spec claims holds: the smaller request's points are points of the larger, bit for bit, so its runs are reused. | G4, LN8, LM9, PM11; `point_run.md` (Parameters, replicates) | `check_nesting` | reseeds when n changes |
+| C15 | Each nesting the diagnostic's spec claims holds: the smaller request's points are points of the larger, bit for bit, so its runs are reused. | G4, G11, LN8, LM9, PM11; `scatter.md` and `coordinate_lines.md` (Nested); `point_run.md` (Parameters, replicates) | `check_nesting` | reseeds when n changes |
 | C16 | With the model version measured noisy in this model prediction, the result carries the note, with the standard deviation as a fraction of this result's range; with another model prediction measured, no note. | P7, PT4, PT5 | `check_noisy_note` | builds its notes without the precheck's |
 | C17 | The diagnostic result is strict JSON (no NaN or infinity) and loads back equal, every double exact; an interval that is "none" is stored as null, with its reason (0041). | P5, 0041; data model (step 8) | `check_round_trip` | stores a NaN estimate |
 | C18 | d = 1 and d = 20 give a diagnostic result; in the slow tier, within `D20_SECONDS` (below). | v1's `check_fast_at_d20` | `check_dimensions` | assumes d ≥ 2 |
@@ -132,8 +132,8 @@ diagnostic's spec, and its known-answer tests check the declaration against the 
 
 ## Sampler, basis, and interval-method contracts
 
-The seams kept for later implementations (0032, 0039, 0040), each with its v2.0 implementation and a fake
-registered in the tests.
+The seams kept for later implementations (0032; `diagnostics/polynomial_model.md`, the basis; 0040), each with
+its v2.0 implementation and a fake registered in the tests.
 
 | Id | Interface | Promise | Generalizes | Check | Negative control |
 |---|---|---|---|---|---|
@@ -154,7 +154,7 @@ where the promise applies.
 | C34 | Tracked files are hashed before every call; a change since the model was loaded refuses the next call, naming the file, and keeps the runs already made. | M16, U6 | all | `check_rehash` | hashes once, at loading |
 | C35 | Each model prediction is read, or missing with its own reason; a run is failed only when none is read; a non-finite value is missing. | M4, M7, M11 | all | `check_predictions_read_or_missing` | fails the run when any model prediction is missing |
 | C36 | The model receives a value for every model parameter, held ones included. | M5 | all | `check_complete_points` | passes the varied model parameters only |
-| C37 | A batch gives the same model predictions as one point at a time; a non-finite row is missing for that run only; an exception, a timeout, or a result of the wrong shape fails every run in the call; no call holds more than `batch_size` points, or more than remain approved. | M8, 0025, `model_interface.md` (Batch) | batch | `check_batch` | fills the last batch past the approved count |
+| C37 | A batch call gives the same model predictions as one point at a time; a non-finite row is missing for that run only; an exception, a timeout, or a result of the wrong shape fails every run in the call; no call holds more than `batch_size` points, or more than remain approved. | M8, 0025, `model_interface.md` (Batch) | batch | `check_batch` | fills the last batch past the approved count |
 | C38 | Each Python model runs in its own child; a timeout, a crash, or Ctrl-C kills it, and the next call starts a new one; nothing is unpickled. | M9, 0026 | Python, batch | `check_isolation` | runs the function in process |
 | C39 | A command runs without a shell, in its own process group, killed whole by a timeout or Ctrl-C; a nonzero exit fails the run even when the model predictions can be read. | M12, M20 | command line | `check_process` | `shell=True` |
 | C40 | Model predictions reach the store only from files: output parsers, or `predictions.json`. | M13, 0028 | all | `check_collect_from_files` | returns the function's values in memory |
@@ -174,7 +174,7 @@ here then cites them. C56 was added in the interview, after C55; ids are not ren
 
 | Id | Promise | Generalizes | Check | Negative control |
 |---|---|---|---|---|
-| C46 | Runs are keyed by model version, point, and replicate; a stored run is reused; a deterministic model gets no second run at a stored point, except the point run's replicates. | P3, P7, 0011 | `check_reuse` | keys points by their values printed to 6 significant digits |
+| C46 | Runs are keyed by model version, point, and replicate; a stored run is reused; a deterministic model gets no second run at a stored point, except the point run's replicates and a retry of a failed run (0010). | P3, P7, 0010, 0011 | `check_reuse` | keys points by their values printed to 6 significant digits |
 | C47 | A failed run is reused unless retry is asked; the price counts the reused failed runs ("200 reused, of which 34 failed"), and the report's note says how many and that `retry_failed` runs them again; with retry asked, exactly the design's failed points run again, each stored beside the failed run it replaces. | 0010, U3 | `check_failed_reused` | retries failed runs without being asked |
 | C48 | No more new runs than approved, counted when a run starts; with k of n points stored, the price says n − k new, and n − k runs are made; with no stored durations for the model version, the price's time is "unknown"; two designs in different model parameter spaces reuse the runs at their shared points. | P3, 0015, M8 | `check_approval_cap` | counts runs when they finish |
 | C49 | An interrupted diagnostic evaluation keeps every finished run and stores no diagnostic result; a rerun makes no new run for them, and gives the same result. | 0015, PM10 | `check_interrupt` | one transaction per diagnostic evaluation |
@@ -197,8 +197,8 @@ contract over the guides' examples; C53 adds the use cases.
 ## Other tests the principles name
 
 Not contracts (they don't run over implementations of an interface). With these C rows, they are every test the
-principles name: P3's in C34, C46, C48, and C50; P4's in C7 and C20; P5's in C51; P6's in C1–C6; P7's in C16,
-C46, and C52.
+principles name: P3's in C33, C34, C46, C48, and C50; P4's in C7 and C20; P5's in C51; P6's in C1–C6; P7's in
+C16, C46, and C52.
 
 | Test | Principle | Tier |
 |---|---|---|

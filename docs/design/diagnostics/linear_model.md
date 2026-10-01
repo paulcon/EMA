@@ -51,7 +51,7 @@ u_k ∈ [−1, 1]^d (`../designs.md`: through the logarithm for a log range).
   A = [1, U] (n_u × (d + 1)).
 - **In unit coordinates:** a slope βᵢ is half the change in y across model parameter i's range, in y's units, so
   slopes compare across model parameters. R1's are exact (10; 3, −1, 0, 2) only when k's log scale is honored
-  (0024). In model parameter units the slopes wouldn't compare (R3: 1430 m³/yr per metre of rw, 1.4·10⁻⁷ per
+  (0024). In model parameter units the slopes wouldn't compare (R3: 1430 m³/yr per meter of rw, 1.4·10⁻⁷ per
   m²/yr of Tu).
 - **Its limit** as n grows is the least-squares fit over the space, under the uniform distribution in unit
   coordinates: βᵢ → 3·E[y·uᵢ], β₀ → E[y] (the expected answers use this).
@@ -119,7 +119,7 @@ from the spread of those estimates.
 - **Its name and theory:** subsampling (Politis and Romano 1994; Politis, Romano and Wolf 1999), the delete-d
   jackknife (Wu 1986; Shao and Wu 1989), and, for n₀ = n₁/2, half-sampling (McCarthy 1969). The spread at n₀
   describes an estimate from n₀ runs; for a √n-rate estimator it is rescaled by √(n₀/(n₁ − n₀)), in general
-  ((n₀/n₁)^(−r) − 1)^(−1/2) with the sampler's r. At doubling levels (alpha ≈ 1/√2) the factor is 1.
+  ((n₀/n₁)^(−2r) − 1)^(−1/2) with the sampler's r. At doubling levels (alpha ≈ 1/√2) the factor is 1.
 - **Checked** on R3's slope for rw at 72 runs (standard deviation 2.92 over 100 designs): subsets of 36 had a
   spread of 3.18; subsets of 18, rescaled, 3.72 (2 runs per coefficient). The minimum and maximum over subsets
   grow with the number of subsets (width 18.3 over 300 subsets), so the method would use percentiles or a

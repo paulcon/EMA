@@ -202,7 +202,7 @@ values.
   rounding rule, in its record.
   - alpha = 0.5: 18, 72, 288 (the error halves; 4× the points per level).
   - Doubling needs alpha ≥ 1/√2, rounded up: alpha = 0.7072 gives 18, 36, 72, 144, 288, 576, 1151 (0.7072⁻² =
-    1.9994, so exactly the error factor asked for). alpha = 0.7071, or even 0.70710678, is just below 1/√2,
+    1.99947, so exactly the error factor asked for). alpha = 0.7071, or even 0.70710678, is just below 1/√2,
     and gives 18, 37, 73, 145.
 - **Refused** before building: alpha outside (0, 1), sizes that aren't strictly increasing (n_min = 2, alpha =
   0.95: 2, 3, 3), and a sampler that isn't nested (Samplers). The report shows alpha, r, and the sizes.

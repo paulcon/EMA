@@ -65,16 +65,26 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
     failed run reused, a retry stored beside it); the store test at `tests/contracts/store.py`; a run's failure
     kind and reason, host, and resolved program path; whether a stored result is reused after a named constant
     such as `BOOTSTRAP_RESAMPLES` changes; the polynomial coefficients with their intervals (0041).
+  - Also, the asks the consistency review (2026-10-01) found missing here:
+    `docs/notes/consistency_review_2026-10-01.md`, "Step 8 inputs" (design identity, the stored-result reuse
+    key, model name → model version, the current run at a key, approvals, hashing and ids, and the asks the
+    specs and records make of this step).
+  - Decide: OD-15 (budgets), before Q5 (STATUS: it blocks the data model), or record that Q5 assumes the
+    suggested per-call budget.
 - [ ] **9. Architecture and the workspace layer.** `docs/design/architecture.md` (formerly `api_spec_draft.md`).
   - Also: drop the `Executor` classes (0015); drop `ema.experimental` from v2.0 (0017); the MCP tools and the
     server's instructions (0016, 0019); asking for a PDF (0018); the run-directory lookup (0020); within the
     budgets in `scope.md`.
-  - Decide: OD-15 (budgets), OD-16 (`Workspace` object), and its §12 items.
+  - Also: the asks in `docs/notes/consistency_review_2026-10-01.md`, "Step 9 inputs" (renames to the
+    glossary's words, the interfaces the specs name, the approval module, the MCP tool set, the name count).
+  - Decide: OD-16 (`Workspace` object), and §12's items still open (where `version_hash` lives; whether
+    `report` imports `diagnostics`); the rest of §12 is settled by records.
   - Decide: the held principle "One-way layers" (`docs/design/principles.md`, Candidates).
 - [ ] **10. Trust boundary.** `docs/design/trust.md`.
   - Decide: the held principle "User code runs isolated, without EMA's secrets" (`docs/design/principles.md`,
     Candidates), after OD-11.
-  - Decide: whether "user code" (what the trust boundary runs) gets a glossary row.
+  - Decide: whether "user code" (what the trust boundary runs) gets a glossary row; the specs also say "model
+    code" and "model programs" (`docs/notes/consistency_review_2026-10-01.md`, "Step 10 inputs").
 - [ ] **11. Reference models with expected answers.** `docs/design/reference_models.md`.
   - Claude can help: compute reference values with v1's `testfunctions/truth.py`, or by brute force, as an
     independent check on yours.
@@ -87,7 +97,7 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
   - Decide: OD-17 (Python version), OD-18 (uv, docs, CI), OD-19 (eval budget: needed, the MCP server is in
     v2.0, 0016).
   - Plan: pandoc and LaTeX as an optional install, in staged steps (0018).
-  - Finish `CLAUDE.md` (the one-line principles, the commands) and `STATUS.md`.
+  - Finish `CLAUDE.md` (the commands) and `STATUS.md`.
 - [ ] **13. Guides as outlines.** `docs/guides/`: get started, add a model, run a diagnostic, add a diagnostic.
   - You: walk through each against `ema.workspace` on paper. Any awkward step means the workspace's functions
     change before any code exists.

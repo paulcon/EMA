@@ -39,7 +39,7 @@
 
 - **Fewest usable runs for any number:** <…>
 - **All runs failed:** <counts and a note; no numbers>
-- **Constant output:** <…>
+- **Constant model prediction:** <…>
 - **<Other cases from `../contracts.md`>:** <…>
 
 ## Figures

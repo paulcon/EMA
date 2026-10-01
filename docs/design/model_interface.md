@@ -213,7 +213,7 @@ A Python function model (U1's beam):
 | M5 | A model receives a value for every model parameter, held ones included. | A space that names one of three model parameters: the function receives all three, two at nominal. |
 | M6 | A space that crosses a limit is refused before any run, naming the model parameter and the limit. | `k` in (−1, 10) with `gt: 0`: refused, and no run made. |
 | M7 | A Python function returns a float, or a mapping by name; a missing name or a non-finite value is a missing model prediction; extra names are ignored. | Returns of `1.0`, `{"a": 1.0}`, `{"a": nan}`, and `{"a": 1.0, "zz": 2.0}`. |
-| M8 | A batch model gives the same model predictions as the same function called one point at a time; a non-finite row is missing for that run only; an exception fails the whole call; no call holds more than `batch_size` points, or more than remain approved. | A vectorized reference model, both ways; a batch with one NaN row; one that raises; `batch_size` 3 over 10 points. |
+| M8 | A batch model gives the same model predictions as the same function called one point at a time; a non-finite row is missing for that run only; an exception, a timeout, or a wrong shape fails every run in the call; no call holds more than `batch_size` points, or more than remain approved. | A vectorized reference model, both ways; a batch with one NaN row; one that raises; `batch_size` 3 over 10 points. |
 | M9 | Every Python model runs in its own child; a timeout, a crash, or Ctrl-C kills it, and the next call starts a new one; nothing is unpickled. | A function that sleeps past `timeout_s`; one that calls `os._exit`; Ctrl-C during a call leaves no child process. |
 | M10 | A template name that isn't a model parameter is refused at loading; `$$` writes `$`; every value is written so that it reads back as the same double, and whole numbers have no decimal point. | Templates with `$nope` and `$$`; values 0.1, 1e-300, 64.0, and −2.5 read back with `float()`. |
 | M11 | Each output parser kind reads its known answer, and makes the model prediction missing, with a reason, when it finds no file, no match, or no key, or a value that isn't a finite number. | One fixture file per kind, and one per way to fail. |
@@ -232,7 +232,8 @@ A Python function model (U1's beam):
 
 - **Use cases** (accepted): U2's model spec example follows this spec (updated 2026-09-30).
 - **Designs (step 5):** a space may name a subset of the model parameters, with a scale for each; spaces that
-  cross limits are refused; whether a zero-width range holds a model parameter at another value (0023, 0024).
+  cross limits are refused; whether a zero-width range holds a model parameter at another value (0023, 0024;
+  answered by 0033: a held value, not a zero-width range).
 - **Contracts (step 7):** the model adapter contract, from M1–M20.
 - **Data model (step 8):** model predictions keyed by run and name, each with a reason (0022); a run's failure
   kind, reason, host, program path, and batch (0025, 0029); settings stored with the model; stored shared

@@ -82,7 +82,7 @@ values y_j.
 3. **Floor:** the degrees k ≤ K with T(k) > 10⁻¹⁰ · (max_j y_j − min_j y_j), the line's range
    (`LINE_RATE_FLOOR`; P6). T is nonincreasing, so these are degrees 1 … k*. The floor keeps rounding out of the
    fit: rounding is about 10⁻¹⁶ of |y|, so it stays below the floor unless the line's range is below about
-   10⁻⁴ of |y| (the shared observation (max − min)/max|y| shows that case).
+   10⁻⁶ of |y| (the shared observation (max − min)/max|y| shows that case).
 4. **Rate:** minus the least-squares slope of log₁₀ T(k) against k over k = 1 … k*, when k* ≥ 3
    (`LINE_RATE_MIN_DEGREES`). With k* < 3 there is no rate, and k* says why: an exactly linear line (R1) has
    k* = 1, a quadratic one (R10 along b) k* = 2, each a polynomial of that degree to 10⁻¹⁰ of its range.
@@ -273,7 +273,7 @@ range (scratch script, 2026-09-30). Step 11 recomputes every value with it.
 
 | Name | Value | Meaning | Why this value |
 |---|---|---|---|
-| `LINE_RATE_FLOOR` | 10⁻¹⁰ | the tail T(k) is fitted while above this fraction of the line's range | ten decades to fit; keeps rounding out unless the line's range is below about 10⁻⁴ of \|y\|; at 10⁻¹³, R3's r line lets rounding in (interview, 2026-09-30) |
+| `LINE_RATE_FLOOR` | 10⁻¹⁰ | the tail T(k) is fitted while above this fraction of the line's range | ten decades to fit; keeps rounding out unless the line's range is below about 10⁻⁶ of \|y\|; at 10⁻¹³, R3's r line lets rounding in (interview, 2026-09-30) |
 | `LINE_RATE_WINDOW` | ½ | the fit uses degrees 1 … ⌊(n − 1)/2⌋ | analytic lines converge (0.196, 0.209, 0.214), and kinks halve with each refinement; with every degree, R7's analytic line doesn't converge (0.246, 0.255, 0.225) (interview, 2026-09-30) |
 | `LINE_RATE_MIN_DEGREES` | 3 | the fewest degrees a rate is fitted to | a slope from at least 3 points |
 | `COORD_N` | 17 | the default number of points per line | U2's; 2⁴ + 1, so reruns at 33 and 65 reuse every run (interview, 2026-09-30) |

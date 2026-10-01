@@ -1,6 +1,6 @@
 # 0008. Drop P8; check glossary words only in names and generated text
 
-**Date:** 2026-09-29. **Status:** accepted. **Resolves:** none (TODO step 1). **Supersedes:** 0007 in part
+**Date:** 2026-09-29. **Status:** accepted; its generated-text list amended by 0042 (one allowed sentence). **Resolves:** none (TODO step 1). **Supersedes:** 0007 in part
 (P8).
 
 ## Context

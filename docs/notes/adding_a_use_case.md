@@ -17,7 +17,7 @@ that starts from it ("after U2, …").
 ## Steps
 
 1. **Check the table** at the top of `use_cases.md`. Is the scenario new, or a variation?
-2. **Take the next id**: U9, U10, …. Ids are never renumbered or reused, because tests, guides, and commits
+2. **Take the next id**: U10, U11, …. Ids are never renumbered or reused, because tests, guides, and commits
    cite them.
 3. **Draft it from the template below**, in the glossary's words (`../design/glossary.md`):
    - Write the full form for a new scenario. Write the short form (steps, what EMA asks, "Done when") for a

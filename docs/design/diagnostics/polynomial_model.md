@@ -172,11 +172,11 @@ the linear model's (`linear_model.md`), with `shared.md`'s defaults.
   intervals' widths are 0.85–2.3 times 5.15 standard deviations over designs, across the 20 estimates.
   Refitting on distinct runs gave 0.66–1.7, and was not chosen, so that the two fits' bootstraps stay alike.
 - **The bias of squared coefficients** (interview, 2026-09-30): each c_α² sits above its limit by about
-  Var(c_α), and a resample adds that again, so the interval of a model parameter with no effect sits just above 0
-  (R3's r, total: 4.0·10⁻⁵ [1.9·10⁻⁵, 2.2·10⁻⁴]). The indices are reported as computed, the indices of the fitted
-  polynomial, always in [0, 1]. Not chosen: subtracting s²·[(AᵀA)⁻¹]_αα from each c_α² (closer to the limit on
-  average, R2's x3 first-order at p = 4: 0.0042 against 0.0091, limit 0.0029; but no longer the polynomial's own
-  index, and s² treats a deterministic model's misfit as noise).
+  Var(c_α), and a resample adds that again, so the interval of a model parameter with no effect sits just above
+  0 (R3's r, total: 4.3·10⁻⁵ [1.7·10⁻⁵, 2.2·10⁻⁴], as in the mock report below). The indices are reported as
+  computed, the indices of the fitted polynomial, always in [0, 1]. Not chosen: subtracting s²·[(AᵀA)⁻¹]_αα from
+  each c_α² (closer to the limit on average, R2's x3 first-order at p = 4: 0.0042 against 0.0091, limit 0.0029;
+  but no longer the polynomial's own index, and s² treats a deterministic model's misfit as noise).
 - **Why not the levels:** as the linear model's; the levels are observations (below).
 
 ### The analysis's cost and progress
@@ -195,8 +195,8 @@ the linear model's (`linear_model.md`), with `shared.md`'s defaults.
 - **Progress:** the analysis reports its progress through the same `on_progress(done, total)` hook as runs
   (`../architecture.md`): "bootstrap: 230 of 1000 refits, about 6 min left", the time left from the refits so
   far, about once a second. The CLI shows it as a progress line, and the MCP server as progress notifications.
-- **The matrix's size:** before the bootstrap starts, the progress shows A's shape and memory ("A: 14168 × 1771,
-  200 MB"). There is no refusal: memory is the analyst's to judge (d = 20, p = 4 at the defaults is 85,008 ×
+- **The matrix's size:** before the bootstrap starts, the progress shows A's shape and memory ("A: 14161 × 1771,
+  200 MB"). There is no refusal: memory is the analyst's to judge (d = 20, p = 4 at the defaults is 84,964 ×
   10,626, 7.2 GB). If numpy can't allocate it, the diagnostic evaluation fails with that reason, and keeps its
   runs.
 - **The price is unchanged** (P3): runs and their time. An analysis-time estimate in the price, from timing one

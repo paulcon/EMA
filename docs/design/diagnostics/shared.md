@@ -124,7 +124,9 @@ One precheck, in the diagnostic base, before `compute` (P6):
 - A diagnostic's own random draws (bootstrap resamples, cross-validation folds) come from
   `SeedSequence(seed, spawn_key=(tag, …))`, where `seed` is the request's seed and `tag` is a fixed integer per
   diagnostic and estimator, named in that diagnostic's spec. Tags start at 2³², above every design stream's
-  spawn key (random lines use j = 0, 1, …), so no draw shares a stream with a design (P4).
+  spawn key (random lines use j = 0, 1, …). `SeedSequence` stores a key above 2³² − 1 as two 32-bit words
+  (2³² + 1 as (1, 1)), so a tag's stream is distinct from every design stream as long as design streams spawn
+  no children of their own (P4).
 - Designs without a seed (point, given lines, coordinate lines) still have the request's seed, 0 by default,
   for the diagnostic's own draws, and it is recorded (P5).
 - v1's `seed + 1` is not used: it is the design stream of the request with the next seed.
@@ -147,8 +149,9 @@ The defaults for any diagnostic whose spec chooses the bootstrap (OD-12), set in
   diagnostic's own stream (above). Every estimate in a diagnostic uses the same resamples.
 - **Interval:** the 0.5th and 99.5th percentiles of the resampled estimates (`BOOTSTRAP_PERCENTILES`), by
   numpy's `percentile` with linear interpolation. Not the full range: the extremes come from the most
-  degenerate resamples, and widen with the number of resamples toward the observed range (on R2's mean:
-  [2.72, 4.45] at 1000, [2.31, 4.71] at 10⁵, and [−9.09, 12.85] over all resamples), while the percentiles
+  degenerate resamples, and widen with the number of resamples toward the observed range (on R2's mean,
+  scatter's design, resampled from `default_rng(0)`: [2.72, 4.45] at 1000, [2.31, 4.71] at 10⁵, and
+  [−9.09, 12.85] over all resamples), while the percentiles
   are stable at 1000.
 - **Undefined resamples** (an estimate that is 0/0 on a resample) are dropped, and the line under the table
   says how many of the 1000 were, when any were.
@@ -169,7 +172,7 @@ The defaults for any diagnostic whose spec chooses the bootstrap (OD-12), set in
   their kind. About 100 bytes per point.
 - **Byte identity:** the data cards are byte-identical on rerun and reproduction (0018); the PNGs are not held
   to it. Reproduce (U8) compares data cards.
-- **Held model parameters** have no panel (`designs.md`).
+- **Held model parameters** have no panel (`../designs.md`).
 
 ## Named constants
 

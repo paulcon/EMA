@@ -79,5 +79,5 @@ work is `TODO.md`, and where things stand is `STATUS.md`.
 
 ## Secrets
 
-`.env` holds API keys. Never read, print, or commit it. Model programs never receive it (T<…> in
-`docs/design/trust.md`).
+`.env` holds API keys. Never read, print, or commit it. Model programs never receive it (M2 in
+`docs/design/model_interface.md`; T2 in `docs/design/trust.md`).

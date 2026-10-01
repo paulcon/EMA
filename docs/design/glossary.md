@@ -16,7 +16,7 @@
 >
 > A word joins the list when a decision record decides against it.
 >
-> Terms marked OD-n wait on that decision in `STATUS.md`. Spelling is American (labeled, color, analyze).
+> Spelling is American (labeled, color, analyze).
 
 | Term | Meaning | Standard terms it relates to | Avoid |
 |---|---|---|---|
@@ -32,7 +32,7 @@
 | model prediction | a quantity EMA reads from a run and analyzes, with a name and units; a scalar in v2.0, and a model may have several; one that a run couldn't read is NaN, with its reason (0003, 0021, 0022) | quantity of interest (QoI), response, output | output (for a model prediction), QoI |
 | model output | anything a run produces: a Python function's return value, or the files, logs, and streams a command-line program writes; model predictions are read from it (0003) | simulation output, output files | |
 | input deck | a command-line model's own input files, which EMA writes from a template with a point's model parameter values (0003) | input file | |
-| output parser | what reads model predictions from a command-line model's model output (0003; OD-20) | | |
+| output parser | what reads model predictions from a command-line model's model output (0003, 0027) | | |
 | design | a set of points in one model parameter space at which to run the model, made by a design generator; short for experimental design | design of experiments, sample, experimental design | |
 | design generator | what makes a design from a model parameter space (or, for the point design, a point) and its diagnostic parameters, with its size computed before it is built; v2.0 has point, uniform, convergent, and lines (given, coordinate, or random); a new kind of design is a new design generator (`designs.md`, 0033) | sampling scheme, design of experiments method | |
 | sampler | what makes the points of a uniform or convergent design in the unit cube, with the rate at which an estimate's error is assumed to fall; part of the design's identity; v2.0 has `random` (0032, 0033) | random number generator, quasi-Monte Carlo sequence, low-discrepancy sequence | |
@@ -62,5 +62,5 @@
 | price | what a diagnostic evaluation will cost, stated before any new run: how many runs are new, how many are reused, and the estimated time, or "unknown" (P3) | cost estimate | |
 | budget | the most runs or seconds a request may use | | |
 | provenance | the record of where a diagnostic result came from | | |
-| experimental | the label for interpretation: any comparison of an estimate with a heuristic threshold, and anything that says what a number means or what to do next; never part of a diagnostic result or a report's main body, and kept in its own section (P2, OD-8) | interpretation | beta |
+| experimental | the label for interpretation: any comparison of an estimate with a heuristic threshold, and anything that says what a number means or what to do next; never part of a diagnostic result or a report's main body, and kept in its own section (P2; none in v2.0, 0017) | interpretation | beta |
 | heuristic threshold | a number chosen by judgment that an interpretation compares an estimate against; a named constant, documented in the spec that uses it (P2) | | |

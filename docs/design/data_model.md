@@ -14,7 +14,14 @@
 > At that point the `CREATE TABLE` statements (§5), the Python record classes (§10), and the store
 > functions (§7, §8) can be written mechanically, one entry at a time. A prompt for Claude Code is at the end.
 
-**Status:** draft | reviewed | accepted  
+**Status:** template (step 8 fills it in; then draft, then accepted)  
+
+> **Stale in places (consistency review, 2026-10-01).** This template was written before records 0003–0042.
+> Before filling it in, strike: the blob store, `array`/`array_ref`, and I2 (0021); the `invalid_input` status,
+> and Q1's filter on it (`model_interface.md`, M6); failed runs not reused (0010: every stored run is reused
+> unless the user asks to retry; I4 needs a rule for which run at a key is current); `peak_mem_mb` (0026: no
+> limits); "campaign" (0006); "QoI", `outputs`, `inputs` (0003); `DiagnosticStatus` running/interrupted (C49:
+> an interrupted evaluation stores no result); the test path (`tests/contracts/store.py`, `contracts.md`).
 **Schema version:** 1  
 **Author, date:** <name>, <YYYY-MM-DD>  
 **Related:** `../notes/v1/ema-redesign.md`, `architecture.md`, decision records `<docs/decisions/NNNN-…>`

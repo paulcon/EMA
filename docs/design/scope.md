@@ -27,10 +27,10 @@ OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
   first-order and total indices, the model prediction against the fitted and held-out predictions, a histogram
   of the residuals) and the decay of its coefficients (0012, 0039).
 - **Ready for parallel and remote runs (0015).** The later specs provide: only the main process writes the
-  store; runs are counted against the approval when they start; each run has its own run directory; a
-  diagnostic result doesn't depend on the order runs finish; a run has three phases (prepare, execute,
-  collect) with only file-based data between them; each run records where it ran; and the model interface
-  leaves open whether one model on two machines is one model version. v2.0 has no executor interface.
+  store; runs are counted against the approval when they start; each run has its own run directory; a diagnostic
+  result doesn't depend on the order runs finish; a run has three phases (prepare, execute, collect) with only
+  file-based data between them; each run records where it ran; and the model interface settles, for v2.0,
+  whether one model on two machines is one model version (0029). v2.0 has no executor interface.
 
 ## Not in v2.0
 
@@ -99,14 +99,14 @@ OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
 
 | v1 module (under `src/ema/` unless named) | Port, rewrite, or leave | Why |
 |---|---|---|
-| `core/models/_sandbox.py`, `_worker.py` | port, after re-review | isolation of model code, verified in v1 (534 lines); the trust spec (step 10) and OD-11 decide how it is used |
+| `core/models/_sandbox.py`, `_worker.py` | port, after re-review | isolation of model code, verified in v1 (534 lines); the trust spec (step 10) decides how it is used (OD-11, 0026) |
 | `core/legendre.py` | port, after re-review | the Legendre basis (205 lines), for the linear and polynomial models |
 | `testfunctions/library.py`, `truth.py` | port, after re-review | the reference models and their known answers (step 11) |
 | `agent/approval.py` | rewrite, reading its rules and tests | v2's trust module keeps its rules (paths compared as files, credentials refused, approval covers what decides a run), but v1's is built around its own agent (0016) |
 | `core/models/cli.py`, `python_fn.py` | rewrite, reading their edge cases | the three phases of a run (0015) and kept run directories (0020); v1's handling of paths, process groups, and stdin is the checklist |
-| `core/models/parsers.py` | rewrite, reading it | only the kinds OD-20 chooses (step 4) |
+| `core/models/parsers.py` | rewrite, reading it | only the kinds 0027 chose (OD-20): regex, json, csv |
 | `core/provenance.py` | rewrite, reading it | provenance per diagnostic result, not per campaign (P5, 0006) |
-| `diagnostics/_uncertainty.py` | rewrite, reading it | the interval method per diagnostic (OD-12, step 7) |
+| `diagnostics/_uncertainty.py` | rewrite, reading it | the interval method per diagnostic (OD-12, 0040) |
 | `tests/diagnostic_contract.py` (repository root) | rewrite, reading it | v2's diagnostic contract (P4, P6; step 7) |
 | `core/doe.py`, `core/store.py`, `core/report.py`, `cli.py` | rewrite from v2's specs | v2's designs (step 5), data model (step 8), reports (0018), and CLI (step 9) differ from v1's |
 | `diagnostics/scatter.py`, `curve1d.py`, `repeat.py`, `linear_coeffs.py`, `fourier.py` | rewrite from v2's specs; run v1 as a source of numbers | scatter, coordinate lines, point run, linear model, and polynomial model (0012, step 6); v1 at the same seed checks v2's numbers |

@@ -169,9 +169,9 @@ as replicates, and the diagnostic result reports the measured variation.
 
 - **User code runs isolated, without EMA's secrets.** Split from "Nothing runs without approval" (now P3).
   OD-11 is decided: every Python model runs in an isolated child process (0026). Waits on `trust.md`.
-- **One-way layers.** Each layer imports only from the layers below it. The interfaces (`ema.cli`, and later
-  `ema.mcp`) hold no logic, and `ema.workspace` is the one place that orchestrates. Layers 0–1 (types,
-  numerics, designs) do no I/O. Held until `architecture.md` is accepted (step 9). Answers so far:
+- **One-way layers.** Each layer imports only from the layers below it. The interfaces (`ema.cli`, and
+  `ema.mcp`, in v2.0 by 0016) hold no logic, and `ema.workspace` is the one place that orchestrates. Layers 0–1
+  (types, numerics, designs) do no I/O. Held until `architecture.md` is accepted (step 9). Answers so far:
   - Why: with all logic in the workspace, the notebook, the CLI, and a later agent behave the same; layers 0–1
     without I/O can be checked with known-answer tests and no fixtures.
   - Enforced by: import-linter's layers contract (`architecture.md` §11); a forbidden contract keeping `os`,

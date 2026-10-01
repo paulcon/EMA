@@ -52,14 +52,14 @@
   ```
 
 - **What EMA asks, and when:** two approvals (P3). `test_model` asks for its one run: 1 new, 0 reused, time
-  unknown (no stored run durations yet). `run` asks for the design's runs: 200 new, 0 reused, and about
-  0.2 s, estimated from the test run's stored duration. Loading the model asks nothing (OD-11 may change
-  that).
+  unknown (no stored run durations yet). `run` asks for the design's runs: 200 new, 0 reused, and about 0.2 s,
+  estimated from the test run's stored duration. Loading the model asks nothing (0026 added no approval to
+  loading).
 - **What they get:** a report (one per diagnostic evaluation, 0006):
   - a header: the model version, the model parameter space, the design (uniform, n = 200, seed 1), and the
     runs (200 new, 0 reused, 0 failed);
-  - a figure with one panel per model parameter, the model prediction against it, each axis labeled
-    "name [units]", and a histogram of the model prediction, each with its data card;
+  - one figure per model parameter, the model prediction against it, each axis labeled
+    "name [units]" (`scatter.md`), and a histogram of the model prediction, each with its data card;
   - numbers: the mean of the model prediction with its variability interval (OD-12); the observed minimum and
     maximum of the runs, as observations, not estimates; and one estimate per model parameter with its
     variability interval (for example, a rank correlation; which one is for the scatter spec, step 6);
@@ -77,7 +77,7 @@
   - EMA asks exactly twice, with prices of 1 new, 0 reused, time unknown, and then 200 new, 0 reused, a time
     estimate;
   - the header counts 200 new, 0 reused, 0 failed;
-  - the figure has one panel per model parameter, labeled with its units;
+  - there is one figure per model parameter, labeled with its units;
   - every number in the report and the data cards is computed from the stored runs (P1);
   - running the same steps again asks nothing, makes no new runs, and gives a byte-identical report (P3,
     P4).
@@ -128,8 +128,8 @@
   2. Load it, test it at the nominal point, and run coordinate lines with 17 points per line. Each line's
      points include the nominal point, which the six lines share (`designs.md`, step 5): 97 distinct points,
      one of them the test run, so 96 new runs, about 3.2 hours. The analyst stops after 40 runs, and runs the
-     same command the next day. How the model parameter space is given on the command line is open
-     (`architecture.md` §8).
+     same command the next day. The model parameter space is given on the command line as a JSON file,
+     `--space FILE` (`designs.md`).
 
      ```text
      $ ema model add heat/model.json
@@ -223,7 +223,7 @@
 
   - `r2`: in 6 model parameters, a cubic has 84 coefficients, and at U4's illustrative sizes its level-0
     design has 168 points. In the wider space 100 of them fail, which leaves 68 usable runs, fewer than the
-    84 coefficients (the polynomial model's spec sets the minimum, step 6).
+    168 the polynomial model's spec requires (2P, twice the 84 coefficients; `POLY_MIN_RUNS`).
   - `r3` and `r4`: a stored failed run is reused, like any stored run, unless the analyst asks to retry
     (record 0010).
   - `r5`: a uniform design in a different model parameter space shares almost no points with the first, so
@@ -232,14 +232,15 @@
   - `r1`: 200 new, 0 reused;
   - `r2`: 168 new, 0 reused;
   - `r3`: 100 new, 200 reused, of which 34 failed;
-  - `r4`: 34 new (the failed points, run again), 266 reused;
+  - `r4`: 34 new (the failed points, run again), 266 reused, if none of `r3`'s 100 new runs failed (each that
+    did is run again too);
   - `r5`: 200 new, 0 reused.
 - **What they get:**
   - `r1`: the header counts 200 runs: 34 failed (30 errors, 4 timeouts), 166 usable. Each panel marks the
     failed runs at their model parameter values (a marker in a strip below the axes). A note counts the
     failed runs by reason. Estimates come from the usable runs only.
-  - `r2`: counts and a note ("68 usable runs; a degree-3 polynomial model in 6 model parameters needs at
-    least 84"), and no estimates (P6).
+  - `r2`: counts and a note ("68 usable runs; the polynomial model of degree 3 needs at least 168 (twice
+    its 84 coefficients)", `polynomial_model.md`), and no estimates (P6).
   - `r3`: as `r1`, with a note that 34 of the reused runs had failed before, and that `retry_failed` runs
     them again.
   - `ws.failed_runs`: each failed run's point and reason: the solver's own message, or "timeout after 600 s".
@@ -400,8 +401,8 @@ written.
 - **What EMA asks, and when:** the point run asks for 10 new runs (replicates 1 to 10), 1 reused (the test
   run at nominal, replicate 0), about 20 min. Scatter asks as usual.
 - **What they get:** the point run's report gives the model prediction at the point, and its measured
-  variation across the 11 runs (which numbers, and the tolerance for "varies", relative to what, are for the
-  point run's spec, step 6). The model version is recorded as measured noisy. Every later diagnostic result
+  variation across the 11 runs (observations only, and "varies" exact, with no tolerance: the point run's
+  spec). The model version is recorded as measured noisy. Every later diagnostic result
   for that model version carries a note: the model version was measured noisy, by which point run, and by how
   much (P7).
 - **Done when:**
@@ -478,11 +479,11 @@ written.
   - `test_model` takes `approve`, since its run is a new run (U1);
   - `run` for the point run needs no model parameter space (U7);
   - new names: `failed_runs` (U3), `reproduce` (U8), and `retry_failed` on `run` and `estimate` (0010);
-    with `ema.ask` and `ema.Budget`, the public names are near the budget of 15 (scope);
+    with `ema.ask` and `ema.Budget`, the public names are near the budget of 20 (scope);
   - `run` re-hashes the model's files first, and refuses if they changed since the model was loaded (U6);
   - the first approval for a model version shows the command, the input deck template, and the files (U2);
   - `export` writes a CSV of runs and a JSON file, not `.npz` (U5);
-  - the CLI takes a model parameter space as `--space FILE` in U2; how is still open (§8).
+  - the CLI takes a model parameter space as `--space FILE` in U2, in `designs.md`'s JSON form.
 - **Architecture (step 9), `ema.mcp`:** at most 10 tools, each one workspace call, including `propose_model`
   and `save_model`; approvals through MCP elicitation; the server's instructions (U9, 0016, 0019).
 - **Trust (step 10):** approvals through MCP elicitation; the agent writes model specs only (U9, 0016).

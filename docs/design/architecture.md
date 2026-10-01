@@ -1,6 +1,15 @@
 # EMA v2 API: packages, layers, and modules
 
 **Status:** draft. **Updated:** 2026-09-28. (Formerly `api_spec_draft.md`.)
+
+> **Stale in places (consistency review, 2026-10-01).** This draft predates records 0003–0042. Where it
+> disagrees with an accepted spec or record, they win: for example no `Executor` (0015), no `ema.experimental`
+> (0017), no blob store (0021), no `Box`/`qoi`/`DiagnosticRun` identifiers (0008), `ModelParameter` with
+> limits and no scale (0024), `batch` and `batch_size` (0025), failure kinds error/timeout/unread
+> (`model_interface.md`), the Gram spectrum, not Fourier (0038), `lines.py`, no `plane.py` (`designs.md`), no
+> `convergence_interval` or `level` (0040), export as CSV and JSON (U5). Step 9 rewrites it from the specs'
+> "Architecture (step 9)" asks. In §11, `|` makes siblings independent in import-linter (they may not import
+> each other); use `:` where siblings import each other (e.g. diagnostics → plotting).
 **Related:** `../notes/v1/ema-redesign.md` (the objects, designs, and diagnostics this follows),
 `data_model.md` (the store's functions come from its §7 and §8),
 `../notes/v1/lessons_learned_2026-09-27.md` and `../notes/v1/lessons_learned_answers_2026-09-27.md` (§6, the
@@ -834,15 +843,15 @@ forbidden_modules = ["ema.experimental"]
 
 | Where | Decision | Suggested |
 |---|---|---|
-| §3 | "input" and "input box", or `ModelParameter` and "ranges" | `ModelParameter` and `Box`; update the glossary |
-| §3 | fixed parameters: no range, or a separate mapping | <…> |
-| §3 | `execution` as a dict, or a dataclass per interface | dataclasses |
-| §3 | the word for intervals | <…> |
-| §4 | the uncertainty method per diagnostic | <…> |
+| §3 | ~~"input" and "input box", or `ModelParameter` and "ranges"~~ | settled: model parameter, model parameter space (0003, 0005); `box` is a forbidden identifier (0008) |
+| §3 | ~~fixed parameters~~ | settled: held at the nominal value, or a held value in the space (0023, 0033) |
+| §3 | ~~`execution` as a dict, or a dataclass per interface~~ | settled: one dataclass per interface (`model_interface.md`) |
+| §3 | ~~the word for intervals~~ | settled: variability interval (0004) |
+| §4 | ~~the uncertainty method per diagnostic~~ | settled: 0040, `uncertainty.md` |
 | §4 | where `version_hash` lives | `ema.models.base` |
-| §4 | `scipy.stats.qmc`; quadrature and sparse grids | <…> |
-| §5 | the first output parsers; isolation by default | <…> |
-| §6 | polynomial model's structural readings: numbers or experimental | numbers with intervals; verdicts experimental |
+| §4 | ~~`scipy.stats.qmc`; quadrature and sparse grids~~ | settled: the `random` sampler behind a sampler interface (0032); quadrature later (0013) |
+| §5 | ~~the first output parsers; isolation by default~~ | settled: regex, json, csv (0027); every Python model isolated (0026) |
+| §6 | ~~polynomial model's structural readings~~ | settled: numbers only, no interpretation in v2.0 (0017, 0039) |
 | §7 | `Workspace` object or functions; where the budget lives | the object; per call |
-| §8 | the box on the command line | <…> |
+| §8 | ~~the model parameter space on the command line~~ | settled: `--space FILE`, `designs.md`'s JSON form (U2) |
 | §11 | whether `report` imports `diagnostics` | no: the workspace assembles the sections |

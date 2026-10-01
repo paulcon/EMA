@@ -1,11 +1,13 @@
 # EMA v2 status
 
-**Updated:** 2026-09-30. Update this file at the end of every step, in the same commit as the work.
+**Updated:** 2026-10-01. Update this file at the end of every step, in the same commit as the work.
 
 ## Now
 
 - Writing the design documents by hand (`TODO.md`): steps 1–7 done.
-- Next: step 8, the data model (`docs/design/data_model.md`).
+- Consistency review of the design documents done (2026-10-01): plain errors corrected in place; ten
+  decisions (Q1–Q10) and the inputs for steps 8–10 in `docs/notes/consistency_review_2026-10-01.md`.
+- Next: the review's decisions, then step 8, the data model (`docs/design/data_model.md`).
 
 ## Done
 
@@ -124,7 +126,8 @@
   (0020); model predictions in their own table (0021); invariants I1… for the store contract's C46–C52 and
   C56, and the other asks in `contracts.md` (What this spec asks): the template's I4 against 0010, the store test
   at `tests/contracts/store.py`, a run's failure kind, reason, host, and program path, and whether a stored
-  result is reused after a named constant changes; the polynomial coefficients' intervals (0041).
+  result is reused after a named constant changes; the polynomial coefficients' intervals (0041); and the
+  review's "Step 8 inputs" (`docs/notes/consistency_review_2026-10-01.md`).
 
 ## Specs
 
@@ -145,7 +148,8 @@
 | `docs/design/trust.md` | empty |
 | `docs/design/reference_models.md` | draft (the list; expected answers at step 11) |
 
-Statuses: empty → draft → accepted. Claude Code builds only from accepted specs.
+Statuses: empty → draft → accepted (a template is filled in to become a draft; guides are outlines until the
+code exists). Claude Code builds only from accepted specs.
 
 ## Open decisions
 
@@ -162,10 +166,10 @@ Statuses: empty → draft → accepted. Claude Code builds only from accepted sp
 | OD-16 | `Workspace` object or module functions | object; functions | object | architecture |
 | OD-17 | Python version (the package stays `ema`) | 3.12, 3.13, 3.14 | <…> | setup |
 | OD-18 | Tooling | uv and a lockfile; docs in Sphinx or MkDocs; CI | uv; <…> | setup |
-| OD-19 | Monthly budget for live evals, once an agent exists | <$ …> | <…> | agent |
+| OD-19 | Monthly budget for live evals of the MCP server (0016) | <$ …> | <…> | setup (12); the MCP build step |
 
-The open items in `docs/design/architecture.md` §12 and the `<…>` in `docs/design/data_model.md` join this table when
-you reach those steps.
+The items still open in `docs/design/architecture.md` §12 (the rest are struck, with their records) and the
+`<…>` in `docs/design/data_model.md` join this table when you reach those steps.
 
 ## Decided
 
@@ -182,7 +186,7 @@ you reach those steps.
 | OD-9 | Several scalar model predictions per model, in the spec and code from v2.0; a missing one is NaN with its reason; a diagnostic evaluation analyzes one | 0022 | 2026-09-30 |
 | OD-10 | No fixed values or constants: a model parameter that a design's space leaves out is held at its nominal value; every point is complete | 0023 | 2026-09-30 |
 | OD-11 | Every Python model runs in an isolated child process, one long-lived child per model version, with a timeout; no in-process option; no memory or CPU limits in v2.0 | 0026 | 2026-09-30 |
-| OD-12 | The bootstrap (1000 resamples, 0.5–99.5 percentiles) for scatter and the linear and polynomial models; no intervals for the point run, coordinate lines, and lines, whose numbers are observations | 0040 | 2026-09-30 |
+| OD-12 | The bootstrap (1000 resamples, 0.5–99.5 percentiles) for scatter and the linear and polynomial models; no intervals for the point run, coordinate lines, and lines, whose numbers are observations | 0040 (amended by 0041) | 2026-09-30 |
 | OD-13 | Uniform points from numpy's PCG64 raw stream (the `random` sampler), behind a sampler interface; Sobol, Halton, Latin hypercube, and minimum-distance samplers later | 0032 | 2026-09-30 |
 | OD-14 | Quadrature and sparse grids in a later version | 0013 | 2026-09-29 |
 | OD-20 | Three output parser kinds, each returning one scalar: regex, json, and csv; no python parser (a wrapper script writing JSON instead) | 0027 | 2026-09-30 |

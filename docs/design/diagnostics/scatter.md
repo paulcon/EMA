@@ -228,7 +228,7 @@ separate script, and records its size and seed.
 | `SCATTER_N` | 200 | the default number of points | v1's default; U1's example |
 | `SCATTER_MIN_RUNS` | 10 | the fewest usable runs for estimates | every estimate defined with room to spare (interview, 2026-09-30) |
 | `SCATTER_BOOT_TAG` | 2³² + 1 | the spawn key of scatter's bootstrap stream | the first diagnostic tag above `SPAWN_TAG_BASE` (`shared.md`) |
-| bins | ⌊√n⌋ | the number of bins of the binned index and the histogram | the usual balance of bias and resolution; one rule for both |
+| `SCATTER_HIST_BINS` | ⌊√n⌋ | the number of bins of the binned index and the histogram | the usual balance of bias and resolution; one rule for both |
 | `KNOWN_ANSWER_N` | 20,000 | the design size of the known-answer tests | tolerances of 0.004–0.12 at 5 standard deviations |
 | `KNOWN_ANSWER_SDS` | 5 | the tolerance, in standard deviations over designs | a test at a fixed seed that a correct estimator passes with room to spare |
 

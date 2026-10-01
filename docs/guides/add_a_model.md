@@ -7,7 +7,8 @@
 ## A Python function
 
 1. Write the function; what it takes and returns. <…>
-2. Describe its parameters and outputs: name, units, description, nominal value, scale. <…>
+2. Describe its model parameters and model predictions: name, units, description, nominal value, limits
+   (scales belong to the model parameter space, 0024). <…>
 3. Register it, and see its version. <…>
 4. Test it at the nominal point. <…>
 5. What happens when it fails, and how to see why. <…>
@@ -16,7 +17,7 @@
 
 1. The input-deck template. <…>
 2. The command, the run directory, and the files copied into it. <…>
-3. Reading the outputs (parsers). <…>
+3. Reading the model predictions from the model output (output parsers). <…>
 4. What you approve, and why. <…>
 5. Test it at the nominal point; time a few runs. <…>
 
