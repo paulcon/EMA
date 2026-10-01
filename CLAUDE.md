@@ -63,14 +63,14 @@ work is `TODO.md`, and where things stand is `STATUS.md`.
 
 ## Commands
 
-> Fill in once the tooling is chosen (OD-17, OD-18).
+> Record 0059. Python 3.13 and newer; develop on 3.14.
 
-- Install: `<uv sync>`
-- Fast tests (after every edit): `<uv run pytest -q>`
-- Full tests (before reporting a step done): `<uv run pytest -q --slow -n auto>`
-- Lint: `<uv run ruff check>`
-- Layers: `<uv run lint-imports>`
-- Docs: `<…>`
+- Install: `uv sync`
+- Fast tier, with the import contracts (after every edit): `uv run pytest -q && uv run lint-imports`
+- Full tests (before reporting a step done): `uv run pytest -q --slow -n auto`
+- Lint (before reporting a step done): `uv run ruff check && uv run ruff format --check && uv run mypy`
+- Docs (before reporting a step done): `uv run sphinx-build -W --keep-going docs docs/_build/html`
+- GitHub Actions (`checks.yml`) runs only when I start it.
 
 ## Where things are
 

@@ -1,6 +1,6 @@
 # 0018. Write reports in Markdown with TeX math, and make PDFs with pandoc when it is installed
 
-**Date:** 2026-09-29. **Status:** accepted. **Resolves:** none (TODO step 3, scope).
+**Date:** 2026-09-29. **Status:** accepted; its step-12 plan amended by 0059. **Resolves:** none (TODO step 3, scope).
 
 ## Context
 

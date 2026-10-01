@@ -20,7 +20,7 @@ OD-5 (0012), OD-6 (0014), OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 
 | Agent | an MCP server: run and read, and set up models from specs; at most 10 tools (0016) |
 | Interpretation | none (0017) |
 | Model output | kept in each run's directory for inspection outside EMA, with a setting to limit it, and a lookup (0020) |
-| Reports | one per diagnostic evaluation: Markdown with TeX math and PNG figures, the reference; a PDF through pandoc when installed (0018) |
+| Reports | one per diagnostic evaluation: Markdown with TeX math and PNG figures, the reference; a PDF through pandoc and lualatex when installed (0018, 0059) |
 | Export | the runs a diagnostic result used, its design, and the result with its provenance, as CSV and JSON (U5; `export.md`, 0050) |
 | Reproduce | a stored diagnostic result recomputed from its provenance (U8, 0050) |
 
@@ -89,7 +89,7 @@ OD-5 (0012), OD-6 (0014), OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 
 | MCP tools | 10 (0016) |
 | CLAUDE.md | 1,500 words |
 | Fast test tier | 30 s |
-| Runtime dependencies | numpy, scipy, matplotlib; `ema[mcp]` adds the `mcp` SDK; pandoc is an optional system tool (0018) |
+| Runtime dependencies | numpy, scipy, matplotlib; `ema[mcp]` adds the `mcp` SDK; pandoc and lualatex are optional system tools (0018, 0059) |
 
 - **Where the numbers come from** (2026-09-29): the source lines are estimated at about half of each v1
   counterpart: models ~1,500, store ~700, designs and numerics ~850, diagnostics ~2,200, types, runner,

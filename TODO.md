@@ -39,19 +39,19 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 
 ## Setup
 
-- [ ] **12. Repository and tooling.**
-  - Done by `move_v1_start_v2.sh`: v1 renamed to `EMA-v1` (tag `v1-final`); this repository created as `EMA`,
-    with v1's notes in `docs/notes/v1/`.
-  - Decide: OD-17 (Python version), OD-18 (uv, docs, CI). Live evals are later (OD-19, 0050).
-  - Plan: pandoc and LaTeX as an optional install, in staged steps (0018).
-  - Finish `CLAUDE.md` (the commands) and `STATUS.md`.
+- [x] **12. Repository and tooling.** Records: 0059 (OD-17, OD-18: Python 3.13 and newer, uv and a
+  lockfile, Sphinx, checks on GitHub Actions by hand, PDFs with lualatex). uv and its Pythons 3.14 and 3.13
+  installed on the owner's Mac; pandoc and LaTeX already were.
 - [ ] **13. Guides as outlines.** `docs/guides/`: get started, add a model, run a diagnostic, add a diagnostic.
   - You: walk through each against `ema.workspace` on paper. Any awkward step means the workspace's functions
     change before any code exists.
+  - Get started, step 1: install EMA with uv on Python 3.13 or newer; pandoc and a LaTeX with lualatex as an
+    optional install, in staged steps (0018, 0059).
 
 ## Before the first line of code
 
 - [ ] Every spec needed by the first build step is `accepted`.
 - [ ] Claude Code has checked the specs against each other for contradictions, and you've resolved them.
-- [ ] The first plan (`docs/plans/01-…`) is written and approved: probably `ema.types` and the design
-      generators, with their contracts.
+- [ ] The first plan (`docs/plans/01-…`) is written and approved: the repository's scaffolding (0059:
+      `.python-version`, `pyproject.toml`, `uv.lock`, `conftest.py`, `docs/conf.py`, `docs/index.md`,
+      `.github/workflows/checks.yml`), and probably `ema.types` and the design generators, with their contracts.

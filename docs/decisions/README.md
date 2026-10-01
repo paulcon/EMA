@@ -43,7 +43,7 @@ Write one when a choice:
 | 0015 | Run one model run at a time in v2.0, ready for parallel and remote runs later | accepted; its run-at-a-time wording amended by 0025; its platform question by 0029; its shared files by 0030 | 2026-09-29 |
 | 0016 | Ship an MCP server in v2.0, with use case U9 | accepted; its live evals amended by 0050 (later); its tool list amended by 0053 (export) and 0056 (figures as resources) | 2026-09-29 |
 | 0017 | Leave experimental interpretation out of v2.0 | accepted | 2026-09-29 |
-| 0018 | Write reports in Markdown with TeX math, and make PDFs with pandoc when it is installed | accepted | 2026-09-29 |
+| 0018 | Write reports in Markdown with TeX math, and make PDFs with pandoc when it is installed | accepted; its step-12 plan amended by 0059 | 2026-09-29 |
 | 0019 | Clarify that P1 covers what EMA produces, including its tool results | accepted | 2026-09-29 |
 | 0020 | Keep each run's model output in its run directory, for inspection outside EMA | accepted; its keep values amended by 0028 | 2026-09-29 |
 | 0021 | Analyze scalar model predictions of models not declared noisy in v2.0 | accepted | 2026-09-29 |
@@ -84,3 +84,4 @@ Write one when a choice:
 | 0056 | Make the layers architecture rules, use a Workspace object, serve figures as MCP resources, type the use cases against the workspace, add three store reads, and allow a Store per thread | accepted | 2026-10-01 |
 | 0057 | Give a model an allowlisted environment, confine the MCP server to a root, and check a spec's paths | accepted | 2026-10-01 |
 | 0058 | Drop the kink-line known answer, and set two tolerances from step 11's checks | accepted | 2026-10-01 |
+| 0059 | Support Python 3.13 and newer; build with uv and a lockfile, document with Sphinx, run the checks on GitHub Actions by hand, and make PDFs with lualatex | accepted | 2026-10-01 |

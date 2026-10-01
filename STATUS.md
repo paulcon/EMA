@@ -4,8 +4,8 @@
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`): steps 1–11 done.
-- Next: step 12, repository and tooling (OD-17, OD-18).
+- Writing the design documents by hand (`TODO.md`): steps 1–12 done.
+- Next: step 13, guides as outlines.
 
 ## Done
 
@@ -54,10 +54,17 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   quadrature, expected values printed to the digits their tolerances need, R1 along c a constant line, R3's
   coordinate-line rates filled); record 0058 (R7's kink-line row dropped for R10's two given lines; R3's
   rate tolerance 2·10⁻⁴; R11's 9.6·10⁻⁴).
+- 2026-10-01: step 12, repository and tooling, from an interview and three independent reviews (21, 14, then 9
+  findings, all fixed); OD-17 and OD-18 decided; record 0059 (Python 3.13 and newer, developed on 3.14; uv and
+  `uv.lock`; Ruff, mypy, import-linter, pytest; a Sphinx site built locally; checks on GitHub Actions started by
+  hand, Linux on 3.14 and on 3.13 at the lowest bounds; PDFs with lualatex and matplotlib's DejaVu fonts,
+  `PdfFailed`; import-linter sees standard-library imports), applied to `CLAUDE.md` (the commands),
+  `architecture.md`, `contracts.md`, `trust.md`, `scope.md`, `TODO.md`, and 0018's status. uv and its Pythons
+  installed on this Mac (staged steps; an old `~/pyvenv.cfg` renamed, which had hidden uv's Pythons).
 
 ## Next
 
-- Step 12, repository and tooling: `TODO.md` step 12 (OD-17, OD-18).
+- Step 13, guides as outlines: `TODO.md` step 13.
 - For the first plan of `ema.numerics`: the coordinate lines' Lanczos basis must be the same bit for bit on
   every call (C7). With numpy on Accelerate (this Mac), the matrix products in its reorthogonalization gave two
   different bases in 50 calls in one process (step 11's round 3 review). Build the basis without BLAS
@@ -98,8 +105,7 @@ code exists). Claude Code builds only from accepted specs.
 
 | Id | Question | Options | Suggested | Blocks |
 |---|---|---|---|---|
-| OD-17 | Python version (the package stays `ema`) | 3.12, 3.13, 3.14 | <…> | setup |
-| OD-18 | Tooling | uv and a lockfile; docs in Sphinx or MkDocs; CI | uv; <…> | setup |
+| — | none open | | | |
 
 ## Decided
 
@@ -123,5 +129,7 @@ What each decided is the record's title (`docs/decisions/README.md`).
 | OD-14 | 0013 | 2026-09-29 |
 | OD-15 | 0050 | 2026-10-01 |
 | OD-16 | 0056 | 2026-10-01 |
+| OD-17 | 0059 | 2026-10-01 |
+| OD-18 | 0059 | 2026-10-01 |
 | OD-19 | 0050 | 2026-10-01 |
 | OD-20 | 0027 | 2026-09-30 |

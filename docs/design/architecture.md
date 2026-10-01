@@ -786,7 +786,8 @@ Each error carries `retryable` as a class attribute, so the interfaces can say w
 | `AmbiguousId` | a prefix names several ids, listed (Q11) | no |
 | `WorkspaceBusy` | another process holds the run lock, named | yes |
 | `WorkspaceVersion` | the workspace's schema is newer than this EMA (`data_model.md` §11) | no |
-| `PandocMissing` | a PDF is asked for without pandoc and LaTeX; says what to install (0018) | no |
+| `PandocMissing` | a PDF is asked for without pandoc or lualatex, or lualatex stops on a missing package or font; says what to install (0018, 0059) | no |
+| `PdfFailed` | lualatex stops for any other reason (with LaTeX's error line), or a figure is missing from the PDF (0059) | no |
 | `PathRefused` | an MCP path argument outside the root, inside a workspace, with a hidden character, or naming a credentials file; a drafted spec's file resolving outside the root (`trust.md`, T5, T7). A spec naming a credentials file is a `SpecError`. | no |
 
 ## 4. Layer 1: `ema.numerics` and `ema.designs`
@@ -1063,7 +1064,7 @@ def render(result: DiagnosticResult, spec: ModelSpec) -> str: ...
     # EXPLAIN_INTERVALS once, and the line under each estimates table (S4, 0042); ids as 12 hex digits (0055);
     # result.extra is not printed (0041); a pure function of its inputs, so a report rebuilt from the store
     # is byte-identical (P1)
-def to_pdf(report_path: str) -> str: ...              # pandoc with LaTeX; PandocMissing says what to install (0018)
+def to_pdf(report_path: str) -> str: ...              # pandoc with lualatex, the fonts matplotlib's DejaVu; PandocMissing, PdfFailed (0018, 0059)
 ```
 
 ### `ema.runner` (3b)
@@ -1464,6 +1465,10 @@ The fast tier also runs the import contracts (§10) and the terminology test (00
 
 ## 10. Enforcing the layers
 
+The full set, as v2.0 ends. From the first build step, each contract lists only the layers and source
+modules that exist, and grows as build steps add packages; a forbidden module may be named before it exists
+(0059).
+
 ```toml
 # pyproject.toml
 [tool.importlinter]
@@ -1534,14 +1539,15 @@ forbidden_modules = ["ema.reference_models"]
   `allow_indirect_imports` is set. AR3, AR4, and AR5 set it, since `ema.cli → ema.workspace → ema.store →
   sqlite3` is the design; AR2, AR6, and the reference models' contract don't, since no chain may reach those.
 - **External packages** are named at their top level only (`google`, not `google.genai`), as grimp keeps them.
-- **Standard-library modules** (AR2, AR5): import-linter sees them only as external packages; the first build
-  step checks that it does. If it doesn't, a fast-tier AST test (about 20 lines) checks the same lists.
+- **Standard-library modules** (AR2, AR5): import-linter sees them as external packages (checked at step 12
+  with import-linter 2.15, 0059), so no AST test checks these lists; the first build step's AR2 contract
+  confirms it on EMA's own code.
 - **`ema.experimental`:** none in v2.0 (0017). P2's contract (nothing in layers 0–3 imports it) is added here
   with the package.
 - **One AST test** in the fast tier checks what import-linter can't express: AR7 (no module imports the root
   `ema`), and that `ema/models/__init__.py` doesn't import `execute`, so AR4 can't be bypassed through the
   package's re-exports.
-- `uv run lint-imports` runs in the fast tier (CLAUDE.md's Layers command).
+- `uv run lint-imports` runs in the fast tier (CLAUDE.md's fast-tier command, 0059).
 
 ## 11. Size
 
@@ -1625,5 +1631,5 @@ specs:
   - 0016's status: "its tool list amended by 0053 (export) and 0056 (figures as resources)".
   - `STATUS.md`: OD-16 decided (0056).
 - **Trust (step 10):** done (`trust.md`, 0057).
-- **Setup (step 12):** whether import-linter sees standard-library imports (§10); CLAUDE.md's commands.
+- **Setup (step 12):** done (0059): import-linter sees standard-library imports (§10); CLAUDE.md's commands.
 - **Guides (step 13):** each guide walked through against §7; any awkward step changes §7 first.

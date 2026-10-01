@@ -225,7 +225,7 @@ C16, C46, and C52.
 | Tier | Contains | Budget | Runs |
 |---|---|---|---|
 | fast | unit tests; the contracts on run batches built directly, and on millisecond models; doctests; import-linter | 30 s, serial: a size budget (`scope.md`) | after every edit |
-| slow | the use cases end to end; reference models' expected answers and golden reports; C18 at d = 20 for the polynomial model, and every d = 20 timing; the command-line reference models; the wheel build | 10 min with `-n auto`: a target | before a step is reported done |
+| slow | the use cases end to end; reference models' expected answers and golden reports; C18 at d = 20 for the polynomial model, and every d = 20 timing; the command-line reference models; the wheel build, with its data files; the PDF tests (0018, T10), skipped when `to_pdf` raises `PandocMissing` (0059) | 10 min with `-n auto`: a target | before a step is reported done |
 
 - **Budgets:** the fast tier's 30 s is one of `scope.md`'s size budgets: going over it is a decision record,
   not a drift. The slow tier's 10 min is a target: each build step's plan reports the tiers' times, and a step
