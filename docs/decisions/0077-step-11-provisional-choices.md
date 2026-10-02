@@ -98,6 +98,18 @@ We will, provisionally:
 18. **The exact-rational rate** is a test helper (`exact_rate`, about 20 lines, on step 02's exact Gram basis):
     k* and the rate of the runs' doubles, against which EMA's rates agree within 10⁻⁹ on R7's lines.
 
+**Review round 1** (the independent review's minor and nits; fixed on `demo-diagfix`, each with a test)
+
+19. **Item 2's precedence is tested directly:** a parametrized unit test of `analyze(...).cells(...)` over four
+    paths, a constant line with runs not usable ("none: 2 runs not usable", its note's value kept), a constant
+    diagnostic with an incomplete line ("none: constant", degrees "none"), a line with no usable run (range "none",
+    "none: 9 runs not usable"), and one run not usable (singular), with the range's units only on a number.
+20. **C6's skip is limited to named diagnostics** (corrects item 15): the contract's `C6_LOG_SKIP` is
+    `("coordinate_lines", "lines")`, and a number declared through a logarithm by any other diagnostic fails C6
+    ("C6 skips a number through a logarithm of lines' only"); a broken toy that declares its standard deviation so
+    is in the meta-test. A later diagnostic whose numbers a cutoff at a fraction of a line's range decides is added
+    to the set, with a record.
+
 ## Deferrals
 
 None of the spec's requirements. The PNGs' cost (about 0.1–0.4 s each, two panels) is step 08's: the contract draws
@@ -111,7 +123,8 @@ None of the spec's requirements. The PNGs' cost (about 0.1–0.4 s each, two pan
 - **`diagnostics/lines.md`, Parameters:** `m`'s default "5; none with `lines`" (item 10).
 - **`diagnostics/shared.md`, The report, Provenance:** a request parameter that is none is left out (item 11).
 - **`contracts.md`, C5:** a diagnostic declares the rate's k* with the rate's flag (item 4); the contract's fixture
-  counts a run in several rows once (item 14).
+  counts a run in several rows once (item 14). **C6:** the numbers left out as through a logarithm are lines' only,
+  named (item 20).
 - **`architecture.md` §6:** `_lines.py`'s names (`LinesDiagnostic`, `LineAnalysis`, `analyze`, `draw_spectrum`,
   `window`, the constants).
 

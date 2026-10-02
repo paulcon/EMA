@@ -11,6 +11,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import math
+import re
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,15 @@ import pytest
 
 from ema.designs import generators
 from ema.diagnostics import _fits, base
-from ema.diagnostics.linear_model import LINEAR_ALPHA, LINEAR_BOOT_TAG, LINEAR_LEVEL, linear_min_runs, linear_nmin
+from ema.diagnostics.linear_model import (
+    LINEAR_ALPHA,
+    LINEAR_BOOT_TAG,
+    LINEAR_LEVEL,
+    _loo_note,
+    linear_min_runs,
+    linear_nmin,
+)
+from ema.numerics import fitting
 from ema.numerics.intervals import Interval
 from ema.report import render
 from ema.types.errors import RequestError
@@ -325,6 +334,97 @@ def test_r5_every_estimate_is_the_fit_on_the_usable_runs_alone(prediction: str, 
     assert abs(values(result, "fit")["Relative residual ‖y - ŷ‖ / ‖y - mean‖"] - rel) <= 1e-12
 
 
+def crafted(tmp_path: Path, change: Any) -> tuple[sd.Case, RunBatch, DiagnosticResult]:
+    """The contract model (d = 3: a, b, c log) on the defaults' design with its points changed by ``change``, every
+    run usable (record 0078 items 4, 5; Review round 1)."""
+    case = sd.prepare(sd.NoFigures(LINEAR))
+    case = dataclasses.replace(case, ctx=dataclasses.replace(case.ctx, interval_method=Skipped()))
+    points = np.array(case.design.points)
+    change(points)
+    made = sd.batch(case, design=dataclasses.replace(case.design, points=points))
+    return case, made, sd.evaluate(case, made, tmp_path)
+
+
+def test_a_rank_deficient_fit_gives_its_note_and_no_estimates(tmp_path: Path):
+    """Record 0078 item 4 (0051's rule): a at its midpoint in every run (u_a = 0), so A = [1, u] has rank 3 < 4: the
+    rank-deficient note with the fit's own rank, no estimates; the per-level table stays, "none" in each level."""
+
+    def flat_a(points: np.ndarray) -> None:
+        points[:, 0] = 1.0  # a in [0, 2]: unit coordinate 0, exactly
+
+    _, made, result = crafted(tmp_path, flat_a)
+    assert result.counts.usable == len(made.design) == 32
+    assert not result.estimates
+    (text,) = [n.text for n in result.notes if n.code == "rank_deficient"]
+    assert (
+        text
+        == "The usable runs' unit coordinates have rank 3 with the constant, below the fit's 4 coefficients: no fit."
+    )
+    assert levels(result)["Intercept"] == ["none"] * 3 and levels(result)["a"] == ["none"] * 3
+
+
+def leverage_one_row(rows: int, fit_of: Any) -> int:
+    """The first row k whose leverage is exactly 1 in floating point when it alone moves one unit coordinate
+    (``fit_of(k)`` gives that fit): in exact arithmetic every such row has leverage 1, in doubles some 1 ± 2⁻⁵²."""
+    for k in range(rows):
+        if fit_of(k).leverages[k] == 1.0:
+            return k
+    raise AssertionError("no row of leverage exactly 1")  # pragma: no cover
+
+
+def test_a_run_of_leverage_1_leaves_the_loo_error_undefined_with_its_note(tmp_path: Path):
+    """Record 0078 item 5 (Review round 1): c = 1 (u_c = 0) in every run but one, c = 10 (u_c = 0.5), whose leverage
+    is then exactly 1: the coefficients and the fit's tables, no LOO estimate, and the note naming the leverage."""
+
+    def lone_c(k: int) -> Any:
+        def change(points: np.ndarray) -> None:
+            points[:, 2] = 1.0
+            points[k, 2] = 10.0
+
+        return change
+
+    case = sd.prepare(sd.NoFigures(LINEAR))
+
+    def fit_of(k: int) -> Any:
+        points = np.array(case.design.points)
+        lone_c(k)(points)
+        A = np.column_stack([np.ones(len(points)), case.ctx.space.to_unit(case.spec, points)])
+        return fitting.least_squares(A, sd.f(case.spec, points))
+
+    k = leverage_one_row(len(case.design), fit_of)
+    _, _, result = crafted(tmp_path, lone_c(k))
+    assert [t.key for t in result.estimates] == ["coefficients", "fit"]
+    assert [(n.code, n.text) for n in result.notes] == [
+        ("loo_undefined", "The leave-one-out error is undefined: a usable run has leverage 1.")
+    ]
+
+
+def test_the_loo_note_names_leverage_1_only_when_a_run_has_it():
+    """Record 0078 item 5 (Review round 1): with no run of leverage exactly 1 (an overflow), the note says only that
+    the error is undefined on these runs; with one, it names it."""
+    A = np.column_stack([np.ones(10), np.linspace(-1, 1, 10)])
+    y = np.arange(10.0) ** 2
+    assert _loo_note(A, y).text == "The leave-one-out error is undefined on these runs."
+
+    def lone(k: int) -> np.ndarray:
+        return np.column_stack([A, np.eye(10)[:, k]])
+
+    k = leverage_one_row(10, lambda k: fitting.least_squares(lone(k), y))
+    assert _loo_note(lone(k), y).text == "The leave-one-out error is undefined: a usable run has leverage 1."
+
+
+def test_the_parameters_schema_patterns_are_anchored():
+    """Review round 1: a JSON schema's pattern matches anywhere in the text, so alpha's decimal text and the
+    sampler's name are anchored with ^ and $; their readers refuse the same texts."""
+    by_name = {p.name: p for p in LINEAR.parameters}
+    decimal = by_name["alpha"].reader.schema()["anyOf"][1]["pattern"]
+    sampler = by_name["sampler"].reader.schema()["pattern"]
+    for pattern in (decimal, sampler):
+        assert pattern.startswith("^") and pattern.endswith("$")
+    assert re.search(decimal, "0.7072") and not re.search(decimal, "x0.7072") and not re.search(decimal, "0.5 or 2")
+    assert re.search(sampler, "random") and not re.search(sampler, "random sampler") and not re.search(sampler, "-x")
+
+
 # --------------------------------------------------------------------------------------------------------------
 # LM7: units
 
@@ -423,6 +523,10 @@ def test_lm10_the_golden_report_is_the_mock(golden: Any):
     assert [round(v, 4) for v in rows["Relative residual"]] == [0.1408, 0.2038, 0.2335]
     assert [round(v, 4) for v in rows["Leave-one-out error"]] == [0.2934, 0.2879, 0.2716]
     assert table(result, "coefficients").interval.undefined == {} and table(result, "loo").interval.undefined == {}
+    per_level = next(t for t in result.observations if t.key == "levels")  # record 0078 item 2, Review round 1
+    units = {row[0].label: {o.units for o in row if not isinstance(o.value, str)} for row in per_level.rows}
+    assert per_level.title.startswith("Coefficients in m³/yr. ")  # so the report prints them once, as the mock does
+    assert units["Intercept"] == units["rw"] == {"m³/yr"} and units["Relative residual"] == {""}
     assert (out / "linear_model_shadow.png").stat().st_size > 0
     card = json.loads((out / "linear_model_coefficients.json").read_text(encoding="utf-8"))
     slopes = table(result, "coefficients").estimates[1:]

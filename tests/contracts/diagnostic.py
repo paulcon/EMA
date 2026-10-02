@@ -7,7 +7,10 @@ failure it must give). C7 also repeats each diagnostic's compute with its input 
 numpy's small-block cache emptied (record 0068 item 1; P4).
 
 The checks that read only numbers and notes run the diagnostic without its figures (``NoFigures``); C1, C7, C11,
-and C12 draw them.
+and C12 draw them. The checks that don't test the intervals themselves (C2-C6, C10, C16, C17, and C7's recomputations
+at memory offsets) give a diagnostic with intervals the lean fake (``LEAN``: 25 resamples of its own estimators, the
+range; record 0084, Review round 1); C1, C7's two evaluations, C8, C9, C11, C12, and C18 keep the registry's
+bootstrap.
 """
 
 from __future__ import annotations
@@ -24,6 +27,7 @@ import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 import numpy as np
@@ -41,7 +45,7 @@ from ema.types.runs import FailureKind, RunBatch, RunStatus
 from ema.types.text import fmt
 from tests.support import diagnostics as sd
 from tests.support.diagnostics import NoFigures, Toy
-from tests.support.fakes import FakeIntervalMethod, registered_interval_method
+from tests.support.fakes import FakeIntervalMethod, LeanIntervalMethod, registered_interval_method
 from tests.support.numerics import OFFSETS, scramble_heap
 
 #: contracts.md, Named constants.
@@ -58,8 +62,15 @@ SHIFT_ULPS = 16
 #: C6's one exemption (contracts.md, C6; 0061): the point run's fixture replicates differ in their last bits, which
 #: the offset merges; C5 still holds for it. Any other diagnostic whose values the offset merges fails C6.
 C6_EXEMPT = ("point_run",)
+#: C6's numbers left out as computed through a logarithm (contracts.md, C6: "the observations that a cutoff at a
+#: fraction of a line's range decides"): lines' k* and rates (record 0077 items 4, 15; Review round 1). Any other
+#: diagnostic that declares a number through a logarithm fails C6 until it is named here.
+C6_LOG_SKIP = ("coordinate_lines", "lines")
 #: C10's other label form, "Of the n runs at the point" (contracts.md, C10): the point run's only.
 C10_RUNS_LABEL = ("point_run",)
+
+#: The lean interval method of the checks that don't test the intervals (record 0084, Review round 1).
+LEAN = LeanIntervalMethod()
 
 KINDS = [FailureKind.ERROR, FailureKind.TIMEOUT, FailureKind.UNREAD]
 REASONS = [f"exited with code {i}" for i in range(1, 8)]
@@ -92,10 +103,15 @@ def run_in(
     prediction: str = "y",
     measured_noisy: tuple[MeasuredNoisy, ...] = (),
     interval_method: Any = None,
+    lean: bool = False,
     **batch: Any,
 ) -> tuple[sd.Case, RunBatch, DiagnosticResult, Path]:
-    """Prepare, build the batch, and evaluate, into a fresh directory under ``out``, which it returns."""
+    """Prepare, build the batch, and evaluate, into a fresh directory under ``out``, which it returns.
+
+    With ``lean``, a diagnostic with intervals gets ``LEAN`` in place of its registered method (record 0084)."""
     target = diagnostic if figures else NoFigures(diagnostic)
+    if lean and interval_method is None and diagnostic.interval_method is not None:
+        interval_method = LEAN
     case = sd.prepare(
         target, d, params=params, prediction=prediction, measured_noisy=measured_noisy, interval_method=interval_method
     )
@@ -172,6 +188,7 @@ def assert_transformed(
 
     def same(where: str, v: Any, w: Any, transform: Transform, log: bool) -> None:
         if skip_log and log:
+            assert diagnostic.name in C6_LOG_SKIP, f"{where}: C6 skips a number through a logarithm of lines' only"
             return
         if isinstance(w, str) or isinstance(v, str):
             assert v == w, f"{where}: {v!r}, not {w!r}"
@@ -270,7 +287,7 @@ def check_partial_failures(diagnostic: Any, tmp_path: Path) -> None:
     reason, or other model predictions), nor do the runs that aren't usable move a number under a shift of the
     usable ones; a cell that reports a run's kind shows the new kind."""
     for name, mask in masks(sd.prepare(diagnostic)).items():
-        case, made, first = run(diagnostic, tmp_path, failed=mask, kinds=KINDS, reasons=REASONS)
+        case, made, first = run(diagnostic, tmp_path, lean=True, failed=mask, kinds=KINDS, reasons=REASONS)
         _, firsts = np.unique(made.runs.run_ids, return_index=True)  # distinct runs: a shared anchor is one (0077)
         failed_kinds = made.runs.kind[firsts]
         for kind in FailureKind:
@@ -281,24 +298,26 @@ def check_partial_failures(diagnostic: Any, tmp_path: Path) -> None:
         assert all(line.split(None, 1)[1] in REASONS or "other reasons" in line for line in listed), listed
         y = case.f()
         shift = 3.0 * float(np.max(np.abs(y[~mask])))
-        _, _shifted_batch, shifted = run(diagnostic, tmp_path, y=y + shift, failed=mask, kinds=KINDS)
+        _, _shifted_batch, shifted = run(diagnostic, tmp_path, lean=True, y=y + shift, failed=mask, kinds=KINDS)
         usable = usable_y(made)
         tol = shift_tolerance(1.0, shift, float(np.ptp(usable)), float(np.max(np.abs(usable))))
         assert_transformed(diagnostic, shifted, first, 1.0, shift, tol)
         if name != "random":
             continue  # the runs that aren't usable changed, on one mask: four more evaluations each
-        _, other, second = run(diagnostic, tmp_path, failed=mask, kinds=KINDS[::-1], reasons=REASONS[3:] + ["x"])
+        _, other, second = run(
+            diagnostic, tmp_path, lean=True, failed=mask, kinds=KINDS[::-1], reasons=REASONS[3:] + ["x"]
+        )
         assert numbers(second) == numbers(first), f"{name}: a failed run's kind or reason moved a number"
         shown = [o.value for t in second.observations for row in t.rows for o in row if o.key == "kind"]
         if shown:  # the point run's Replicate 0 row (point_run.md): its run's new kind, exactly (record 0075, m3)
             row0 = int(np.flatnonzero(other.design.replicates == 0)[0])
             assert kind_text(made, row0) != kind_text(other, row0), "the fixture didn't change replicate 0's kind"
             assert shown == [kind_text(other, row0)], f"{name}: {shown}, not replicate 0's new kind"
-        _, _, missing = run(diagnostic, tmp_path, missing_y=mask)
+        _, _, missing = run(diagnostic, tmp_path, lean=True, missing_y=mask)
         assert numbers(missing) == numbers(first), f"{name}: an ok run missing y moved a number"
-        _, _, other_z = run(diagnostic, tmp_path, missing_y=mask, z=lambda c: 1000.0 * c.f() + 5.0)
+        _, _, other_z = run(diagnostic, tmp_path, lean=True, missing_y=mask, z=lambda c: 1000.0 * c.f() + 5.0)
         assert numbers(other_z) == numbers(missing), f"{name}: z of a run missing y moved a number"
-    case, made, z = run(diagnostic, tmp_path, prediction="z")
+    case, made, z = run(diagnostic, tmp_path, lean=True, prediction="z")
     _, firsts = np.unique(made.runs.run_ids, return_index=True)  # counted over distinct runs (0077)
     usable_z = int(made.usable("z")[firsts].sum())
     want = int((made.runs.status[firsts] == RunStatus.OK.code).sum()) - usable_z
@@ -314,7 +333,7 @@ def check_minimum(diagnostic: Any, tmp_path: Path) -> None:
     _, firsts = np.unique(ids, return_index=True)
     order = ids[np.sort(firsts)]
     for k in (minimum - 1, minimum):
-        _, _, result = run(diagnostic, tmp_path, failed=~np.isin(ids, order[:k]))
+        _, _, result = run(diagnostic, tmp_path, lean=True, failed=~np.isin(ids, order[:k]))
         assert result.counts.usable == k
         if k < minimum:
             assert not result.estimates, f"estimates from {k} usable runs, below the minimum {minimum}"
@@ -331,11 +350,11 @@ def check_minimum(diagnostic: Any, tmp_path: Path) -> None:
 def check_constant(diagnostic: Any, tmp_path: Path) -> None:
     """C4: the same double in every usable run: the constant note (not the point run's, PT6), the shared observations,
     no estimates; constant to rounding (10⁻¹⁵ relative): no constant note, and estimates (or observations)."""
-    _, _, constant = run(diagnostic, tmp_path, y=lambda c: np.full(len(c.design), 7.0))
+    _, _, constant = run(diagnostic, tmp_path, lean=True, y=lambda c: np.full(len(c.design), 7.0))
     assert not constant.estimates
     assert ("constant" in codes(constant)) == diagnostic.constant_note, codes(constant)
     assert constant.observations and constant.observations[0].key == "shared"
-    _, _, wiggle = run(diagnostic, tmp_path, y=lambda c: 7.0 * (1.0 + ROUNDING_WIGGLE * c.f()))
+    _, _, wiggle = run(diagnostic, tmp_path, lean=True, y=lambda c: 7.0 * (1.0 + ROUNDING_WIGGLE * c.f()))
     assert "constant" not in codes(wiggle), "constant to rounding is not constant (0035)"
     assert wiggle.estimates if diagnostic.has_estimates else wiggle.observations
 
@@ -343,15 +362,15 @@ def check_constant(diagnostic: Any, tmp_path: Path) -> None:
 def check_units(diagnostic: Any, tmp_path: Path) -> None:
     """C5: y -> a·y (a = 2⁻⁴⁰, 2⁴⁰) bit for bit, and y -> y + b (b = 3·max|y|) within UNITS_RTOL: notes, counts, and
     usable runs unchanged; each number transformed as declared."""
-    case, made, ref = run(diagnostic, tmp_path)
+    case, made, ref = run(diagnostic, tmp_path, lean=True)
     y = case.f()
     for a in UNITS_SCALES:
-        _, _, got = run(diagnostic, tmp_path, y=a * y)
+        _, _, got = run(diagnostic, tmp_path, lean=True, y=a * y)
         assert same_notes(got) == same_notes(ref) and got.counts == ref.counts, f"a = {a}: other notes or counts"
         assert_transformed(diagnostic, got, ref, a, 0.0, exact)
     usable = usable_y(made)
     shift = 3.0 * float(np.max(np.abs(usable)))
-    _, _, got = run(diagnostic, tmp_path, y=y + shift)
+    _, _, got = run(diagnostic, tmp_path, lean=True, y=y + shift)
     assert same_notes(got) == same_notes(ref) and got.counts == ref.counts, "a shift changed the notes or counts"
     tol = shift_tolerance(1.0, shift, float(np.ptp(usable)), float(np.max(np.abs(usable))))
     assert_transformed(diagnostic, got, ref, 1.0, shift, tol)
@@ -362,14 +381,14 @@ def check_large_offset(diagnostic: Any, tmp_path: Path) -> None:
     (absolute when dimensionless); but the relative spread, the numbers a cutoff at a fraction of a line's range
     decides (lines' k* and rates, declared through a logarithm; record 0077), and a fixture whose distinct values the
     offset merges (the point run's, 0061)."""
-    case, made, ref = run(diagnostic, tmp_path)
+    case, made, ref = run(diagnostic, tmp_path, lean=True)
     y = case.f()
     offset = 1e6 + 1e-3 * y
     usable = made.usable("y")
     if len(np.unique(offset[usable])) < len(np.unique(y[usable])):
         assert diagnostic.name in C6_EXEMPT, f"{diagnostic.name}'s fixture: the offset merges its distinct values"
         pytest.skip(f"C6: the offset merges {diagnostic.name}'s fixture's distinct values (contracts.md, C6; 0061)")
-    _, _, got = run(diagnostic, tmp_path, y=offset)
+    _, _, got = run(diagnostic, tmp_path, lean=True, y=offset)
     assert "constant" not in codes(got)
     y_range = float(np.ptp(offset[usable]))
 
@@ -390,12 +409,13 @@ def check_deterministic(diagnostic: Any, tmp_path: Path) -> None:
     assert render(one, case.spec) == render(two, case.spec)
     for figure in one.figures:
         assert (tmp_path / "one" / figure.card).read_bytes() == (tmp_path / "two" / figure.card).read_bytes()
-    first = repr(diagnostic.compute(made, case.ctx, estimates_allowed=True))
+    lean = dataclasses.replace(case.ctx, interval_method=LEAN) if diagnostic.interval_method else case.ctx  # 0084
+    first = repr(diagnostic.compute(made, lean, estimates_allowed=True))
     for offset in OFFSETS:
         keep: list[Any] = []
         placed = sd.batch_at_offset(made, offset, keep)
         scramble_heap(offset, keep)
-        assert repr(diagnostic.compute(placed, case.ctx, estimates_allowed=True)) == first, f"offset {offset}"
+        assert repr(diagnostic.compute(placed, lean, estimates_allowed=True)) == first, f"offset {offset}"
 
 
 def check_spawn_tag(diagnostic: Any, tmp_path: Path) -> None:
@@ -444,7 +464,7 @@ def check_shared_observations(diagnostic: Any, tmp_path: Path) -> None:
     """C10: with a usable run, the shared observations (minimum, maximum, relative spread), labeled with what they are
     of ("Of the n usable runs"; the point run's "Of the n runs at the point")."""
     for kw in ({}, {"failed": lambda c: np.arange(len(c.design)) > 0}):
-        _, made, result = run(diagnostic, tmp_path, **kw)
+        _, made, result = run(diagnostic, tmp_path, lean=True, **kw)
         y = usable_y(made)
         table = result.observations[0]
         n = result.counts.usable
@@ -586,12 +606,12 @@ def check_noisy_note(diagnostic: Any, tmp_path: Path) -> None:
     nominal = tuple(p.nominal for p in spec.parameters)
     mv = sd.model_version_id(spec)
     record = MeasuredNoisy(sha256_hex("a point run"), mv, "y", nominal, 11, 0.01, None)
-    _, made, result = run(diagnostic, tmp_path, measured_noisy=(record,))
+    _, made, result = run(diagnostic, tmp_path, lean=True, measured_noisy=(record,))
     text = note(result, "measured_noisy")
     y = usable_y(made)
     assert fmt(0.01 / float(np.ptp(y))) in text and "nominal point" in text, text
     other = MeasuredNoisy(sha256_hex("a point run"), mv, "z", nominal, 11, 0.01, None)
-    _, _, result = run(diagnostic, tmp_path, measured_noisy=(other,))
+    _, _, result = run(diagnostic, tmp_path, lean=True, measured_noisy=(other,))
     assert "measured_noisy" not in codes(result), "a note from another model prediction's point run"
 
 
@@ -603,7 +623,7 @@ def check_round_trip(diagnostic: Any, tmp_path: Path) -> None:
         raise AssertionError(f"not strict JSON: {constant}")
 
     for kw in ({}, {"failed": lambda c: masks(c)["block"], "kinds": KINDS}):
-        _, _, result = run(diagnostic, tmp_path, **kw)
+        _, _, result = run(diagnostic, tmp_path, lean=True, **kw)
         text = result.to_json()
         data = json.loads(text, parse_constant=strict)
         back = DiagnosticResult.from_json(text)
@@ -716,6 +736,13 @@ class BrokenVariance(Toy):
         n = len(v)
         var = (np.mean(v * v) - np.mean(v) ** 2) * n / (n - 1)
         return np.array([np.mean(v), math.sqrt(max(var, 0.0))])
+
+
+class BrokenSkipsByLog(Toy):
+    """C6: declares its standard deviation computed through a logarithm, so C6 would leave it out (record 0077,
+    Review round 1: C6's skip is lines' k* and rates only)."""
+
+    TRANSFORMS = MappingProxyType({**Toy.TRANSFORMS, ("moments", "std"): (Transform.SCALED, True)})
 
 
 class BrokenClock(Toy):
@@ -884,7 +911,10 @@ BROKEN: dict[str, list[Broken]] = {
     "check_minimum": [Broken(BrokenIgnoresMinimum(), ValueError, "below its minimum")],
     "check_constant": [Broken(BrokenRelativeConstant(), match="constant to rounding")],
     "check_units": [Broken(BrokenAbsoluteConstant(), match="other notes")],
-    "check_large_offset": [Broken(BrokenVariance(), match="expected")],
+    "check_large_offset": [
+        Broken(BrokenVariance(), match="expected"),
+        Broken(BrokenSkipsByLog(), match="through a logarithm of lines' only"),
+    ],
     "check_deterministic": [Broken(BrokenClock(), match="differ")],
     "check_spawn_tag": [Broken(BrokenSeedPlusOne(), match="another tag"), Broken(BrokenNoTag(), match="seed")],
     "check_never_empty": [Broken(BrokenNoEstimates(), match="no estimates and no note")],
@@ -932,3 +962,16 @@ def test_the_toy_never_skips_c6(tmp_path: Path) -> None:
         check_large_offset(Toy(), tmp_path)
     except pytest.skip.Exception as skipped:
         raise AssertionError(f"the toy skipped C6: {skipped}") from None
+
+
+def test_lean_is_the_lean_fake_only_where_asked(tmp_path: Path) -> None:
+    """Record 0084, Review round 1: ``lean`` gives a diagnostic with intervals the lean fake (25 resamples of its own
+    estimators); without it, the registry's bootstrap; a diagnostic with no interval method keeps none."""
+    _, _, lean = run(Toy(), tmp_path, lean=True)
+    _, _, full = run(Toy(), tmp_path)
+    assert [t.interval.method for t in lean.estimates] == [LEAN.name]
+    assert lean.estimates[0].interval.settings["resamples"] == LeanIntervalMethod.resamples == 25
+    assert [t.interval.method for t in full.estimates] == ["bootstrap"]
+    assert [e.value for e in lean.estimates[0].estimates] == [e.value for e in full.estimates[0].estimates]
+    case, _, _, _ = run_in(base.get("point_run"), tmp_path, lean=True)
+    assert case.ctx.interval_method is None

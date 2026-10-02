@@ -176,12 +176,13 @@ class LinearModel(DiagnosticBase):
             level_rows = [*zip(keys, labels, strict=True), *_LEVEL_LABELS.items()]
             minimum = linear_min_runs(d)
             title = (f"Coefficients in {units}. " if units else "") + _LEVELS_SENTENCE
-            observations = (_fits.per_level(A, y, usable, sizes, minimum, level_rows, title),)
+            per_key = {key: units for key in _COEFFICIENT_KEYS}  # in the cells; the title names them (0078 item 2)
+            observations = (_fits.per_level(A, y, usable, sizes, minimum, level_rows, title, per_key),)
         if not estimates_allowed:
             return Computation(observations=observations)
         values = _fits.fit_values(A[rows], y[rows])
         if not math.isfinite(values[0]):
-            rank = fitting.rank(A[rows])
+            rank = fitting.least_squares(A[rows], y[rows]).rank  # the rank that left the fit undefined
             text = (
                 f"The usable runs' unit coordinates have rank {rank} with the constant, "
                 f"below the fit's {d + 1} coefficients: no fit."
@@ -213,7 +214,7 @@ class LinearModel(DiagnosticBase):
             loo = [(estimate("loo", _LOO_LABEL, float(values[-1]), loo_iv), loo_iv.undefined)]
             tables.append(_table("loo", "Held out", "Held out", loo, "", ctx, n_u, distinct="the error"))
         else:  # uncertainty.md, Rules: where a value can't be computed, no estimate, and a note (record 0078 item 5)
-            notes = (Note("loo_undefined", "The leave-one-out error is undefined: a usable run has leverage 1."),)
+            notes = (_loo_note(A[rows], y[rows]),)
         return Computation(estimates=tuple(tables), observations=observations, notes=notes)
 
     def figures(
@@ -251,6 +252,18 @@ class LinearModel(DiagnosticBase):
 
 
 _LEVELS_SENTENCE = "Each level is fitted on the usable runs among its first points."
+
+
+def _loo_note(A: np.ndarray, y: np.ndarray) -> Note:
+    """Return the note for a LOO error that is undefined while the fit is defined (record 0078 item 5).
+
+    It names a usable run of leverage 1 only when one has exactly 1 (PRESS's r/(1 - h) divides by 0); otherwise
+    (an overflow) it says only that the error is undefined on these runs (Review round 1).
+    """
+    text = "The leave-one-out error is undefined on these runs."
+    if np.any(fitting.least_squares(A, y).leverages == 1):
+        text = "The leave-one-out error is undefined: a usable run has leverage 1."
+    return Note("loo_undefined", text)
 
 
 def _table(

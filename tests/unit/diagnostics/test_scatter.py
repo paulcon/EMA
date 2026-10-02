@@ -281,6 +281,30 @@ def test_all_failed_draws_the_strips_only(tmp_path):
     assert panel["points"] == [] and len(panel["not_usable"]) == 12
 
 
+@pytest.mark.parametrize("n_usable", [1, 2])
+def test_figures_at_one_and_two_usable_runs(n_usable, tmp_path):
+    """Figures (0051; record 0076 items 7-9, Review round 1): one usable run: a panel per varied model parameter with
+    its one point and its strip, no bin means, and no histogram (its one bin would have no width); two usable runs:
+    the histogram too, of ⌊√2⌋ = 1 bin from the minimum to the maximum, holding both."""
+    case = sd.prepare(SCATTER)
+    case.ctx = dataclasses.replace(case.ctx, interval_method=NoIntervals())
+    made = sd.batch(case, failed=np.arange(len(case.design)) >= n_usable)
+    result = sd.evaluate(case, made, tmp_path)
+    n = len(case.design)
+    assert result.counts.usable == n_usable and not result.estimates
+    panels = ["scatter_a", "scatter_b", "scatter_c"]
+    assert [f.name for f in result.figures] == panels + ([HISTOGRAM] if n_usable == 2 else [])
+    for name in panels:
+        panel = card(tmp_path, name)["panels"][0]
+        assert "bins" not in panel and len(panel["points"]) == n_usable and len(panel["not_usable"]) == n - n_usable
+    assert result.figures[0].caption == "y against each model parameter."
+    if n_usable == 2:
+        y = made.runs.values["y"][:2]
+        histogram = card(tmp_path, HISTOGRAM)["panels"][0]
+        assert histogram["counts"] == [2] and histogram["edges"] == [float(y.min()), float(y.max())]
+        assert result.figures[-1].caption.endswith(f"The {n - 2} runs not usable are not in it.")
+
+
 def test_s5_r4a_is_constant_and_r4b_is_not(tmp_path):
     """S5 (0035) and the Expected answers: R4a: the constant note, the observations, no estimates, the panels and no
     histogram; R4b: estimates, and a relative spread of 8·10⁻¹³ within 1%."""
@@ -401,6 +425,9 @@ def test_a_model_parameter_named_histogram_keeps_its_own_figure():
     """Record 0076: a model parameter named histogram is drawn as scatter-histogram; the rest as scatter_<name>."""
     assert figure_name("x1") == "scatter_x1"
     assert figure_name("histogram") == "scatter-histogram" != HISTOGRAM
+    for name in ("Histogram", "HISTOGRAM", "hIsToGrAm"):  # a case-insensitive disk (Review round 1)
+        assert figure_name(name) == f"scatter-{name}" and figure_name(name).casefold() != HISTOGRAM.casefold()
+    assert figure_name("Histograms") == "scatter_Histograms"
     assert re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", figure_name("_a"))
 
 

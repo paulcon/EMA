@@ -22,7 +22,7 @@ from ema.types.errors import RequestError
 from ema.types.results import Observation, ObservationTable
 
 #: A sampler's name, as designs.md writes them: letters, digits, "_" and "-".
-_SAMPLER = re.compile(r"[A-Za-z][A-Za-z0-9_-]*")
+_SAMPLER = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")  # anchored: a JSON schema's pattern matches anywhere
 #: The values after the coefficients, in order.
 FIT_KEYS = ("relative_residual", "r2", "loo")
 
@@ -94,18 +94,26 @@ def per_level(
     minimum: int,
     rows: Sequence[tuple[str, str]],
     title: str,
+    units: Mapping[str, str] | None = None,
 ) -> ObservationTable:
     """Return the table of the fit at each level: its usable runs among its first n_l points, then its values.
 
     linear_model.md (The levels, as observations; LM5): a level with fewer than ``minimum`` usable runs, or a value
     that is undefined, has "none". ``rows`` are each value's (key, label), the coefficients' then ``FIT_KEYS``'.
+    ``units`` gives a key's units (the coefficients' are the model prediction's), stored in each of its cells with a
+    number; the report leaves them out when ``title`` names them (record 0078 item 2, Review round 1).
     """
+    units = units or {}
     columns: list[tuple[Observation, ...]] = []
     for n_l in sizes:
         take = np.flatnonzero(usable[:n_l])
         values = fit_values(A[take], y[take]) if len(take) >= minimum else np.full(len(rows), math.nan)
-        cells = [Observation(key, label, float(v) if math.isfinite(v) else "none", "")
-                 for (key, label), v in zip(rows, values, strict=True)]  # fmt: skip
+        cells = [
+            Observation(key, label, float(v), units.get(key, ""))
+            if math.isfinite(v)
+            else Observation(key, label, "none", "")
+            for (key, label), v in zip(rows, values, strict=True)
+        ]
         columns.append((Observation("usable", "Usable runs", f"{len(take)} of {n_l}", ""), *cells))
     table_rows = tuple(zip(*columns, strict=True))
     heading = "The fit at each level"

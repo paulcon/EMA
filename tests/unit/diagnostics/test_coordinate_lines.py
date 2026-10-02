@@ -140,6 +140,36 @@ def test_cl3_the_constructed_spectrum_has_rate_1():
     assert analysis.fit[0] == pytest.approx(1.0, abs=1e-6)
 
 
+_GAPS = np.ones(9, dtype=bool)
+_GAPS[[2, 6]] = False
+_ONE_GAP = np.arange(9) != 4
+
+
+@pytest.mark.parametrize(
+    ("y", "usable", "all_constant", "cells", "constant"),
+    [
+        pytest.param(np.full(9, 5.0), _GAPS, False, ("7 of 9", 0.0, "none", "none: 2 runs not usable"), 5.0,
+                     id="constant line with runs not usable"),
+        pytest.param(np.full(9, 5.0), _GAPS, True, ("7 of 9", 0.0, "none", "none: constant"), None,
+                     id="constant diagnostic, incomplete line"),
+        pytest.param(np.arange(9.0), np.zeros(9, dtype=bool), False, ("0 of 9", "none", "none", "none: 9 runs not usable"),
+                     None, id="no usable run"),
+        pytest.param(np.arange(9.0), _ONE_GAP, False, ("8 of 9", 8.0, "none", "none: 1 run not usable"), None,
+                     id="1 run not usable"),
+    ],
+)  # fmt: skip
+def test_the_cells_precedence(y, usable, all_constant, cells, constant):
+    """Record 0077 item 2 (Review round 1): no usable run, then the diagnostic constant, then runs not usable on the
+    line, then a constant line; a constant line with runs not usable keeps its note's value and says the runs not
+    usable; the count is singular for 1 run. The range's units only with a range."""
+    analysis = _lines.analyze(np.where(usable, y, np.nan), usable, all_constant=all_constant)
+    got = analysis.cells("along a", "m")
+    assert tuple(o.key for o in got) == ("usable", "range", "degrees", "rate")
+    assert tuple(o.value for o in got) == cells
+    assert got[1].units == ("" if cells[1] == "none" else "m")
+    assert analysis.constant == constant and analysis.fit is None and analysis.c is None
+
+
 @pytest.mark.parametrize("n", [33, 65, 129])
 def test_r7_along_c_converges_to_log10_phi(n, tmp_path):
     """Expected answers: R7 along c (R11's g) at n = 33, 65, 129: log10 φ = 0.2090 within 0.01."""

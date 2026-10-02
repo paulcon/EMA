@@ -344,16 +344,24 @@ def _estimates_section(result: DiagnosticResult) -> list[str]:
 # Observations (0034)
 
 
-def _observation_cell(o: Observation) -> str:
+def _observation_cell(o: Observation, title: str = "") -> str:
+    """Write an observation: its value, then its units, but where its table's title names them.
+
+    A title that says "in <units>." ("Coefficients in m³/yr.") gives the units once for the table, so each cell
+    leaves them out (record 0078 item 2, Review round 1).
+    """
+    units = "" if o.units and f" in {o.units}." in f" {title}" else o.units
     if isinstance(o.value, str):
-        return _cell(o.value) + (f" {_cell(o.units)}" if o.units else "")
-    return _number(o.value, o.units)
+        return _cell(o.value) + (f" {_cell(units)}" if units else "")
+    return _number(o.value, units)
 
 
 def _observations_section(result: DiagnosticResult, spec: ModelSpec) -> list[str]:
     blocks = ["## Observations"]
     for table in result.observations:
-        rows = [_label_cells(row[0].label) + [_observation_cell(o) for o in row] for row in table.rows if row]
+        rows = [
+            _label_cells(row[0].label) + [_observation_cell(o, table.title) for o in row] for row in table.rows if row
+        ]
         _fit(table.columns, rows, f"observations table {table.key}'s columns")
         blocks.append(_table(table.columns, rows))
         if table.title and table.title != table.columns[0]:

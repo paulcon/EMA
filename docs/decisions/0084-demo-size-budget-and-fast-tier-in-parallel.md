@@ -37,15 +37,52 @@ We will:
 2. **Run the fast tier with `-n auto`** during the demo build: `uv run pytest -q -n auto && uv run lint-imports`,
    with the 30 s budget on its wall-clock time. The serial command still passes; it is just slower.
 
+**Review round 1** (step 12's review measured the bootstrapped diagnostics' cost: about 30 s of CPU each in the
+diagnostic contract; fixed on `demo-diagfix`)
+
+3. **A lean interval method in the diagnostic contract's checks that don't test the intervals:**
+   `tests.support.fakes.LeanIntervalMethod`, the fake interval method (C30) with 25 resamples drawn from the stream
+   it is given, the range of the defined values, and "none" under 5 defined. `run_in(..., lean=True)` gives it to
+   a diagnostic with an interval method in C2, C3, C4, C5, C6, C10, C16, C17, and C7's recomputations at the 8
+   memory offsets; C1, C7's two full evaluations, C8, C9, C11, C12, C18 keep the registry's bootstrap, and C19 its
+   spy. The lean method still runs the diagnostic's own estimators on resamples, so C5's transform checks keep
+   their force (an interval's ends are a min and a max of estimates, exact under a·y with a a power of 2), as do C7's
+   offsets (each resample's fit at each offset) and C2's independence of the runs not usable. Every broken toy
+   still fails its check (the meta-test); the lean method keeps C30's promises (the interval contract runs over it);
+   a test pins where it is used. A diagnostic with no interval method is unchanged.
+4. **Measured** on this Mac (8 cores), never quiet: other agents' tests held the load average at 12–28 throughout.
+   Each tree run back to back, alternating, `pytest -q -n auto`:
+
+   | | Load average (1 min) | Wall | CPU (user) |
+   |---|---|---|---|
+   | Before (c36d3c8), run 1 | 12.8 | 47.7 s | 182 s |
+   | After, run 1 | 12.3 | 31.8 s | 151 s |
+   | Before, run 2 | 15.7 | 76.3 s | 182 s |
+   | After, run 2 | 27.0 | 53.3 s | 169 s |
+
+   The diagnostic contract alone (`tests/contracts/diagnostic.py`, `-n auto`, load 22–28): 36.2 s → 15.1 s wall,
+   and its tests' summed time 187 s → 61 s (the linear model's 84 → 19 s, scatter's 48 → 15 s, coordinate lines'
+   24 → 11 s, the toy's 13 → 3 s). The 30 s budget holds at a load average near 12, not above it; the remaining
+   longest fast tests are the bootstrap's own determinism tests (`tests/unit/numerics/test_determinism.py`, about
+   4–12 s each) and the checks that keep the bootstrap (C9, C7, C11 over the linear model, 3–4 s each).
+
 ## Alternatives considered
 
 - **Trim now:** the reviews' refusals and checks are what the extra lines buy; trimming them before the demo
   trades correctness for a count.
 - **Move more tests to the slow tier:** would hide the process and determinism contracts from the check run
   after every edit.
+- **The lean method everywhere in the contract** (item 3): C8 (another tag moves the intervals), C9, C11 (the line
+  under each table), C12, and C18 read what the bootstrap writes or how long it takes; they keep it.
+- **A leaner fit in `ema.numerics.fitting`** (record 0078, Consequences): speeds the diagnostics themselves, not
+  only the tests; step 02's module, shared with the polynomial model, left for the final cleanup.
 
 ## Consequences
 
 - Spec edits on acceptance: `scope.md`'s budget and `architecture.md` §11's table (with the final counts);
   `contracts.md`'s Test tiers ("serially" becomes "with `-n auto`"); `CLAUDE.md`'s fast-tier command.
 - Agents in waves 5–8 check the fast tier with `-n auto` (`docs/notes/demo_agent_brief.md`).
+- Spec edits on acceptance (Review round 1): `contracts.md`, The contract model: the checks that don't test the
+  intervals (C2–C6, C10, C16, C17, C7 at its offsets) may give a diagnostic the lean fake interval method; the
+  others keep the registered one. The polynomial model (step 13) gets the lean method in those checks with no
+  change of its own.

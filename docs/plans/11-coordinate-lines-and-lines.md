@@ -89,3 +89,6 @@ Each is record 0077's, numbered as there, one line each.
   plus the contract's 38 checks over the two diagnostics, about 7 s serially (18 two-panel PNGs, 0.1–0.4 s each);
   `-n auto` spreads both. The slow tier: R8 through the runner (about 20 s), R7's golden report (5 PNGs), CL9's
   figures on R5, and R5's random lines (timeouts).
+- **Review round 1** (0 blockers, 0 major, 1 minor, 3 nits; fixed on `demo-diagfix`, record 0077 items 19–20): a
+  parametrized test of `analyze(...).cells(...)`'s precedence over four paths; C6's skip of numbers through a
+  logarithm limited to `C6_LOG_SKIP` = coordinate lines and lines, with a broken toy in the meta-test.
