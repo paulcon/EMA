@@ -1,12 +1,12 @@
 """The test tiers (contracts.md, Test tiers; record 0059, item 4).
 
-The fast tier runs by default. Tests marked ``slow`` run only with ``--slow``. The reference models are programs
-and data, with file names that repeat, so pytest never collects them.
+The fast tier runs by default. Tests marked ``slow`` run only with ``--slow``. The reference models and the test
+models (``tests/models``) are programs and data, with file names that repeat, so pytest never collects them.
 """
 
 import pytest
 
-collect_ignore = ["src/ema/reference_models"]
+collect_ignore = ["src/ema/reference_models", "tests/models"]
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
