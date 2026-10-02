@@ -78,6 +78,33 @@ merged: the six diagnostics, the workspace, the CLI, the MCP server)
    (`check_never_empty`, 3.6 s), which keep the bootstrap by item 3. Proposed: nothing moves now; the budget is
    among item 1's numbers measured at the end of the demo build (step 17), with this share named there.
 
+**Final counts (step 17, 2026-10-02)**, measured on `demo` after every step's review fixes: code lines, without
+docstrings, comments, or blank lines (the same counter for every package):
+
+| Package | Measured | §11 |
+|---|---|---|
+| `ema.types` | 2,167 | 860 |
+| `ema.designs` | 586 | 388 |
+| `ema.numerics` | 390 | 553 |
+| `ema.models` | 1,363 | 1,323 |
+| `ema.store` | 1,235 | 715 |
+| `ema.plotting`, `ema.report` | 708 | 540 |
+| `ema.runner`, `ema.approval`, the root's `__init__` | about 488 | 418 |
+| `ema.diagnostics` | 2,282 | 2,004 |
+| `ema.workspace` | 915 | 685 |
+| `ema.cli`, `ema.mcp` | 823 | 714 |
+| **Total** | **10,957** | **8,200** (budget 8,300) |
+
+The reference models (82 lines of Python) count against their own 1,000.
+
+6. **For the owner to choose** (this record stays proposed until then): (a) raise `scope.md`'s budget to 11,000
+   and set §11's rows to the measured counts, or (b) keep 8,300 and trim, starting where the overrun is largest
+   and least load-bearing: `ema.types` (+1,307: validation in the result and run types that the store and the
+   diagnostics also check; field-path messages in the model spec's reader), `ema.store` (+520: one argument per
+   line in long inserts; checks W5 repeats from the types), and `ema.workspace` (+230: the thread guard and the
+   root checks). A trim to 8,300 is about a day of work and would remove checks the reviews asked for; (a) is the
+   recommendation.
+
 ## Alternatives considered
 
 - **Trim now:** the reviews' refusals and checks are what the extra lines buy; trimming them before the demo
