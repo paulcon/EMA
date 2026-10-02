@@ -14,6 +14,13 @@ dependencies = [
     "matplotlib>=3.9.2",
 ]
 
+# The MCP server's extra (scope.md; architecture.md §8): its lower bound is the release the server's code was written
+# and tested against (record 0081 item 1).
+[project.optional-dependencies]
+mcp = [
+    "mcp>=2.2.0",
+]
+
 [build-system]
 requires = ["uv_build>=0.12.21,<0.13"]
 build-backend = "uv_build"
@@ -29,6 +36,8 @@ dev = [
     "sphinx>=9.1.0",
     "myst-parser>=5.1.0",
     "furo>=2025.12.19",
+    # The MCP server and its tests (record 0059, item 3; step 15).
+    "ema[mcp]",
 ]
 
 # ---------------------------------------------------------------------------------------------------------
@@ -112,6 +121,7 @@ exclude_type_checking_imports = true
 name = "AR1 One-way layers"
 type = "layers"
 layers = [
+    "ema.mcp",
     "ema.workspace",
     "ema.runner | ema.approval | ema.diagnostics",
     "ema.plotting | ema.report",
@@ -142,6 +152,32 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
+name = "AR3 The MCP server calls only the workspace"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+    "ema.mcp",
+]
+# Step 15 (record 0081): the MCP server imports only ema.workspace and ema.types, the standard library, and the mcp
+# SDK; never ema.cli, which sits above it (0061); and no numerical library, so it can compute no number itself (P1).
+forbidden_modules = [
+    "ema.numerics",
+    "ema.designs",
+    "ema.models",
+    "ema.store",
+    "ema.plotting",
+    "ema.report",
+    "ema.runner",
+    "ema.approval",
+    "ema.diagnostics",
+    "ema.reference_models",
+    "ema.cli",
+    "numpy",
+    "scipy",
+    "matplotlib",
+]
+
+[[tool.importlinter.contracts]]
 name = "AR4 Only the runner runs a model"
 type = "forbidden"
 allow_indirect_imports = true
@@ -167,6 +203,8 @@ source_modules = [
     "ema.diagnostics",
     # Step 14: the workspace orchestrates the runs through ema.runner, and never runs a model itself.
     "ema.workspace",
+    # Step 15: the MCP server.
+    "ema.mcp",
 ]
 forbidden_modules = [
     "ema.models.execute",
@@ -187,6 +225,7 @@ source_modules = [
     "ema.approval",
     "ema.diagnostics",
     "ema.workspace",
+    "ema.mcp",
 ]
 forbidden_modules = [
     "sqlite3",
@@ -225,6 +264,7 @@ source_modules = [
     "ema.approval",
     "ema.diagnostics",
     "ema.workspace",
+    "ema.mcp",
 ]
 forbidden_modules = [
     "ema.reference_models",

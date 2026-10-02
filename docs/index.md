@@ -114,3 +114,14 @@ The workspace (step 14):
 
    ema.workspace
 ```
+
+The MCP server (step 15):
+
+```{eval-rst}
+.. Step 15: the MCP server (a block of its own, to ease merging).
+
+.. autosummary::
+   :toctree: _autosummary
+
+   ema.mcp.server
+```
