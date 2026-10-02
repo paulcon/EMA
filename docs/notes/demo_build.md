@@ -137,12 +137,17 @@ State lives in git and on disk; nothing is only in the conversation.
    (`docs/plans/NN-*.md`) and record, saying "finish this step".
 2. The last entries in "Rounds" above say which step is at which stage (built, in review, fixing). A step whose
    fixing round is committed but not re-reviewed gets a round-2 review.
-3. Branches: `demo` holds waves 1–2 (reviewed) plus the cleanup. Wave 3 and 4 work is on `demo-04-models`,
-   `demo-06-store`, `demo-08-reports`, `demo-07-runner` (04 + 06 merged in), `demo-09-diagnostics` (from 08).
-   Merge order into `demo`: 04, 06, 08, then 07, then 09; conflicts are usually only `pyproject.toml`'s
-   import contracts (keep both sides) and `docs/index.md` (keep both blocks).
-4. Then continue the waves table: wave 5 (diagnostics 10–13, in parallel on top of 09), 6 (workspace), 7 (MCP,
-   CLI), 8 (demo). Agents follow `docs/notes/demo_agent_brief.md`.
+3. Branches (as of 2026-10-02 afternoon): `demo` holds steps 01–12 and 14, reviewed, with their fixes. Still
+   on their own branches: `demo-13-polynomial` (building), `demo-15-mcp` (building; writes
+   `docs/notes/demo_mcp.md`, the demo's instructions), `demo-16-cli` (building), `demo-14fix` (the workspace's
+   review fixes, incl. a T5 hole). Merge each into `demo` when its worktree's checks pass; conflicts are
+   usually only `docs/index.md`, `tests/slow/test_wheel.py`, and `pyproject.toml`'s import contracts (keep
+   both sides; AR1's layers: cli, mcp, workspace, runner|approval|diagnostics, plotting|report, models|store,
+   numerics|designs, types).
+4. Then: reviews of 13, 15, 16 (and 12's, if not logged below); a cleanup pass for the diagnostics' minors;
+   the demo (step 17): follow `docs/notes/demo_mcp.md`, register the server, run the demo prompts once; a
+   final integrated review; STATUS.md; record 0084's final counts. Agents follow
+   `docs/notes/demo_agent_brief.md`.
 - **Step 06, fixing round 1** (d9affd4): both majors (the directory race: rename-only under BEGIN IMMEDIATE,
   4-process test; an approval tied to one result of its own request with every approved run used, three new
   broken toys) and every minor fixed; `current_keys` added for the runner. Round 2 review comes with wave 3's
@@ -210,3 +215,18 @@ State lives in git and on disk; nothing is only in the conversation.
   lock for two threads; W6 under its transaction). Steps 04+05, 06, 08 done. Left for the final cleanup: under
   load averages of 30–67, the model contract's 0.25 s `TIMEOUT_S` and a 2 s timing test in designs fail
   intermittently (pass alone).
+- **Step 14, review round 1** (04b3217): 0 blockers, 1 major, 5 minor, 6 nits; §7's order, the lock's release on
+  every path, C50, two Workspaces on two threads (one holding the lock while its approver waits, the other
+  pricing and reading), byte-identical drawing from two threads, replay, export verified. Major: T5 — a linked
+  spec's files checked against the link's directory, letting a model file outside the root through
+  `save_model`/`load_model`. Fixing round 1 on `demo-14fix`; the MCP agent told that a Workspace is bound to its
+  thread.
+- **Step 10, review round 1**: 0 blockers, 0 major, 3 minor, 3 nits; every known answer and all 16 mock
+  interval ends recomputed independently (within 4.4e-16); `reduceat` deterministic across processes and
+  offsets. Step 10 done. Minors to the diagnostics' cleanup pass: a parameter named `Histogram` colliding with
+  the histogram on a case-insensitive disk; the one-usable-run figures untested; the fast tier's bootstrap cost.
+- **Step 11, review round 1**: 0 blockers, 0 major, 1 minor, 3 nits; R7's rates at n = 17 and 33, R3's k* and
+  rates, given and random lines, constant lines, and R11 recomputed in exact arithmetic and agreeing; C6's
+  exemption of k* and rates confirmed by contracts.md's own wording. Step 11 done. To the cleanup pass: a test
+  of the cells' precedence (constant line with runs not usable, and three more paths); C6's skip limited to
+  named diagnostics.
