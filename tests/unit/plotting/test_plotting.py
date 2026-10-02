@@ -9,8 +9,10 @@ import matplotlib
 import numpy as np
 import pytest
 from matplotlib import cbook
+from matplotlib.container import ErrorbarContainer
 
 from ema import plotting
+from ema.plotting import figures
 from ema.types.identity import id_array, sha256_hex
 from ema.types.results import Figure
 from ema.types.runs import FailureKind
@@ -136,6 +138,22 @@ def test_intervals_and_empty_panel():
     assert ax.get_yscale() == "log"
     plotting.empty_panel(ax2, "no spectrum: constant")
     assert [t.get_text() for t in ax2.texts] == ["no spectrum: constant"]
+
+
+def test_an_intervals_legend_swatch_is_a_dot_with_its_bar():
+    """Record 0079 (Review round 1): the Sobol figure's legend names each series by a dot with a bar, as the series
+    is drawn, not a line; the empty swatch moves no axis limit."""
+    _, (ax,) = plotting.new_figure(1)
+    x = np.array([0.0, 1.0])
+    for series, label in enumerate(("first-order", "total")):
+        plotting.intervals(ax, x, np.array([0.2, 0.5]), np.array([0.1, 0.4]), np.array([0.3, 0.6]), series=series,
+                           offset=0.15 * (2 * series - 1), label=label)  # fmt: skip
+    handles, labels = ax.get_legend_handles_labels()
+    assert labels == ["first-order", "total"] and all(isinstance(h, ErrorbarContainer) for h in handles)
+    dots = [h[0] for h in handles]
+    assert [d.get_marker() for d in dots] == ["o", "o"] and all(h.has_yerr for h in handles)
+    assert [d.get_color() for d in dots] == [figures.SERIES[0], figures.SERIES[1]]
+    assert ax.get_ylim()[0] > 0.0  # no point at 0 from the swatch
 
 
 def test_new_figure_layouts():

@@ -160,22 +160,32 @@ class Point:
         return {"type": "object", "additionalProperties": {"type": "number"}}
 
 
+#: A registry's name (a sampler, a basis), as designs.md writes them: a letter, then letters, digits, "_", "-".
+_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")  # anchored: a JSON schema's pattern matches anywhere
+
+
 @dataclass(frozen=True)
 class Name:
-    """One of the names a registry holds now (a sampler, a basis), or of a fixed list."""
+    """A name of one of a registry's implementations (a sampler, a basis), read as text.
+
+    Any well-formed name is read; one the registry doesn't hold is refused when the design is built, before any
+    run, by the registry's own "sampler X comes in a later version" (designs.md, Samplers; G17; PM1). So C14 can
+    read a parameter's other value, "sobol", before it prepares the request. The JSON schema is a string of the
+    name's pattern, with the registered names as ``examples``, not an ``enum``: an enum would refuse the next
+    version's names in other words than the registry's (records 0076 item 4, 0078 item 1, 0079 Review round 1).
+    """
 
     choices: Callable[[], Sequence[str]]
 
     def read(self, value: Any, what: str) -> str:
-        """Return the name; refuse one that isn't a choice, naming the choices."""
-        known = tuple(self.choices())
-        if not isinstance(value, str) or value not in known:
-            raise RequestError(f"{what} is one of {', '.join(known)}, not {value!r}")
+        """Return the name; refuse what isn't one, naming the registered ones."""
+        if not isinstance(value, str) or not _NAME.fullmatch(value):
+            raise RequestError(f"{what} is a name, such as {', '.join(self.choices())}; not {value!r}")
         return value
 
     def schema(self) -> Mapping[str, Any]:
-        """Return a string among the choices."""
-        return {"type": "string", "enum": list(self.choices())}
+        """Return a string of the name's pattern, with the registered names as examples."""
+        return {"type": "string", "pattern": _NAME.pattern, "examples": list(self.choices())}
 
 
 @dataclass(frozen=True)

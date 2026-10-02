@@ -9,41 +9,16 @@ A fit's values are one array, ``[coefficients..., relative residual, R², LOO er
 """
 
 import math
-import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
 
 from ema.numerics import fitting
 from ema.numerics.intervals import Estimator
-from ema.types.errors import RequestError
 from ema.types.results import Observation, ObservationTable
 
-#: A sampler's name, as designs.md writes them: letters, digits, "_" and "-".
-_SAMPLER = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")  # anchored: a JSON schema's pattern matches anywhere
 #: The values after the coefficients, in order.
 FIT_KEYS = ("relative_residual", "r2", "loo")
-
-
-@dataclass(frozen=True)
-class SamplerName:
-    """A sampler's name; one with no implementation is refused when the design is built (designs.md, Samplers).
-
-    So ``sampler="sobol"`` is a valid request that is refused with designs.md's "sampler sobol comes in a later
-    version" (``samplers.get``), not with a list of today's names (record 0078 item 1).
-    """
-
-    def read(self, value: Any, what: str) -> str:
-        """Return the name; refuse what isn't one."""
-        if not isinstance(value, str) or not _SAMPLER.fullmatch(value):
-            raise RequestError(f"{what} is a sampler's name, such as random, not {value!r}")
-        return value
-
-    def schema(self) -> Mapping[str, Any]:
-        """Return a string."""
-        return {"type": "string", "pattern": _SAMPLER.pattern}
 
 
 def fit_values(A: np.ndarray, y: np.ndarray, *, held_out: bool = True) -> np.ndarray:

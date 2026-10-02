@@ -13,7 +13,6 @@ runs from scatter's stream (``SCATTER_BOOT_TAG``), the binned index recomputed o
 
 import math
 from collections.abc import Mapping
-from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any
 
@@ -26,6 +25,7 @@ from ema.diagnostics.base import (
     DiagnosticBase,
     DiagnosticParameter,
     Integer,
+    Name,
     Transform,
     estimate,
     identity,
@@ -80,25 +80,6 @@ def figure_name(parameter: str) -> str:
     return f"scatter-{parameter}" if parameter.casefold() == "histogram" else f"scatter_{parameter}"
 
 
-@dataclass(frozen=True)
-class SamplerName:
-    """The ``sampler`` parameter's reader: a sampler's name, as text.
-
-    A name not registered is refused by the design, "sampler X comes in a later version" (G17; record 0076), as
-    designs.md words it; the schema lists the registered ones.
-    """
-
-    def read(self, value: Any, what: str) -> str:
-        """Return the name; refuse a value that isn't text."""
-        if not isinstance(value, str) or not value:
-            raise RequestError(f"{what} is a sampler's name ({', '.join(samplers.names())}), not {value!r}")
-        return value
-
-    def schema(self) -> Mapping[str, Any]:
-        """Return a string among the registered samplers."""
-        return {"type": "string", "enum": list(samplers.names())}
-
-
 class Scatter(DiagnosticBase):
     """Scatter (scatter.md): the uniform design's runs, their moments, and each varied model parameter's ρ and S."""
 
@@ -116,7 +97,7 @@ class Scatter(DiagnosticBase):
         ),
         seed_parameter("the design's seed, and the bootstrap's.", "yes"),
         DiagnosticParameter(
-            "sampler", "name", "random", "random", "the sampler (0032).", "yes", "sobol", SamplerName()
+            "sampler", "name", "random", "random", "the sampler (0032).", "yes", "sobol", Name(samplers.names)
         ),
     )
     interval_method = "bootstrap"

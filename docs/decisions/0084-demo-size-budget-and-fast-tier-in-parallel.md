@@ -66,6 +66,18 @@ diagnostic contract; fixed on `demo-diagfix`)
    longest fast tests are the bootstrap's own determinism tests (`tests/unit/numerics/test_determinism.py`, about
    4–12 s each) and the checks that keep the bootstrap (C9, C7, C11 over the linear model, 3–4 s each).
 
+**Review round 2** (step 13's review asked for the polynomial model's share; measured on `demo-13fix`, every wave
+merged: the six diagnostics, the workspace, the CLI, the MCP server)
+
+5. **The polynomial model's share of the fast tier**, from the run's JUnit times, `pytest -q -n auto` at a load
+   average of 4–10 on 8 cores: its own fast tests (`tests/unit/diagnostics/test_polynomial_model.py`, 32) 27.6 s,
+   and the diagnostic contract's 19 checks over it (with the lean method where item 3 gives it) 17.5 s: 45 s of the
+   tier's 232 s of test time, about a fifth. The tier took 41.5 s wall in that run (2002 passed, 61 skipped), and
+   67.6 s in a run a few minutes earlier at a similar load: over the 30 s budget with every wave merged. This
+   step's longest are its R5 tests (y with figures, 2–4 s; z, 1.5 s), C7 (`check_deterministic`, 4 s), and C1
+   (`check_never_empty`, 3.6 s), which keep the bootstrap by item 3. Proposed: nothing moves now; the budget is
+   among item 1's numbers measured at the end of the demo build (step 17), with this share named there.
+
 ## Alternatives considered
 
 - **Trim now:** the reviews' refusals and checks are what the extra lines buy; trimming them before the demo

@@ -141,6 +141,18 @@ def test_a_rank_deficient_fit_is_undefined() -> None:
     assert math.isnan(relative_residual(y, fit)) and math.isnan(r2(y, fit)) and math.isnan(press(A, y, fit))
 
 
+@pytest.mark.parametrize(("info", "error", "match"), [(-2, ValueError, "argument 2 is illegal"),
+                                                     (3, np.linalg.LinAlgError, "R is singular")])  # fmt: skip
+def test_dtrtrs_failures_are_named_by_their_kind(monkeypatch, info, error, match) -> None:
+    """Record 0079 item 14, Review round 1: LAPACK's dtrtrs reports an illegal argument as info < 0 and a singular R
+    as info > 0; each is raised as what it is, not both as "R is singular"."""
+    from ema.numerics import fitting
+
+    monkeypatch.setattr(fitting.lapack, "dtrtrs", lambda R, b: (np.zeros(R.shape[1]), info))
+    with pytest.raises(error, match=match):
+        least_squares(design_matrix(unit_points(8, 12, 2), 2), np.arange(12.0))
+
+
 def test_fewer_runs_than_terms() -> None:
     A = design_matrix(unit_points(8, 4, 2), 2)
     fit = least_squares(A, np.arange(4.0))

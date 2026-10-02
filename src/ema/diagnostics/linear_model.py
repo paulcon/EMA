@@ -14,6 +14,7 @@ from typing import Any
 
 import numpy as np
 
+from ema.designs import samplers
 from ema.diagnostics import _fits
 from ema.diagnostics.base import (
     AnalysisContext,
@@ -22,6 +23,7 @@ from ema.diagnostics.base import (
     DiagnosticBase,
     DiagnosticParameter,
     Integer,
+    Name,
     Transform,
     estimate,
     identity,
@@ -115,7 +117,7 @@ class LinearModel(DiagnosticBase):
             "the sampler (0032); convergent needs a nested one.",
             "yes",
             "sobol",
-            _fits.SamplerName(),
+            Name(samplers.names),
         ),
     )
     interval_method = "bootstrap"

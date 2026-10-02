@@ -84,6 +84,10 @@ We will, provisionally:
     in a client's validation, which the readers then refused. The readers' `fullmatch` is unchanged.
 19. **The contract's lean interval method** (record 0084, Review round 1): the linear model's share of the
     contract went from about 84 s to 19 s of test time.
+20. **`_fits.SamplerName` becomes `base.Name`** (amends item 1; step 13's review, record 0079 Review round 1, and
+    record 0076 item 17): one reader for the sampler and the basis in scatter, the linear model, and the polynomial
+    model, with item 1's rule (any well-formed name read; the registry refuses one it lacks, "comes in a later
+    version") and item 18's anchored pattern; its schema adds the registered names as `examples`.
 
 ## Deferrals
 

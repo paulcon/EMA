@@ -103,7 +103,9 @@ def least_squares(A: np.ndarray, y: np.ndarray) -> Fit:
     # LAPACK's dtrtrs, which scipy.linalg.solve_triangular calls after about 80 µs of checks: the same numbers, and
     # the bootstrap's 1000 refits a third faster (record 0079). R is nonsingular here: its rank is P.
     coefficients, info = lapack.dtrtrs(R, matvec(Q.T, y))  # one term: a one-row product (0068 item 1)
-    if info != 0:  # pragma: no cover - the rank rule has already refused a singular R
+    if info < 0:  # LAPACK's convention: argument -info is illegal
+        raise ValueError(f"dtrtrs: argument {-info} is illegal")
+    if info > 0:  # R[info - 1, info - 1] is 0; the rank rule refuses such an R first
         raise np.linalg.LinAlgError(f"R is singular: dtrtrs info {info}")
     residuals = y - matvec(A, coefficients)
     leverages = np.sum(Q * Q, axis=1)

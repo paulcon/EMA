@@ -5,6 +5,7 @@ precheck's notes, and ``evaluate``'s refusals (architecture.md §6, §7; diagnos
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -95,11 +96,24 @@ def test_given_lines_read_as_doubles():
             GivenLines().read(bad, "lines")
 
 
-def test_a_name_is_one_of_its_registry():
+def test_a_name_is_any_well_formed_name_and_the_registry_refuses_one_it_lacks():
+    """Records 0076 item 4, 0078 item 1, 0079 (Review round 1): one reader for a registry's name (sampler, basis).
+    Any well-formed name is read, "sobol" too, so C14 can read a second value; what isn't a name is refused, naming
+    the registered ones; the registry refuses an unregistered name when the design is built ("comes in a later
+    version"). The schema: the name's anchored pattern, the registered names as examples, no enum."""
     sampler = Name(samplers.names)
-    assert sampler.read("random", "sampler") == "random"
-    with pytest.raises(RequestError, match="random"):
-        sampler.read("sobol", "sampler")
+    assert sampler.read("random", "sampler") == "random" and sampler.read("sobol", "sampler") == "sobol"
+    for bad in (3, "", "-x", "random sampler", None):
+        with pytest.raises(RequestError, match="sampler is a name, such as random"):
+            sampler.read(bad, "sampler")
+    with pytest.raises(RequestError, match="sampler sobol comes in a later version"):
+        samplers.get("sobol")
+    schema = sampler.schema()
+    assert schema == {"type": "string", "pattern": schema["pattern"], "examples": list(samplers.names())}
+    assert re.search(schema["pattern"], "sobol") and not re.search(schema["pattern"], "x sobol")
+    for diagnostic in ("scatter", "linear_model", "polynomial_model"):
+        readers = {p.name: p.reader for p in base.get(diagnostic).parameters}
+        assert isinstance(readers["sampler"], Name), diagnostic
 
 
 def test_text_is_read_as_json_or_a_bare_string():

@@ -55,7 +55,10 @@ UNITS_LOG_TOL = 1e-12
 RATE_SHIFT_TOL = 1e-5
 OFFSET_RTOL = 1e-6
 ROUNDING_WIGGLE = 1e-15
-D20_SECONDS = 60.0
+#: One evaluation at d = 20 with the defaults, wall-clock. The polynomial model's, both refits per resample (as drawn,
+#: and on distinct runs for LOO), took 91 s of CPU (62 s wall) at a load average of 5-9 on 8 cores: twice that
+#: (record 0079 item 16, Review round 1; contracts.md's 60 s counted the refits as drawn only).
+D20_SECONDS = 180.0
 #: Under y + b, a number in y's units can't be closer than the rounding the shift itself makes: a few units in the
 #: last place of |b| + max|y| (record 0075 item 14). Far below UNITS_RTOL·range but for the point run's fixture.
 SHIFT_ULPS = 16
@@ -558,7 +561,13 @@ def check_price(diagnostic: Any, tmp_path: Path) -> None:
 
 def check_design_parameters(diagnostic: Any, tmp_path: Path) -> None:
     """C14: a diagnostic parameter marked "no" leaves the design bit for bit; one marked "yes" changes it, or is
-    refused; `prediction` leaves it."""
+    refused; `prediction` leaves it.
+
+    The declaration is exactly "no" or "yes", or "yes (...)" where the spec qualifies a yes (lines' seed, the
+    polynomial model's degree), checked as a yes on the example request; nothing else, so a qualifier can't take a
+    "no" past the check. A "no" whose other value is refused as "comes in a later version" passes (the polynomial
+    model's basis, with one basis registered); that promise is the diagnostic's own C29 test, with a second basis
+    registered (record 0079, Review round 1)."""
     case = sd.prepare(NoFigures(diagnostic))
 
     def same(other: sd.Case) -> bool:
@@ -573,15 +582,21 @@ def check_design_parameters(diagnostic: Any, tmp_path: Path) -> None:
 
     assert same(sd.prepare(NoFigures(diagnostic), prediction="z")), "prediction moved the design"
     for p in diagnostic.parameters:
+        declared = p.changes_design
+        assert declared in ("yes", "no") or re.fullmatch(r"yes \([^()]+\)", declared), (
+            f"{p.name}'s Changes the design? is {declared!r}, not yes or no"
+        )
         assert p.parse(p.other_value) != case.request.params[p.name], f"{p.name}'s other value is its example's"
         try:
             other = sd.prepare(NoFigures(diagnostic), params={p.name: p.other_value})
-        except base.RequestError:
-            assert p.changes_design != "no", f"{p.name} changes no design, and its other value is refused"
+        except base.RequestError as refused:
+            assert declared != "no" or "comes in a later version" in str(refused), (
+                f"{p.name} changes no design, and its other value is refused: {refused}"
+            )
             continue
-        if p.changes_design == "no":
+        if declared == "no":
             assert same(other), f"{p.name} is declared not to change the design, and changed it"
-        elif p.changes_design == "yes":
+        else:
             assert not same(other), f"{p.name} is declared to change the design, and didn't"
 
 
@@ -845,6 +860,23 @@ class BrokenSeedChangesNothing(Toy):
     parameters = (Toy.parameters[0], base.seed_parameter("the design's seed.", "no"))
 
 
+class BrokenQualifiedNo(Toy):
+    """C14: qualifies a "no" in parentheses, so a parameter that changes the design is declared "no (...)"."""
+
+    parameters = (Toy.parameters[0], base.seed_parameter("the design's seed.", "no (but it seeds the design)"))
+
+
+class BrokenRefusedNo(Toy):
+    """C14: declares "no" for its seed, and refuses the other value in words other than "comes in a later version"."""
+
+    parameters = (Toy.parameters[0], base.seed_parameter("the design's seed.", "no"))
+
+    def design_identity(self, space: Any, params: Any, spec: Any, model_version_id: str) -> Any:
+        if params["seed"] != self.example_request(3)["seed"]:
+            raise base.RequestError("seed: only the example's")
+        return super().design_identity(space, params, spec, model_version_id)
+
+
 class BrokenReseeds(Toy):
     """C15: reseeds when n changes."""
 
@@ -922,7 +954,11 @@ BROKEN: dict[str, list[Broken]] = {
     "check_report": [Broken(BrokenSixDigits(), match="significant digits"), Broken(BrokenNotConfidence())],
     "check_figures": [Broken(BrokenStrip(), match="strip")],
     "check_price": [Broken(BrokenSize(), match="size", setup=off_by_one)],
-    "check_design_parameters": [Broken(BrokenSeedChangesNothing(), match="declared not to change")],
+    "check_design_parameters": [
+        Broken(BrokenSeedChangesNothing(), match="declared not to change"),
+        Broken(BrokenQualifiedNo(), match="not yes or no"),
+        Broken(BrokenRefusedNo(), match="its other value is refused"),
+    ],
     "check_nesting": [Broken(BrokenReseeds(), match="isn't one of")],
     "check_noisy_note": [Broken(BrokenOwnNoisyNote(), match="notes measured_noisy")],
     "check_round_trip": [Broken(BrokenNaNEstimate(), ValueError, "finite")],

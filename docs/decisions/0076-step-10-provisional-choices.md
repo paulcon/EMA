@@ -93,6 +93,14 @@ We will, provisionally:
     n ≲ 3·10⁵; beyond that the column-wise and one-column forms may differ in their last bits. The docstring says so.
 16. **The fast tier's bootstrap cost** (the third minor): the contract's checks that don't test the intervals use a
     lean fake (record 0084, Review round 1); scatter's contract share went from about 48 s to 15 s of test time.
+17. **One reader for a registry's name** (amends item 4; step 13's review, record 0079 Review round 1): scatter's
+    `SamplerName`, `_fits.SamplerName`, and the polynomial model's `Registered` were three copies with three JSON
+    schemas (an `enum`, a pattern, `examples`). `ema.diagnostics.base.Name(samplers.names)` replaces them (step 09's
+    `Name`, which refused an unregistered name in its own words and was used by no diagnostic): it reads any
+    well-formed name (a letter, then letters, digits, `_`, `-`), refuses what isn't one naming the registered ones,
+    and leaves an unregistered name to the registry's "sampler X comes in a later version" when the design is built.
+    Its schema is `{"type": "string", "pattern": "^...$", "examples": [registered names]}`: not an `enum`, which a
+    client would apply before EMA, refusing "sobol" in other words than G17's. Scatter's schema loses its `enum`.
 
 ## Deferrals
 

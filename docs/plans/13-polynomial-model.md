@@ -1,7 +1,7 @@
 # 13. The polynomial model
 
 **Status:** in progress (demo; record 0066); its choices are record 0079. **Branch:** `demo-13-polynomial`.
-**Updated:** 2026-10-02.
+**Updated:** 2026-10-02 (Review round 1 on `demo-13fix`).
 
 ## Goal
 
@@ -77,6 +77,20 @@ Each is record 0079's, numbered as there, one line each.
     them, and the bootstrap's 1000 refits of 20,000 × 286 take about 15 minutes.
 16. C18 at d = 20 with the defaults keeps `D20_SECONDS` = 60 s; under heavy load it fails (Notes).
 
+Review round 1 (record 0079, items 17–25):
+
+17. `D20_SECONDS` = 180 s, twice the measured CPU time of one evaluation at d = 20 (91 s; both refits counted).
+18. `SPECTRUM_YMIN` lives in `_lines.py` only; the polynomial model imports it.
+19. One reader for a registry's name, `base.Name`: any well-formed name; schema the pattern with `examples`.
+20. `basis` is the spec's plain "no"; C14 passes a "no" refused as "comes in a later version" (C29 tests it), and
+    refuses a declaration other than "yes", "no", or "yes (…)".
+21. V = 0 on real runs: R11's space, degree 1, 8 symmetric runs; skipped where LAPACK gives no exact zeros.
+22. The LOO-undefined note is tested (6 runs, one of leverage 1).
+23. R2 at p = 10 without intervals is a Test-tiers exception for the owner.
+24. This step's fast-tier share is in record 0084.
+25. Nits: `dtrtrs`'s info < 0 is an illegal argument; the fit card keeps a non-finite ŷ₋ₖ as null; the Sobol
+    legend's swatches are dots with bars; R5's z tested.
+
 ## Notes
 
 - **Built:** `src/ema/diagnostics/polynomial_model.py` (452 code lines without docstrings, comments, or blanks,
@@ -95,5 +109,13 @@ Each is record 0079's, numbered as there, one line each.
   double it. To be rerun on an idle machine (record 0079 item 16).
 - **Verified on the coordinator's merge of step 09's review fixes** (`acfed84`, extracted to a scratch directory
   with this step's files on top): the diagnostic contract and every diagnostics test pass (210 passed).
+- **Review round 1** (`demo-13fix`): one C18 evaluation at d = 20 with the defaults, alone, at a load average of
+  5–9: 62 s wall, 91 s CPU (QR 42 s, the SVDs of R 11 s, the rest 3 s); in the slow run with `-n auto`, 80 s,
+  under the new `D20_SECONDS` = 180 s. That slow run (this step's slow tests and `tests/contracts/diagnostic.py`
+  with `--slow -n auto`): 3 min 14 s (R11 at p = 10 125 s, C18 80 s, R1 and R10 at 20,000 runs 32 and 27 s). The
+  fast tier with `-n auto`: 41.5 s and 67.6 s wall in two runs at a load of 4–10; this step's share 45 s of 232 s
+  of test time (record 0084, Review round 2). `polynomial_model.py`: 453 code lines; `src/ema` 10 fewer net.
+- **Fixed on the way:** `docs/index.md`'s step 15 and 16 blocks, broken by the MCP merge (an unclosed `eval-rst`
+  fence: the docs build failed with `-E`), are two blocks again.
 - **Deferrals:** PM10's and PM11's store parts to step 14 (the seams: `AnalysisContext.on_progress`, the
   convergent design's nesting); the progress throttle's clock (record 0079).

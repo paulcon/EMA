@@ -32,6 +32,7 @@ from ema.types.requests import Progress
 from ema.types.results import DiagnosticResult, Estimate
 from ema.types.runs import RunBatch
 from tests.contracts.basis import FakeTensor
+from tests.contracts.diagnostic import D20_SECONDS
 from tests.support import diagnostics as sd
 from tests.support import reference
 from tests.support.designs import identity as design_identity
@@ -41,8 +42,6 @@ from tests.support.reports import differences, mock_report
 PM = base.get("polynomial_model")
 #: The expected answers' design (polynomial_model.md, Expected answers): 20,000 runs, seed 0.
 KNOWN_ANSWER = {"n_min": 5000, "alpha": "0.5", "level": 1, "seed": 0}
-#: contracts.md, Named constants.
-D20_SECONDS = 60.0
 
 
 def evaluate(
@@ -97,7 +96,7 @@ def test_the_declarations_are_the_specs():
         "level": ("2", "yes"),
         "seed": ("0", "yes"),
         "sampler": ("random", "yes"),
-        "basis": ("total_degree", "no (one basis in v2.0: another is refused)"),
+        "basis": ("total_degree", "no"),
     }
     assert (pm.POLY_DEGREE, pm.POLY_NMIN, pm.POLY_ALPHA, pm.POLY_LEVEL, pm.POLY_MIN_RUNS) == (2, 2, "0.7072", 2, 2)
     assert pm.POLY_BOOT_TAG == 2**32 + 3 and PM.spawn_tags == (pm.POLY_BOOT_TAG,)
@@ -367,6 +366,41 @@ def test_0049_a_constant_fitted_polynomial_has_no_sobol_indices(tmp_path, monkey
     assert [f.name for f in result.figures] == ["polynomial_model_fit", "polynomial_model_residuals"]
 
 
+def test_0049_v_0_on_runs_that_give_exact_zeros(tmp_path):
+    """0049, without a wrapped fit (record 0079 item 11, Review round 1): R11's space, degree 1, 8 runs at
+    (±0.375, ±0.375) with y = 0 and at (±1, ±1) with y = 1: y varies, and by symmetry the fit's ψ₁ coefficients
+    are 0. Where this LAPACK gives them exactly 0, V = 0: the note, no Sobol table, the decay table's 0, the fit and
+    residual figures only; where it doesn't, the test is skipped (the wrapped test above still runs)."""
+    case = reference.prepare(PM, "R11", params={"degree": 1, "n_min": 8, "level": 0})
+    points = np.array([(s * r, t * r) for r in (0.375, 1.0) for s in (-1, 1) for t in (-1, 1)])
+    y = (np.abs(points[:, 0]) > 0.5).astype(float)
+    result = sd.evaluate(case, custom(case, points, y), tmp_path)
+    coef = values(result, "coefficients")
+    if (coef["c:1,0"], coef["c:0,1"]) != (0.0, 0.0):
+        pytest.skip(f"this LAPACK's QR gives ψ₁ coefficients {coef['c:1,0']}, {coef['c:0,1']}, not exactly 0")
+    assert coef["c:0,0"] == pytest.approx(0.5, rel=1e-15)
+    assert [t.key for t in result.estimates] == ["fit", "loo", "decay"]
+    assert [n.text for n in result.notes] == ["The fitted polynomial is constant (V = 0), so it has no Sobol indices."]
+    assert values(result, "decay") == {"energy:1": 0.0}
+    assert [f.name for f in result.figures] == ["polynomial_model_fit", "polynomial_model_residuals"]
+
+
+def test_loo_undefined_on_a_run_of_leverage_1(tmp_path):
+    """Record 0079 item 10 (Review round 1): 6 runs, d = 2, p = 1, five at a = 0.5 and one at a = -0.3: the lone
+    run alone sets ψ₁(a)'s coefficient, so its leverage is 1 and the LOO error is undefined. The note, no Held out
+    table, "none" in the per-level table; the fit figure's right panel draws 5 runs, and its data card keeps the
+    sixth with a null held-out prediction (PM9's data card: each point's run id, y, ŷ, and ŷ₋ₖ)."""
+    case = reference.prepare(PM, "R11", params={"degree": 1, "n_min": 6, "level": 0})
+    a, b = np.array([0.5] * 5 + [-0.3]), np.array([-0.9, -0.4, 0.1, 0.5, 0.8, 0.2])
+    result = sd.evaluate(case, custom(case, np.column_stack([a, b]), a + b**2), tmp_path)
+    assert [n.text for n in result.notes] == ["The leave-one-out error is undefined: a usable run has leverage 1."]
+    assert [t.key for t in result.estimates] == ["fit", "sobol", "decay"]
+    assert levels(result)["loo"] == ["none"] and isinstance(levels(result)["r2"][0], float)
+    right = json.loads((tmp_path / "polynomial_model_fit.json").read_text())["panels"][1]
+    assert len(right["points"]) == 6 and [p["held_out"] is None for p in right["points"]] == [False] * 5 + [True]
+    assert right["points"][5]["x"] is None and all(isinstance(p["x"], float) for p in right["points"][:5])
+
+
 @pytest.mark.parametrize(("id", "estimates"), [("R4a", False), ("R4b", True)])
 def test_r4_constant_and_its_wiggle(id, estimates, tmp_path):
     """Expected answers (0035): R4a is constant: the note, no estimates; R4b's 1e-12 wiggle has estimates."""
@@ -421,6 +455,20 @@ def test_pm6_pm9_r5_level_0_too_few_and_the_strips(tmp_path):
     bins = json.loads((tmp_path / "polynomial_model_residuals.json").read_text())["panels"][0]["bins"]
     assert len(bins) == math.isqrt(result.counts.usable) and sum(b["count"] for b in bins) == result.counts.usable
     alone = sd.evaluate(case, sd.batch(case, y=made.runs.values["y"], z=made.runs.values["z"], failed=~usable),
+                        tmp_path / "alone")  # fmt: skip
+    assert alone.estimates == result.estimates and alone.extra == result.extra
+
+
+def test_r5_z_every_estimate_is_the_usable_runs_alone(tmp_path):
+    """Expected answers (R5, z; U3): z, missing where y isn't and failed where y fails, gives every estimate of the
+    polynomial model on its usable runs alone; each fit panel's strip holds every run not usable for z (PM9)."""
+    _, made, result = evaluate("R5", tmp_path, figures=True, params={"n_min": 12}, prediction="z")
+    usable = made.usable("z")
+    assert result.estimates and (~usable).sum() > (~made.usable("y")).sum()  # z is missing on more runs
+    card = json.loads((tmp_path / "polynomial_model_fit.json").read_text())
+    assert [len(p["not_usable"]) for p in card["panels"]] == [int((~usable).sum())] * 2
+    bare = reference.prepare(sd.NoFigures(PM), "R5", params={"n_min": 12}, prediction="z")
+    alone = sd.evaluate(bare, sd.batch(bare, y=made.runs.values["y"], z=made.runs.values["z"], failed=~usable),
                         tmp_path / "alone")  # fmt: skip
     assert alone.estimates == result.estimates and alone.extra == result.extra
 
@@ -588,11 +636,12 @@ def test_pm12_r2_at_p_10(tmp_path):
 @pytest.mark.slow
 def test_c18_at_d_20_with_the_defaults_within_d20_seconds(tmp_path):
     """C18 (contracts.md, Test tiers): the contract model at d = 20 with the defaults (P = 231, 1848 runs, 1000
-    refits): a result with estimates, within D20_SECONDS."""
+    resamples, each a refit as drawn and one on its distinct runs for LOO: 2000 QR fits): a result with estimates,
+    within D20_SECONDS of wall-clock time (record 0079 item 16, Review round 1)."""
     case = sd.prepare(sd.NoFigures(PM), 20, params={"degree": 2, "level": 2, "seed": 0})
     assert len(case.design) == 1848
     made = sd.batch(case)
-    start = time.perf_counter()
+    start, cpu = time.perf_counter(), time.process_time()
     result = sd.evaluate(case, made, tmp_path)
-    elapsed = time.perf_counter() - start
-    assert result.estimates and elapsed < D20_SECONDS, elapsed
+    elapsed, cpu = time.perf_counter() - start, time.process_time() - cpu
+    assert result.estimates and elapsed < D20_SECONDS, f"{elapsed:.0f} s wall, {cpu:.0f} s CPU"

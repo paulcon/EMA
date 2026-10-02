@@ -174,7 +174,7 @@ def test_lm1_a_space_with_no_varied_model_parameter_is_refused_before_building()
         reference.prepare(LINEAR, "R1", space=held)
     with pytest.raises(RequestError, match="sampler sobol comes in a later version"):
         reference.prepare(LINEAR, "R1", params={"sampler": "sobol"})
-    with pytest.raises(RequestError, match="sampler's name"):
+    with pytest.raises(RequestError, match="sampler is a name, such as random"):
         reference.prepare(LINEAR, "R1", params={"sampler": 3})
 
 

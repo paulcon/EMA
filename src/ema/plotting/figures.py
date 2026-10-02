@@ -246,11 +246,13 @@ def intervals(
     offset: float = 0.0,
     ymin: float | None = None,
     series: int = 0,
+    label: str = "",
 ) -> None:
     """Draw each value with its variability interval as a bar (the slopes, the Sobol indices, √E_k).
 
     With ``ymin``, the y axis is log from ``ymin``, and a value below it is an open marker on the bottom edge (0048);
-    its bar is drawn from ``ymin`` up. ``offset`` shifts the points along x, to set two side by side.
+    its bar is drawn from ``ymin`` up. ``offset`` shifts the points along x, to set two side by side. ``label``
+    names the series in a legend whose swatch is a dot with its bar, as drawn (record 0079, Review round 1).
     """
     x = np.asarray(x, dtype=float) + offset
     values, lo, hi = (np.asarray(a, dtype=float) for a in (values, lo, hi))
@@ -264,6 +266,11 @@ def intervals(
     if ymin is not None:
         bars.sticky_edges.y.append(ymin)
     ax.plot(x[shown], values[shown], marker="o", linestyle="none", color=SERIES[series], markersize=5)
+    if label:  # an empty dot-and-bar, for the legend's swatch only
+        empty = np.empty(0)
+        ax.errorbar(empty, empty, yerr=np.empty((2, 0)), fmt="o", color=SERIES[series], markersize=5, elinewidth=1.5,
+                    label=_literal(label))  # fmt: skip
+        ax.legend(frameon=False, loc="best")
 
 
 @_styled

@@ -36,7 +36,8 @@ LINE_RATE_MIN_DEGREES = 3
 COORD_MIN_N = 7
 #: The fewest usable runs for a diagnostic result with observations: the shared observations need one.
 COORD_MIN_RUNS = 1
-#: The spectrum panel's lower y limit; a value below it is an open marker on the bottom edge (0048).
+#: The spectrum panel's lower y limit; a value below it is an open marker on the bottom edge (0048). The polynomial
+#: model's decay figure uses it too, relative to the largest √E_k (polynomial_model.md; record 0079).
 SPECTRUM_YMIN = 1e-17
 #: How far a decay rate may move under y -> a·y + b (0048); under a·y alone, ``UNITS_LOG_TOL`` = 1e-12. A test
 #: tolerance (CL8, LN7, C5), named here as the spec names it.

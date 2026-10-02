@@ -9,7 +9,6 @@ each level as observations; four figures. Records 0012, 0039, 0041, 0049, 0051, 
 choices).
 """
 
-import dataclasses
 import math
 import time
 from collections.abc import Callable, Mapping, Sequence
@@ -18,6 +17,7 @@ from typing import Any
 import numpy as np
 
 from ema.designs import samplers
+from ema.diagnostics._lines import SPECTRUM_YMIN
 from ema.diagnostics.base import (
     AnalysisContext,
     Computation,
@@ -25,6 +25,7 @@ from ema.diagnostics.base import (
     DiagnosticBase,
     DiagnosticParameter,
     Integer,
+    Name,
     Transform,
     estimate,
     identity,
@@ -66,8 +67,6 @@ POLY_LEVEL = 2
 POLY_MIN_RUNS = 2
 #: The spawn key of the polynomial model's bootstrap stream (shared.md, Random draws in a diagnostic).
 POLY_BOOT_TAG = 2**32 + 3
-#: The decay figure's lower limit, relative to the largest √E_k: below it, an open marker (0048; coordinate lines').
-SPECTRUM_YMIN = 1e-17
 #: The bootstrap's progress is reported about this often, in seconds (PM10).
 PROGRESS_SECONDS = 1.0
 
@@ -77,28 +76,6 @@ _SUBSCRIPTS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
 _FIT, _SOBOL, _DECAY, _RESIDUALS = (f"polynomial_model_{s}" for s in ("fit", "sobol", "decay", "residuals"))
 _TABLES = {"fit": Transform.UNCHANGED, "loo": Transform.UNCHANGED, "sobol": Transform.UNCHANGED}
 _TABLES |= {"levels": Transform.UNCHANGED, "decay": Transform.SCALED}
-
-
-@dataclasses.dataclass(frozen=True)
-class Registered:
-    """A name of one of a registry's implementations (a sampler, a basis), read as text.
-
-    One with no implementation is refused when the design is built, before any run, with the registry's "X comes in
-    a later version" (PM1; 0032). Reading accepts any name, so a request can name the next version's (C14 reads a
-    second value before preparing it).
-    """
-
-    names: Callable[[], Sequence[str]]
-
-    def read(self, value: Any, what: str) -> str:
-        """Return the name."""
-        if not isinstance(value, str) or not value:
-            raise RequestError(f"{what} is a name ({', '.join(self.names())}), not {value!r}")
-        return value
-
-    def schema(self) -> Mapping[str, Any]:
-        """Return a non-empty string, with the registered names as examples."""
-        return {"type": "string", "minLength": 1, "examples": list(self.names())}
 
 
 def n_terms(d: int, degree: int) -> int:
@@ -183,9 +160,9 @@ class PolynomialModel(DiagnosticBase):
             )
         ),
         seed_parameter("the design's seed, and the bootstrap's.", "yes"),
-        DiagnosticParameter("sampler", "name", "random", "random", _SAMPLER, "yes", "sobol", Registered(samplers.names)),
-        DiagnosticParameter("basis", "name", "total_degree", "total_degree", _BASIS,
-                            "no (one basis in v2.0: another is refused)", "hyperbolic_cross", Registered(bases.names)),
+        DiagnosticParameter("sampler", "name", "random", "random", _SAMPLER, "yes", "sobol", Name(samplers.names)),
+        DiagnosticParameter("basis", "name", "total_degree", "total_degree", _BASIS, "no", "hyperbolic_cross",
+                            Name(bases.names)),
     )  # fmt: skip
     interval_method = "bootstrap"
     spawn_tags = (POLY_BOOT_TAG,)
@@ -503,11 +480,22 @@ class PolynomialModel(DiagnosticBase):
             ends = np.array([min(x[keep].min(), y[usable].min()), max(x[keep].max(), y[usable].max())])
             plotting.line(ax, ends, ends)
             strip = plotting.strip(ax, fitted[not_usable], kinds, False, run_ids=ids[not_usable])
+            # Every usable run, a held-out prediction that isn't finite (a leverage of 1) as null: not drawn (PM9).
+            points = plotting.card_points(
+                ids[usable],
+                x=np.where(keep, x, 0.0),
+                y=y[usable],
+                fitted=fitted[usable],
+                held_out=np.where(shown, held, 0.0),
+            )
+            for point, k, h in zip(points, keep, shown, strict=True):
+                point["x"] = point["x"] if k else None
+                point["held_out"] = point["held_out"] if h else None
             panels.append(
                 {
                     "x": plotting.axis(ax, "x", label, units),
                     "y": plotting.axis(ax, "y", p, units),
-                    "points": plotting.card_points(ids[usable][keep], x=x[keep], y=y[usable][keep]),
+                    "points": points,
                     "not_usable": strip,
                 }
             )
@@ -534,8 +522,8 @@ class PolynomialModel(DiagnosticBase):
             values = np.array([e.value for e in found])
             lo = np.array([e.interval[0] if e.interval else e.value for e in found])
             hi = np.array([e.interval[1] if e.interval else e.value for e in found])
-            plotting.intervals(ax, x, values, lo, hi, offset=0.15 * (2 * series - 1), series=series)
-            plotting.line(ax, x[:0], x[:0], series=series, label="first-order" if series == 0 else "total")
+            label = "first-order" if series == 0 else "total"
+            plotting.intervals(ax, x, values, lo, hi, offset=0.15 * (2 * series - 1), series=series, label=label)
             rows.append(found)
         ax.set_xticks(x, [plotting.axis_label(n, "") for n in names], rotation=90 if len(names) > 8 else 0)
         panel = {
