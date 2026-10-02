@@ -145,7 +145,8 @@ def test_models_and_diagnostics_list_and_describe(ema_cli, session):
     described = ema_cli("--workspace", w, "models", "ishigami")
     assert described.code == 0 and "Model parameters:" in described.out and "- x3" in described.out
     listed = ema_cli("--workspace", w, "diagnostics")
-    assert listed.code == 0 and "\n\nscatter: " in listed.out and listed.out.startswith("point_run")
+    names = [block.split(":", 1)[0] for block in listed.out.split("\n\n")]
+    assert listed.code == 0 and {"point_run", "scatter"} <= set(names) and names == sorted(names)
     scatter = ema_cli("--workspace", w, "diagnostics", "scatter")
     assert scatter.code == 0 and "n: integer ≥ 1, default 200" in scatter.out
     missing = ema_cli("--workspace", w, "models", "nope")
