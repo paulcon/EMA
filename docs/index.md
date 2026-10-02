@@ -29,6 +29,10 @@ The public names of the modules that exist so far (`architecture.md`), one page 
    ema.types.model
    ema.types.space
    ema.types.design
+   ema.types.runs
+   ema.types.results
+   ema.types.requests
+   ema.types.summaries
    ema.designs.samplers
    ema.designs.generators
    ema.designs.point
