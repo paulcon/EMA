@@ -1,8 +1,7 @@
 """Layer 0: the domain's data classes and errors, the canonical encoder, hashes and ids, and number formatting.
 
 Pure: it imports only the standard library's pure modules and numpy (architecture.md §3; AR2). Each module's
-public names are re-exported here; later build steps add theirs (``runs``, ``results``, ``requests``,
-``summaries``).
+public names are re-exported here.
 """
 
 from ema.types.design import Design, DesignIdentity, DesignStructure, Line
@@ -23,16 +22,24 @@ from ema.types.errors import (
     WorkspaceVersion,
 )
 from ema.types.identity import (
+    ID_DTYPE,
     TrackedFile,
+    approval_id,
     batch_call_id,
     canonical_json,
     decimal_fraction,
+    hex_ids,
+    id_array,
     model_version_label,
     point_hash,
+    reuse_key,
     run_id,
     sha256_hex,
+    version_hash,
 )
 from ema.types.model import (
+    CREDENTIAL_WORDS,
+    EMA_FILE_NAMES,
     CommandLine,
     CsvParser,
     FileEntry,
@@ -46,12 +53,50 @@ from ema.types.model import (
     PredictionSpec,
     PythonFunction,
     RegexParser,
+    hidden_character,
+    is_credentials_file,
 )
+from ema.types.requests import (
+    ApprovalRequest,
+    Approver,
+    ConfirmationRequest,
+    Progress,
+    Request,
+    TestRunRequest,
+)
+from ema.types.results import (
+    Counts,
+    DiagnosticResult,
+    Estimate,
+    EstimateTable,
+    Figure,
+    IntervalInfo,
+    MeasuredNoisy,
+    Note,
+    Observation,
+    ObservationTable,
+    Provenance,
+    Reproduction,
+    ResultSummary,
+)
+from ema.types.runs import FailureKind, Price, Resolution, Run, RunBatch, RunColumns, RunKey, RunStatus
 from ema.types.space import ModelParameterSpace, Range, Scale
 from ema.types.streams import spawned
-from ema.types.text import duration, fmt
+from ema.types.summaries import (
+    DiagnosticParameterInfo,
+    DiagnosticSummary,
+    LoadingSummary,
+    ModelDescription,
+    ModelSummary,
+    Proposal,
+    Report,
+    RunInfo,
+)
+from ema.types.text import duration, fmt, parse_timestamp, timestamp_text
 
 __all__ = [
+    "CREDENTIAL_WORDS",
+    "EMA_FILE_NAMES",
     "AmbiguousId",
     "ApprovalDeclined",
     "CannotAsk",
@@ -92,9 +137,57 @@ __all__ = [
     "decimal_fraction",
     "duration",
     "fmt",
+    "hidden_character",
+    "is_credentials_file",
     "model_version_label",
     "point_hash",
     "run_id",
     "sha256_hex",
     "spawned",
+    "version_hash",
+]
+
+__all__ += [
+    "ID_DTYPE",
+    "ApprovalRequest",
+    "Approver",
+    "ConfirmationRequest",
+    "Counts",
+    "DiagnosticParameterInfo",
+    "DiagnosticResult",
+    "DiagnosticSummary",
+    "Estimate",
+    "EstimateTable",
+    "FailureKind",
+    "Figure",
+    "IntervalInfo",
+    "LoadingSummary",
+    "MeasuredNoisy",
+    "ModelDescription",
+    "ModelSummary",
+    "Note",
+    "Observation",
+    "ObservationTable",
+    "Price",
+    "Progress",
+    "Proposal",
+    "Provenance",
+    "Report",
+    "Reproduction",
+    "Request",
+    "Resolution",
+    "ResultSummary",
+    "Run",
+    "RunBatch",
+    "RunColumns",
+    "RunInfo",
+    "RunKey",
+    "RunStatus",
+    "TestRunRequest",
+    "approval_id",
+    "hex_ids",
+    "id_array",
+    "parse_timestamp",
+    "reuse_key",
+    "timestamp_text",
 ]

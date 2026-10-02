@@ -1,0 +1,15 @@
+{
+  "name": "toy_batch",
+  "description": "the toy function as a batch: y = a + 2 b + scale",
+  "interface": "python_function",
+  "function": "model.py:f",
+  "batch": true,
+  "batch_size": 3,
+  "files": [{"path": "mesh.dat", "shared": true}],
+  "parameters": [
+    {"name": "a", "units": "m", "nominal": 1.0, "description": "the first model parameter"},
+    {"name": "b", "units": "", "nominal": 0.5, "description": "the second model parameter"}
+  ],
+  "predictions": [{"name": "y", "units": "m", "description": "a + 2 b + scale"}],
+  "keep": "incomplete"
+}
