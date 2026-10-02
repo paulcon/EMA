@@ -324,6 +324,20 @@ class TestNamesAndValues:
         beam["parameters"][0]["name"] = name
         refused(json.dumps(beam), "parameters[0].name")
 
+    @pytest.mark.parametrize("name", ["\u00b5", "\ufb01", "h\u00e9at", "x\u00b2", "\u03bc"])
+    def test_names_are_ascii(self, name):
+        """0069 item 26: Python reads µ as μ and ﬁ as fi, so f(**{"µ": 1}) would fail after runs were paid for."""
+        beam = json.loads(text(BEAM))
+        beam["parameters"][0]["name"] = name
+        refused(json.dumps(beam), "parameters[0].name", "ASCII")
+        beam = json.loads(text(BEAM))
+        beam["predictions"][0]["name"] = name
+        refused(json.dumps(beam), "predictions[0].name", "ASCII")
+
+    def test_a_function_name_python_reads_otherwise(self):
+        refused(edited(BEAM, function="beam.py:\ufb01t"), "function", "'fit'")
+        assert ModelSpec.from_json(edited(BEAM, function="beam.py:d\u00e9flection")).interface.function.endswith("on")
+
     def test_soft_keywords_allowed(self):
         beam = json.loads(text(BEAM))
         beam["parameters"][0]["name"] = "match"
@@ -370,6 +384,28 @@ class TestNamesAndValues:
         beam["parameters"][2]["nominal"] = nominal
         refused(json.dumps(beam).replace("Infinity", "1e400"), "parameters[2].nominal")
 
+    def test_an_integer_too_large_for_a_double(self):
+        """Review item 7: OverflowError escaped as itself; now a SpecError naming the field."""
+        huge = "1" + "0" * 400
+        beam = json.loads(text(BEAM))
+        beam["parameters"][2]["nominal"] = 0
+        refused(json.dumps(beam).replace('"nominal": 0', f'"nominal": {huge}'), "parameters[2].nominal", "finite")
+        refused(
+            edited(BEAM, batch=True, batch_size=1).replace('"batch_size": 1', f'"batch_size": {huge}'), "batch_size"
+        )
+        heat = json.loads(text(HEAT))
+        heat["predictions"][0]["parser"] = {"kind": "csv", "file": "o.csv", "column": 1, "row": 7}
+        refused(json.dumps(heat).replace('"row": 7', f'"row": {huge}'), "predictions[0].parser.row")
+        refused(json.dumps(heat).replace('"column": 1', f'"column": {huge}'), "predictions[0].parser.column")
+
+    def test_nan_and_infinity_name_their_field(self):
+        refused(text(HEAT).replace('"timeout_s": 600', '"timeout_s": NaN'), "timeout_s", "NaN")
+        refused(text(BEAM).replace('"nominal": 1.5', '"nominal": -Infinity'), "parameters[1].nominal", "-Infinity")
+
+    def test_nesting_too_deep(self):
+        refused("[" * 100000 + "]" * 100000, "nested too deeply")
+        refused('{"name": ' + "[" * 100000 + "]" * 100000 + "}", "nested too deeply")
+
     def test_function_shape(self):
         for bad in ("beam.py", "beam.py:", "beam:deflection", "beam.py:not-a-name", "beam.py:class", ":f"):
             refused(edited(BEAM, function=bad), "function")
@@ -413,6 +449,34 @@ class TestTrustT7:
         refused(edited(HEAT, files=[""]), "files[0]")
         refused(edited(HEAT, files=[{"path": "a", "shared": "yes"}]), "files[0].shared")
         refused(edited(HEAT, files=[{"shared": True}]), "files[0].path")
+
+    @pytest.mark.parametrize("path", [".env", "db-credentials.json", ".ssh/id_rsa", "out/secrets.yaml"])
+    def test_credentials_names_in_the_run_directory_refused(self, path):
+        """T7 (model_interface.md, The model spec): a deck's writes and a parser's file too (review round 1)."""
+        refused(edited(HEAT, input_decks=[{"template": "t", "writes": path}]), "input_decks[0].writes", "credentials")
+        heat = json.loads(text(HEAT))
+        heat["predictions"][0]["parser"]["file"] = path
+        refused(json.dumps(heat), "predictions[0].parser.file", "credentials")
+
+    def test_the_streams_as_written(self):
+        heat = json.loads(text(HEAT))
+        for stream in ("stdout", "stderr"):
+            heat["predictions"][0]["parser"]["file"] = stream
+            assert ModelSpec.from_json(json.dumps(heat)).predictions[0].parser.file == stream
+            heat["predictions"][0]["parser"]["file"] = f"./{stream}"
+            refused(json.dumps(heat), "predictions[0].parser.file", "stream")
+
+    def test_run_directory_paths_compared_case_folded_and_as_directories(self):
+        """0069 item 31: two names one case-insensitive file system would take as one, or a file and a directory."""
+        decks = [{"template": "t1", "writes": "Plate.in"}, {"template": "t2", "writes": "plate.in"}]
+        refused(edited(HEAT, input_decks=decks), "input_decks[1].writes", "Plate.in")
+        refused(edited(HEAT, files=["Mesh.dat", "mesh.dat"]), "files[1]", "Mesh.dat")
+        refused(edited(HEAT, files=["out/mesh.dat"], input_decks=[{"template": "t", "writes": "out"}]), "writes")
+        refused(edited(HEAT, files=["out"], input_decks=[{"template": "t", "writes": "OUT/deck.in"}]), "writes")
+        refused(edited(HEAT, files=["a", "a/b"]), "files[1]", "a directory")
+        refused(edited(HEAT, input_decks=[{"template": "t", "writes": "run.json/deck.in"}]), "EMA's own")
+        both = edited(HEAT, files=["ab", "a/b"], input_decks=[{"template": "t", "writes": "a.in"}])
+        assert [f.path for f in ModelSpec.from_json(both).files] == ["ab", "a/b"]
 
     def test_duplicates_and_collisions(self):
         refused(edited(HEAT, files=["a", "./a"]), "files[1]")

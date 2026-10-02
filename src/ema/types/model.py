@@ -381,11 +381,12 @@ class ModelSpec:
 
         The checks (model_interface.md, The model spec; architecture.md §3's field table): required fields, and
         every unknown key, or a key of the other interface, refused; names (a lowercase model name; model
-        parameter and model prediction names Python identifiers, unique across both lists, none starting with
-        ``ema_``, M21); ``noisy: true`` refused (M18); nominal values inside their limits; each parser's settings.
-        trust.md's: duplicate keys, and strings (keys included) with a hidden character (T7); paths relative,
-        with no ``..``, normalized to "/"-separated parts; credentials files, and EMA's own file names as a
-        deck's ``writes`` or a listed file (T7); ``env`` and ``pass_env`` names, credential-like ones refused, and
+        parameter and model prediction names ASCII Python identifiers, unique across both lists, none starting
+        with ``ema_``, M21); ``noisy: true`` refused (M18); nominal values inside their limits; each parser's
+        settings. trust.md's: duplicate keys, and strings (keys included) with a hidden character (T7); paths
+        relative, with no ``..``, normalized to "/"-separated parts; credentials files (every path, a parser's
+        ``file`` and a deck's ``writes`` included), EMA's own file names as a deck's ``writes`` or a listed file,
+        and two run-directory paths that collide, case-folded (T7); ``env`` and ``pass_env`` names, credential-like ones refused, and
         no name in both (T8); an ``env`` ``PATH``'s entries absolute (T2).
 
         Parameters
@@ -404,10 +405,12 @@ class ModelSpec:
             Naming the field, as a path such as ``parameters[0].limits.gt``.
         """
         try:
-            data = json.loads(text, object_pairs_hook=_JsonObject.of, parse_constant=_no_constant)
+            data = json.loads(text, object_pairs_hook=_JsonObject.of, parse_constant=_Constant)
+            _check_strings(data, "")
         except json.JSONDecodeError as e:
             raise SpecError(f"the model spec is not JSON: {e}") from None
-        _check_strings(data, "")
+        except RecursionError:
+            raise SpecError("the model spec is nested too deeply to be a model spec") from None
         return _read_spec(data)
 
     def to_json(self) -> str:
@@ -490,8 +493,11 @@ class _JsonObject(dict[str, Any]):
         return obj
 
 
-def _no_constant(name: str) -> NoReturn:
-    raise SpecError(f"{name} is not a number a model spec may hold")
+class _Constant:
+    """``NaN``, ``Infinity``, or ``-Infinity`` in the text, kept until its field is known, then refused."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
 
 
 def _fail(path: str, message: str) -> NoReturn:
@@ -516,6 +522,8 @@ def _check_strings(value: Any, path: str) -> None:
             _check_strings(item, f"{path}[{i}]")
     elif isinstance(value, str):
         _check_string(value, path)
+    elif isinstance(value, _Constant):
+        _fail(path, f"{value.name} is not a number a model spec may hold")
 
 
 def _check_string(text: str, path: str) -> None:
@@ -576,17 +584,28 @@ def _model_path(value: Any, path: str) -> str:
 
 
 def _run_file(value: Any, path: str) -> str:
-    """Read a file's path in the run directory: not one of EMA's own (T7)."""
+    """Read a file's path in the run directory: not a credentials file, nor one of EMA's own (T7).
+
+    EMA's own files are at the top of the run directory, so a path whose first part is one of their names, in any
+    case, is refused too.
+    """
     rel = _relative(value, path, _OUTSIDE_RUN)
-    if rel.casefold() in EMA_FILE_NAMES:
+    if is_credentials_file(rel):
+        _fail(path, f"{rel} is a credentials file, which a model spec may not name")
+    if rel.split("/")[0].casefold() in EMA_FILE_NAMES:
         _fail(path, f"{rel} is the name of one of EMA's own files in a run directory")
     return rel
 
 
 def _identifier(value: Any, path: str) -> str:
+    """Read a model parameter's or a model prediction's name: an ASCII identifier, not a keyword (0069 item 26).
+
+    ASCII, since Python reads a non-ASCII identifier in its NFKC form (``µ`` as ``μ``, ``ﬁ`` as ``fi``), so the
+    name would fail as a keyword argument, and ``string.Template`` names are ASCII.
+    """
     name = _string(value, path)
-    if not name.isidentifier() or keyword.iskeyword(name):
-        _fail(path, f"{name!r} must be a Python identifier, and not a keyword")
+    if not _VARIABLE.fullmatch(name) or keyword.iskeyword(name):
+        _fail(path, f"{name!r} must be an ASCII Python identifier ([A-Za-z_][A-Za-z0-9_]*), and not a keyword")
     if name.startswith("ema_"):
         _fail(path, f"{name} starts with ema_, the prefix of EMA's own columns in an export")
     return name
@@ -641,8 +660,16 @@ def _parameter(value: Any, path: str) -> ModelParameter:
 
 
 def _output_file(value: Any, path: str) -> str:
+    """Read a parser's ``file``: ``stdout`` or ``stderr`` as written, or a file in the run directory (T7)."""
     text = _string(value, path)
-    return text if text in ("stdout", "stderr") else _relative(text, path, _OUTSIDE_RUN)
+    if text in ("stdout", "stderr"):
+        return text
+    rel = _relative(text, path, _OUTSIDE_RUN)
+    if rel in ("stdout", "stderr"):
+        _fail(path, f"{text!r} reads as the stream {rel}; write {rel} for the stream")
+    if is_credentials_file(rel):
+        _fail(path, f"{rel} is a credentials file, which a model spec may not name")
+    return rel
 
 
 def _parser(value: Any, path: str) -> ParserSpec:
@@ -705,6 +732,8 @@ def _function(value: Any) -> str:
     file, _, name = text.rpartition(":")
     if not file or not name.isidentifier() or keyword.iskeyword(name):
         _fail("function", f"{text!r} must be file.py:f, with f a function's name")
+    if unicodedata.normalize("NFKC", name) != name:
+        _fail("function", f"{name!r} is read by Python as {unicodedata.normalize('NFKC', name)!r}; write that name")
     rel = _model_path(file, "function")
     if not rel.endswith(".py"):
         _fail("function", f"{file} is not a .py file")
@@ -740,10 +769,23 @@ def _files(value: Any) -> tuple[FileEntry, ...]:
             obj = _object(item, path, ("path",), ("shared",), "a files entry")
             rel = _run_file(_model_path(obj["path"], f"{path}.path"), f"{path}.path")
             entry = FileEntry(rel, _bool(obj.get("shared", False), f"{path}.shared"))
-        if any(e.path == entry.path for e in entries):
-            _fail(path, f"{entry.path} is listed twice")
+        _check_overlap(entry.path, [e.path for e in entries], path, "listed")
         entries.append(entry)
     return tuple(entries)
+
+
+def _check_overlap(rel: str, taken: list[str], path: str, what: str) -> None:
+    """Refuse a run-directory path that is one already taken, or a directory of one, or below one (0069 item 31).
+
+    Compared case-folded, as a case-insensitive file system would (T1).
+    """
+    folded = rel.casefold()
+    for other in taken:
+        theirs = other.casefold()
+        if folded == theirs:
+            _fail(path, f"{rel} is {other}, already {what}" if rel != other else f"{rel} is already {what}")
+        if theirs.startswith(folded + "/") or folded.startswith(theirs + "/"):
+            _fail(path, f"{rel} and {other}, already {what}, would be a file and a directory at once")
 
 
 def _environment(obj: dict[str, Any]) -> tuple[dict[str, str], tuple[str, ...]]:
@@ -788,10 +830,10 @@ def _read_spec(data: Any) -> "ModelSpec":
     interface = _interface(obj)
     files = _files(obj.get("files", []))
     if isinstance(interface, CommandLine):
-        listed = {f.path for f in files}
+        taken = [f.path for f in files]
         for i, deck in enumerate(interface.input_decks):
-            if deck.writes in listed or deck.writes in [d.writes for d in interface.input_decks[:i]]:
-                _fail(f"input_decks[{i}].writes", f"{deck.writes} is also written by another deck or listed in files")
+            _check_overlap(deck.writes, taken, f"input_decks[{i}].writes", "listed in files or written by a deck")
+            taken.append(deck.writes)
     env, pass_env = _environment(obj)
 
     params = [_parameter(p, f"parameters[{i}]") for i, p in enumerate(_list(obj["parameters"], "parameters"))]

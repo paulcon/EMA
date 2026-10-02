@@ -1,13 +1,17 @@
 """Paths as files, and the tracked files' hashes (trust.md T1, T7's links; M16; architecture.md §5, files.py)."""
 
+import contextlib
 import dataclasses
 import hashlib
 import os
+import signal
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 
-from ema.models.files import check_files, hash_files, is_within, same_file
+from ema.models import files as files_module
+from ema.models.files import check_files, hash_files, is_within, leads_to_credentials, open_regular, same_file
 from ema.models.spec import load_spec
 from ema.types.errors import ModelChanged, SpecError
 from ema.types.identity import TrackedFile
@@ -22,6 +26,22 @@ def case_insensitive(directory: Path) -> bool:
         return (directory / "PROBE-CASE.TXT").exists()
     finally:
         probe.unlink()
+
+
+@contextlib.contextmanager
+def no_hang(seconds: int = 5) -> Iterator[None]:
+    """Fail, rather than hang, when a FIFO blocks a read (review item 6)."""
+
+    def alarm(signum, frame):
+        raise AssertionError("blocked reading a FIFO")
+
+    previous = signal.signal(signal.SIGALRM, alarm)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous)
 
 
 class TestSameFile:
@@ -49,6 +69,47 @@ class TestSameFile:
             (tmp_path / "MODEL.JSON").write_text("{}")
             assert not same_file(tmp_path / "MODEL.JSON", tmp_path / "model.json")
             assert not same_file(tmp_path / "New.json", tmp_path / "new.JSON")
+
+    @pytest.mark.parametrize("insensitive", [True, False])
+    def test_both_branches_of_the_probe(self, tmp_path, monkeypatch, insensitive):
+        """Review item 18: either answer of the case probe, whatever the file system the tests run on."""
+        monkeypatch.setattr(files_module, "_case_insensitive", lambda path: insensitive)
+        assert same_file(tmp_path / "New.json", tmp_path / "new.JSON") is insensitive
+        assert same_file(tmp_path / "x" / "A", tmp_path / "x" / "a") is insensitive
+        assert not same_file(tmp_path / "x" / "a", tmp_path / "x" / "b")
+
+
+class TestCaseProbe:
+    """Review item 3: the file system asked is the one of the nearest existing directory, not of its parent."""
+
+    def test_pathconf_and_the_probe_agree(self, tmp_path, monkeypatch):
+        (tmp_path / "Data.txt").write_text("x")
+        asked = files_module._case_insensitive(str(tmp_path / "new" / "file.json"))
+        monkeypatch.setattr(files_module, "_pathconf_case_insensitive", lambda directory: None)
+        assert files_module._case_insensitive(str(tmp_path / "new" / "file.json")) == asked
+        assert asked == case_insensitive(tmp_path)
+
+    def test_the_probe_looks_inside_the_nearest_directory(self, tmp_path, monkeypatch):
+        """A mount point's own name is on its parent's file system; an entry inside it is on its own."""
+        monkeypatch.setattr(files_module, "_pathconf_case_insensitive", lambda directory: None)
+        (tmp_path / "2024").mkdir()
+        (tmp_path / "2024" / "Mesh.dat").write_text("x")
+        probed: list[str] = []
+        real = files_module._swaps_to_itself
+
+        def spy(path: str) -> bool | None:
+            probed.append(path)
+            return real(path)
+
+        monkeypatch.setattr(files_module, "_swaps_to_itself", spy)
+        files_module._case_insensitive(str(tmp_path / "2024" / "new.json"))
+        assert probed == [str(tmp_path / "2024" / "Mesh.dat")]
+
+    def test_the_probe_falls_back_to_the_parents(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(files_module, "_pathconf_case_insensitive", lambda directory: None)
+        (tmp_path / "2024").mkdir()
+        (tmp_path / "2024" / "123").write_text("x")
+        assert files_module._case_insensitive(str(tmp_path / "2024" / "new.json")) == case_insensitive(tmp_path)
 
 
 class TestIsWithin:
@@ -100,7 +161,7 @@ class TestHashFiles:
         with pytest.raises(SpecError, match=r"files\[0\].*helper.py"):
             hash_files(spec, str(spec_path.parent))
         (spec_path.parent / "helper.py").mkdir()
-        with pytest.raises(SpecError, match=r"files\[0\].*not a file"):
+        with pytest.raises(SpecError, match=r"files\[0\].*not a regular file"):
             hash_files(spec, str(spec_path.parent))
         (spec_path.parent / "helper.py").rmdir()
         (spec_path.parent / "helper.py").symlink_to(tmp_path / "nowhere")
@@ -147,13 +208,54 @@ class TestHashFiles:
         spec_path = copy_model("python", tmp_path / ".docker" / "models")
         assert load_spec(str(spec_path)).files
 
-    def test_two_entries_naming_one_file(self, tmp_path):
+    def test_a_link_beside_its_target_and_hard_links_are_two_entries(self, tmp_path):
+        """Review item 5: both are legitimate aliases (each copied into the run directory by its own name)."""
         spec_path = copy_model("python", tmp_path)
-        (spec_path.parent / "alias.dat").symlink_to(spec_path.parent / "mesh.dat")
+        model_dir = spec_path.parent
+        (model_dir / "alias.dat").symlink_to(model_dir / "mesh.dat")
+        os.link(model_dir / "mesh.dat", model_dir / "hard.dat")
         spec = ModelSpec.from_json(spec_path.read_text())
-        spec = dataclasses.replace(spec, files=spec.files + (FileEntry("alias.dat"),))
-        with pytest.raises(SpecError, match=r"files\[2\].*same file"):
+        spec = dataclasses.replace(spec, files=spec.files + (FileEntry("alias.dat"), FileEntry("hard.dat")))
+        paths = [f.path for f in hash_files(spec, str(model_dir))]
+        assert paths == ["alias.dat", "hard.dat", "helper.py", "mesh.dat", "model.py"]
+
+    def test_two_spellings_of_one_entry(self, tmp_path):
+        """The function's file named again in another case: one entry, refused on a case-insensitive system."""
+        spec_path = copy_model("python", tmp_path)
+        spec = ModelSpec.from_json(spec_path.read_text())
+        spec = dataclasses.replace(spec, files=spec.files + (FileEntry("MODEL.py"),))
+        expected = "same file" if case_insensitive(spec_path.parent) else "isn't in the model's directory"
+        with pytest.raises(SpecError, match=rf"files\[2\].*{expected}"):
             hash_files(spec, str(spec_path.parent))
+
+    def test_a_fifo_is_refused(self, tmp_path):
+        """Review item 6: a FIFO named as a file is refused, never read."""
+        spec_path = copy_model("python", tmp_path)
+        (spec_path.parent / "mesh.dat").unlink()
+        os.mkfifo(spec_path.parent / "mesh.dat")
+        with no_hang(), pytest.raises(SpecError, match=r"files\[1\].*not a regular file"):
+            hash_files(ModelSpec.from_json(spec_path.read_text()), str(spec_path.parent))
+
+    def test_a_name_starting_with_two_dots_is_below_the_model(self, tmp_path):
+        """Review item 12: ``..mesh.dat`` is in the model's directory, so only its name is matched (T7)."""
+        model_dir = tmp_path / ".docker" / "model"
+        model_dir.mkdir(parents=True)
+        (model_dir / "..mesh.dat").write_text("x")
+        assert leads_to_credentials(str(model_dir / "..mesh.dat"), str(model_dir)) is None
+        assert leads_to_credentials(str(model_dir / "..mesh.dat"), str(tmp_path / "other")) is not None
+
+
+class TestOpenRegular:
+    def test_regular_files_only(self, tmp_path):
+        (tmp_path / "a.txt").write_bytes(b"abc")
+        with open_regular(str(tmp_path / "a.txt")) as f:
+            assert f.read() == b"abc"
+        os.mkfifo(tmp_path / "pipe")
+        for path in (tmp_path / "pipe", tmp_path):
+            with no_hang(), pytest.raises(OSError, match="not a regular file"):
+                open_regular(str(path))
+        with pytest.raises(FileNotFoundError):
+            open_regular(str(tmp_path / "nope"))
 
 
 class TestCheckFiles:
@@ -174,5 +276,13 @@ class TestCheckFiles:
     def test_missing(self, tmp_path):
         model = load_spec(str(copy_model("python", tmp_path)))
         os.remove(Path(model.model_dir) / "model.py")
-        with pytest.raises(ModelChanged, match="model.py"):
+        with pytest.raises(ModelChanged, match="model.py.*load the model again"):
+            check_files(model)
+
+    def test_a_tracked_file_that_becomes_a_fifo(self, tmp_path):
+        """Review item 6: the check doesn't block; the file changed."""
+        model = load_spec(str(copy_model("python", tmp_path)))
+        os.remove(Path(model.model_dir) / "mesh.dat")
+        os.mkfifo(Path(model.model_dir) / "mesh.dat")
+        with no_hang(), pytest.raises(ModelChanged, match="mesh.dat.*not a regular file"):
             check_files(model)

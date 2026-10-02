@@ -6,10 +6,13 @@ credentials file, T7) and before every call (``check_files``, M16). ``remove_tre
 (step 04).
 """
 
+import errno
 import hashlib
 import os
+import stat
+import sys
 import unicodedata
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, BinaryIO
 
 from ema.types.errors import ModelChanged, SpecError
 from ema.types.identity import TrackedFile, model_version_label
@@ -19,6 +22,8 @@ if TYPE_CHECKING:
     from ema.models.spec import LoadedModel
 
 _CHUNK = 1 << 20
+#: ``pathconf``'s case-sensitivity name: in ``os.pathconf_names`` where Python lists it, else Darwin's number.
+_PC_CASE_SENSITIVE = os.pathconf_names.get("PC_CASE_SENSITIVE", 11 if sys.platform == "darwin" else None)
 
 
 def _nearest_existing(path: str) -> str:
@@ -30,19 +35,61 @@ def _nearest_existing(path: str) -> str:
     return path
 
 
-def _case_insensitive(path: str) -> bool:
-    """Probe the file system of ``path``'s nearest existing part: does its name with its case swapped name it."""
-    path = _nearest_existing(path)
+def _pathconf_case_insensitive(directory: str) -> bool | None:
+    """Ask the file system whether ``directory`` is case-insensitive (macOS's ``_PC_CASE_SENSITIVE``), or None."""
+    if _PC_CASE_SENSITIVE is None:
+        return None
+    try:
+        return os.pathconf(directory, _PC_CASE_SENSITIVE) == 0
+    except (OSError, ValueError):
+        return None
+
+
+def _swaps_to_itself(path: str) -> bool | None:
+    """Tell whether ``path`` with its name's case swapped names the same file; None when its name has no letters."""
+    head, tail = os.path.split(path)
+    if tail.swapcase() == tail:
+        return None
+    try:
+        return os.path.samefile(path, os.path.join(head, tail.swapcase()))
+    except OSError:
+        return False
+
+
+def _probe_case_insensitive(directory: str) -> bool:
+    """Probe ``directory``'s file system: an entry in it whose name has letters, then its own name and its parents'.
+
+    An entry inside it is on its file system even when it is a mount point, whose own name is on its parent's.
+    """
+    try:
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                found = _swaps_to_itself(entry.path)
+                if found is not None:
+                    return found
+    except OSError:
+        pass
+    path = directory
     while True:
-        head, tail = os.path.split(path)
-        if tail.swapcase() != tail:
-            try:
-                return os.path.samefile(path, os.path.join(head, tail.swapcase()))
-            except OSError:
-                return False
-        if head == path:
+        found = _swaps_to_itself(path)
+        if found is not None:
+            return found
+        parent = os.path.dirname(path)
+        if parent == path:
             return False
-        path = head
+        path = parent
+
+
+def _case_insensitive(path: str) -> bool:
+    """Tell whether names below ``path``'s nearest existing directory are compared without case (T1).
+
+    The file system is asked where it can say (``pathconf``), else probed (``_probe_case_insensitive``).
+    """
+    directory = _nearest_existing(path)
+    if not os.path.isdir(directory):
+        directory = os.path.dirname(directory)
+    answer = _pathconf_case_insensitive(directory)
+    return _probe_case_insensitive(directory) if answer is None else answer
 
 
 def _canonical(path: str) -> str:
@@ -101,24 +148,81 @@ def is_within(path: str | os.PathLike[str], directory: str | os.PathLike[str]) -
         current = parent
 
 
-def _leads_to_credentials(path: str, directory: str) -> str | None:
-    """Return the target of ``path``'s links when it is a credentials file (trust.md, Paths; T7).
+def leads_to_credentials(path: str, directory: str) -> str | None:
+    """Return the target of ``path``'s links when it is a credentials file, else None (trust.md, Paths; T7).
 
-    The target is matched below ``directory`` when it lies there, and whole when it doesn't.
+    The target is matched below ``directory`` when it lies there, and whole when it doesn't. For ``hash_files``
+    and ``load_spec``.
+
+    Parameters
+    ----------
+    path
+        The path, which may be a link.
+    directory
+        The model's directory.
+
+    Returns
+    -------
+    str or None
+        The resolved target, when it is a credentials file.
     """
     target = os.path.realpath(path)
     base = os.path.realpath(directory)
     below = os.path.relpath(target, base) if is_within(target, base) else ".."
-    checked = target if below.startswith("..") else below.replace(os.sep, "/")
-    return target if is_credentials_file(checked) else None
+    outside = below.split(os.sep)[0] == ".."
+    return target if is_credentials_file(target if outside else below.replace(os.sep, "/")) else None
+
+
+def open_regular(path: str) -> BinaryIO:
+    """Open a regular file to read its bytes, never blocking on a FIFO or a device (0069 item 32).
+
+    Parameters
+    ----------
+    path
+        The file, through its links.
+
+    Returns
+    -------
+    BinaryIO
+        Open for reading.
+
+    Raises
+    ------
+    OSError
+        When it can't be opened, or isn't a regular file (``strerror`` "not a regular file").
+    """
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise OSError(errno.EINVAL, "not a regular file", path)
+        return os.fdopen(fd, "rb")
+    except BaseException:
+        os.close(fd)
+        raise
 
 
 def _sha256(path: str) -> str:
     digest = hashlib.sha256()
-    with open(path, "rb") as f:
+    with open_regular(path) as f:
         while chunk := f.read(_CHUNK):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _same_entry(a: str, b: str) -> bool:
+    """Tell whether two paths, of one file by ``lstat``, are one directory entry (two spellings of one name).
+
+    One directory and one name, compared NFC and case-folded; two hard links, or a link beside its target, are
+    two entries.
+    """
+
+    def name(p: str) -> str:
+        return unicodedata.normalize("NFC", os.path.basename(p)).casefold()
+
+    try:
+        return name(a) == name(b) and os.path.samefile(os.path.dirname(a), os.path.dirname(b))
+    except OSError:
+        return False
 
 
 def _tracked(spec: ModelSpec) -> dict[str, tuple[str, bool]]:
@@ -138,7 +242,8 @@ def hash_files(spec: ModelSpec, model_dir: str) -> tuple[TrackedFile, ...]:
     """Hash a spec's tracked files: the Python function's file, the input deck templates, and the listed files.
 
     A file named twice (a template also listed) is tracked once, with the listed entry's ``shared`` mark. A link
-    in the model's directory is followed (the user put it there), and its target's contents hashed.
+    in the model's directory is followed (the user put it there), and its target's contents hashed; a link beside
+    its target, or two hard links, are two entries. Only regular files are read.
 
     Parameters
     ----------
@@ -155,24 +260,25 @@ def hash_files(spec: ModelSpec, model_dir: str) -> tuple[TrackedFile, ...]:
     Raises
     ------
     SpecError
-        Naming the field, for a file that is missing or isn't a file, one whose link leads to a credentials file
-        (T7), or two entries that are one file.
+        Naming the field, for a file that is missing or isn't a regular file, one whose link leads to a
+        credentials file (T7), or two entries that are one directory entry (two spellings of one name).
     """
     files = []
-    seen: dict[tuple[int, int], str] = {}
+    seen: dict[tuple[int, int], list[tuple[str, str]]] = {}
     for rel, (field, shared) in _tracked(spec).items():
         path = os.path.join(model_dir, *rel.split("/"))
         if not os.path.exists(path):
             raise SpecError(f"{field}: {rel} isn't in the model's directory {model_dir}")
         if not os.path.isfile(path):
-            raise SpecError(f"{field}: {rel} is not a file")
-        target = _leads_to_credentials(path, model_dir)
+            raise SpecError(f"{field}: {rel} is not a regular file")
+        target = leads_to_credentials(path, model_dir)
         if target is not None:
             raise SpecError(f"{field}: {rel} leads to a credentials file, {target}")
-        stat = os.stat(path)
-        if (stat.st_dev, stat.st_ino) in seen:
-            raise SpecError(f"{field}: {rel} is the same file as {seen[stat.st_dev, stat.st_ino]}")
-        seen[stat.st_dev, stat.st_ino] = rel
+        entry = os.lstat(path)
+        for other_path, other in seen.get((entry.st_dev, entry.st_ino), []):
+            if _same_entry(path, other_path):
+                raise SpecError(f"{field}: {rel} is the same file as {other}")
+        seen.setdefault((entry.st_dev, entry.st_ino), []).append((path, rel))
         try:
             files.append(TrackedFile(rel, _sha256(path), shared))
         except OSError as e:
@@ -197,7 +303,10 @@ def check_files(model: "LoadedModel") -> None:
     for f in model.files:
         try:
             changed = _sha256(os.path.join(model.model_dir, *f.path.split("/"))) != f.sha256
-        except OSError:
-            raise ModelChanged(f"{label}: {f.path} is gone or can't be read since loading") from None
+        except OSError as e:
+            raise ModelChanged(
+                f"{label}: {f.path} is gone or can't be read since loading ({e.strerror}); load the model again for "
+                "a new model version"
+            ) from None
         if changed:
             raise ModelChanged(f"{label}: {f.path} changed since loading; load the model again for a new model version")

@@ -112,6 +112,9 @@ def check_model_version(adapter: Any) -> None:
         (root / "alias").symlink_to(model_dir)
         assert version(root / "alias" / "model.json") == base, "a link to the directory changed the version"
         assert version(model_dir / ".." / model_dir.name / "model.json") == base
+        (root / "elsewhere").mkdir()
+        (root / "elsewhere" / "linked.json").symlink_to(spec_path)
+        assert version(root / "elsewhere" / "linked.json") == base, "a link to the spec changed the model version"
 
         for variant in settings_changes(original):
             spec_path.write_text(json.dumps(variant, indent=4))

@@ -65,26 +65,41 @@ Each is in record 0069, with why; the numbers match.
 3. Paths normalized when read (empty and `.` parts dropped); absolute, `..`, and empty paths refused.
 4. Fields of the other interface refused as unknown keys; `batch_size` only on a batch function.
 5. A function is `file.py:f`, `f` an identifier that isn't a keyword.
-6. Names: identifiers, not keywords (soft keywords allowed); a model's name `[a-z0-9_-]+`.
-7. Also refused: duplicate `files` paths, colliding `writes`, a `pass_env` name twice, `gt` with `ge`.
+6. Names: ASCII identifiers, not keywords (soft keywords allowed); a model's name `[a-z0-9_-]+`.
+7. Also refused: duplicate `files` paths, colliding `writes` (case-folded), a `pass_env` name twice, `gt` with `ge`.
 8. Parsers checked at loading (regex groups, JSON key parts, CSV column, row, and delimiter, `file`).
-9. EMA's own file names compared case-folded against the whole path.
-10. Credentials-file names checked on the fields trust.md lists, not on `writes` or a parser's `file`.
+9. EMA's own file names compared case-folded against the whole path and its first part.
+10. (Reversed in review round 1; see 27.)
 11. The credentials lists rewritten from v1's (no `.key`, `identity`, or `.claude.json`).
 12. `hidden_character`, `is_credentials_file`, `CREDENTIAL_WORDS`, `EMA_FILE_NAMES` public in `ema.types.model`.
 13. Messages name the field as a path; `load_spec` prefixes the spec's path; NaN and Infinity refused.
-14. `load_spec` keeps the spec's absolute path as given (links not resolved).
-15. `hash_files` refuses missing files, non-files, credentials through links, and one file named twice (inode).
-16. `same_file` probes case-sensitivity by swapping a component's case; `is_within` compares each ancestor.
+14. `load_spec` keeps the spec's path as given, for messages; the model's directory is the spec's, links resolved.
+15. `hash_files` refuses missing files, non-regular files, credentials through links, and one entry named twice.
+16. `same_file` asks the nearest existing directory's file system about case; `is_within` compares each ancestor.
 17. A function file that doesn't parse is refused at loading.
-18. M17's resolution: the model's directory and the file's own; `from a import x` tries `a/x.py`; relative imports.
+18. M17's resolution: the model's directory; `from a import x` tries `a/x.py`; relative imports; source order.
 19. M10 at loading: non-UTF-8 text, an invalid `$`, and an unknown name refused, naming the line.
-20. `save_spec` raises `PathRefused`; the same bytes write nothing.
+20. `save_spec` raises `PathRefused` (and `SpecError` for a spec loading would refuse); the same bytes write nothing.
 21. `check_files` raises `ModelChanged` naming the label, the file, and what to do.
 22. `stored_model` sorts the files and reads no file.
 23. `ema/models/__init__.py` re-exports spec's and files' names; the AST test checks it imports no `execute`.
 24. Test models in `tests/models/`, out of collection; `tests.support.models.copy_model`.
 25. The adapter contract's implementation is `Adapter(kind, load)`; C33 has three broken toys.
+
+Review round 1:
+
+26. Model parameter and model prediction names are ASCII identifiers (a function's name its own NFKC form).
+27. Credentials-file names refused on every path in a spec, `writes` and a parser's `file` included (reverses 10).
+28. The case probe: `pathconf` on macOS, else an entry inside the nearest existing directory, else its parents.
+29. The model's directory is `dirname(realpath(spec))` (corrects 14).
+30. Two entries are one file only when one directory entry (`lstat`); links beside targets and hard links load.
+31. Run-directory paths compared case-folded and as directories (`out` and `out/mesh.dat` refused).
+32. Only regular files read, opened without blocking (`open_regular`); a FIFO is refused, never waited on.
+33. Overflow, nesting, and `ast.parse`'s other errors are `SpecError`s; `NaN` names its field.
+34. M17 against the model's directory only (trust.md's `sys.path`); what step 05 must keep to agree.
+35. A parser's `file` of `./stdout` refused as ambiguous with the stream.
+36. `save_spec`: `.JSON` in any case, a link to nothing named, the text checked with `from_json` first.
+37. `leads_to_credentials` and `open_regular` public in `ema.models.files`.
 
 ## Notes
 
@@ -94,9 +109,14 @@ Each is in record 0069, with why; the numbers match.
   models in `tests/models/`. Shared files extended: `pyproject.toml` (AR1, AR4, AR5, the reference models'
   contract), `docs/index.md`, `src/ema/types/__init__.py` (appended), `tests/unit/test_ast.py`, the root
   `conftest.py` (`tests/models` not collected).
-- **Times:** fast tier 628 tests in about 2 s (5 s serially with the doctests); no slow tests in this step.
-- **Size** (code lines without docstrings, comments, or blanks): `ema.types.model` +420 (§11: about 275),
-  `identity.py` +6, `ema.models` 239; about 665 against the roadmap's 450 (record 0069, Consequences).
+- **Times:** fast tier 667 tests in about 2 s; no slow tests in this step.
+- **Size** (code lines without docstrings, comments, or blanks): `ema.types.model` +443 (§11: about 275),
+  `identity.py` +6, `_values.py` +5, `ema.models` 302; about 755 against the roadmap's 450 (record 0069,
+  Consequences; review round 1 added about 90).
+- **Review round 1:** the independent review's majors (credentials names on `writes` and a parser's `file`; ASCII
+  names) and minors 3–9 and 11, and its nits, fixed with a test each (choices 26–37, record 0069); each new test
+  was checked to fail on the first version. The two questions for the owner are in record 0069. The size budget
+  is the coordinator's.
 - **v1:** `agent/approval.py`'s `is_secret` and `tests/test_approval.py` read; nothing ported.
 - **Deferrals:** none of the step's ids. T7's and T8's question text (step 07), T5's root (step 14), and C34's
   runner part (step 07) are other steps'.

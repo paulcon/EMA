@@ -11,7 +11,7 @@ import os
 import string
 from dataclasses import dataclass
 
-from ema.models.files import _leads_to_credentials, hash_files, same_file
+from ema.models.files import hash_files, leads_to_credentials, open_regular, same_file
 from ema.types.errors import PathRefused, SpecError
 from ema.types.identity import TrackedFile, version_hash
 from ema.types.model import CommandLine, ModelSpec, PythonFunction, is_credentials_file
@@ -26,9 +26,9 @@ class LoadedModel:
     spec : ModelSpec
         The spec, with the settings of its loading.
     spec_path : str
-        The spec's absolute path, as given (links not resolved).
+        The spec's path as given, made absolute (links not resolved, nothing normalized), for messages.
     model_dir : str
-        The spec's directory, which its paths are relative to.
+        The directory of the spec's file, its links resolved, which its paths are relative to.
     files : tuple of TrackedFile
         Hashed at loading, sorted by path.
     model_version_id : str
@@ -45,10 +45,15 @@ class LoadedModel:
     warnings: tuple[str, ...]
 
 
+def _as_given(path: str) -> str:
+    """Make a path absolute without normalizing it, so ``link/..`` isn't collapsed before the link is resolved."""
+    return path if os.path.isabs(path) else os.path.join(os.getcwd(), path)
+
+
 def _read_text(path: str, what: str) -> str:
     try:
-        with open(path, encoding="utf-8") as f:
-            return f.read()
+        with open_regular(path) as f:
+            return f.read().decode("utf-8")
     except FileNotFoundError:
         raise SpecError(f"{what}: {path} doesn't exist") from None
     except UnicodeDecodeError as e:
@@ -85,30 +90,39 @@ def _candidates(base: str, dotted: str) -> list[str]:
     return out
 
 
+def _imports(tree: ast.AST) -> list[ast.Import | ast.ImportFrom]:
+    """Return the import statements in a parsed file, in source order."""
+    nodes = [n for n in ast.walk(tree) if isinstance(n, (ast.Import, ast.ImportFrom))]
+    return sorted(nodes, key=lambda n: (n.lineno, n.col_offset))
+
+
 def _unlisted_imports(spec: ModelSpec, model_dir: str, files: tuple[TrackedFile, ...]) -> tuple[str, ...]:
     """M17: each import in the function's file that resolves to an unlisted file in the model's directory.
 
-    The file is parsed (``ast``), never imported (T4). Module names are resolved against the model's directory and
-    the file's own; a relative import against the file's directory.
+    The file is parsed (``ast``), never imported (T4). Module names are resolved against the model's directory,
+    the first entry of the child's ``sys.path`` (trust.md, Python function); a relative import against the
+    file's directory, as when the file is imported as a module of its package.
     """
     if not isinstance(spec.interface, PythonFunction):
         return ()
     file = spec.interface.function.rpartition(":")[0]
     path = os.path.join(model_dir, *file.split("/"))
+    source = _read_text(path, "function")
     try:
-        tree = ast.parse(_read_text(path, "function"), filename=file)
+        tree = ast.parse(source, filename=file)
     except SyntaxError as e:
         raise SpecError(f"function: {file} doesn't parse: {e.msg} (line {e.lineno})") from None
+    except (ValueError, MemoryError, RecursionError) as e:
+        raise SpecError(f"function: {file} doesn't parse: {type(e).__name__}") from None
     tracked = [os.path.join(model_dir, *f.path.split("/")) for f in files]
     here = os.path.dirname(path)
-    bases = list(dict.fromkeys([model_dir, here]))
     warnings: dict[str, str] = {}
-    for node in ast.walk(tree):
+    for node in _imports(tree):
         found: list[tuple[str, str]] = []
         if isinstance(node, ast.Import):
-            found = [(alias.name, base) for alias in node.names for base in bases]
-        elif isinstance(node, ast.ImportFrom):
-            places = bases
+            found = [(alias.name, model_dir) for alias in node.names]
+        else:
+            places = [model_dir]
             if node.level:
                 place = here
                 for _ in range(node.level - 1):
@@ -121,7 +135,7 @@ def _unlisted_imports(spec: ModelSpec, model_dir: str, files: tuple[TrackedFile,
         for name, base in found:
             for candidate in _candidates(base, name):
                 rel = os.path.relpath(candidate, model_dir).replace(os.sep, "/")
-                if rel.startswith("../") or not os.path.isfile(candidate):
+                if rel.split("/")[0] == ".." or not os.path.isfile(candidate):
                     continue
                 if not any(same_file(candidate, t) for t in tracked):
                     warnings.setdefault(
@@ -135,7 +149,8 @@ def _unlisted_imports(spec: ModelSpec, model_dir: str, files: tuple[TrackedFile,
 def load_spec(path: str) -> LoadedModel:
     """Load a model spec from its file: read, check, and hash it (model_interface.md; M10, M17, M18, M21; T7).
 
-    Nothing of the model runs: the function's file is parsed, never imported (T4).
+    Nothing of the model runs: the function's file is parsed, never imported (T4). The model's directory is the
+    directory of the spec's file, its links resolved, so a link to the spec is the same model (C33).
 
     Parameters
     ----------
@@ -154,12 +169,14 @@ def load_spec(path: str) -> LoadedModel:
         (the spec itself, or a file it names, through links), a tracked file missing, a template naming something
         that isn't a model parameter, or a function file that doesn't parse.
     """
-    spec_path = os.path.abspath(path)
-    model_dir = os.path.dirname(spec_path)
+    spec_path = _as_given(path)
+    real = os.path.realpath(path)
+    model_dir = os.path.dirname(real)
     try:
-        if is_credentials_file(os.path.basename(spec_path)) or _leads_to_credentials(spec_path, model_dir):
+        named = os.path.dirname(os.path.abspath(path))
+        if is_credentials_file(os.path.basename(spec_path)) or leads_to_credentials(path, named):
             raise SpecError("the model spec is a credentials file, which EMA doesn't read")
-        spec = ModelSpec.from_json(_read_text(spec_path, "the model spec"))
+        spec = ModelSpec.from_json(_read_text(real, "the model spec"))
         files = hash_files(spec, model_dir)
         _check_templates(spec, model_dir)
         warnings = _unlisted_imports(spec, model_dir, files)
@@ -188,38 +205,46 @@ def stored_model(spec: ModelSpec, files: tuple[TrackedFile, ...], spec_path: str
     LoadedModel
         With no warnings; its model version is computed again from the spec and files.
     """
-    spec_path = os.path.abspath(spec_path)
+    model_dir = os.path.dirname(os.path.realpath(spec_path))
     ordered = tuple(sorted(files, key=lambda f: f.path))
-    return LoadedModel(spec, spec_path, os.path.dirname(spec_path), ordered, version_hash(spec, ordered), ())
+    return LoadedModel(spec, _as_given(spec_path), model_dir, ordered, version_hash(spec, ordered), ())
 
 
 def save_spec(spec: ModelSpec, path: str) -> None:
     """Write a spec's ``to_json`` to a new file, never overwriting one (trust.md T6; ``save_model``).
 
     With an exclusive create, so a file that appears meanwhile is kept. An existing file with the same bytes is
-    left as it is.
+    left as it is. The text is read back with ``ModelSpec.from_json`` first, so a spec built in Python that
+    loading would refuse is never written.
 
     Parameters
     ----------
     spec
         The spec.
     path
-        A ``.json`` file in an existing directory.
+        A ``.json`` file (in any case) in an existing directory.
 
     Raises
     ------
+    SpecError
+        When ``from_json`` refuses the spec's text.
     PathRefused
-        For a name not ending in ``.json``, a directory that doesn't exist, an existing file with other bytes,
-        or a file (or a link) that appears at the path before the write.
+        For a name not ending in ``.json``, a directory that doesn't exist, a link to nothing, an existing file
+        with other bytes or that isn't a regular file, or a file (or a link) that appears at the path before the
+        write.
     """
-    data = spec.to_json().encode("utf-8")
-    if not path.endswith(".json"):
+    text = spec.to_json()
+    ModelSpec.from_json(text)
+    data = text.encode("utf-8")
+    if not path.casefold().endswith(".json"):
         raise PathRefused(f"{path}: a model spec's file name ends in .json")
     parent = os.path.dirname(os.path.abspath(path))
     if not os.path.isdir(parent):
         raise PathRefused(f"{path}: its directory {parent} doesn't exist")
+    if os.path.islink(path) and not os.path.exists(path):
+        raise PathRefused(f"{path} is a link to nothing, {os.readlink(path)}; EMA never writes through a link")
     try:
-        with open(path, "rb") as f:
+        with open_regular(path) as f:
             existing: bytes | None = f.read()
     except FileNotFoundError:
         existing = None

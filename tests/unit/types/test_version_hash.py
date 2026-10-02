@@ -30,6 +30,16 @@ def test_known_answer():
     assert version_hash(spec, FILES) == hashlib.sha256(expected_text.encode("utf-8")).hexdigest()
 
 
+def test_pinned_digests():
+    """Literal digests, so a change to the canonical JSON, the field order, or a default is caught (review item 8).
+
+    The shape was confirmed independently in the review of step 03 (record 0069, Review round 1)."""
+    heat = ModelSpec.from_json(json.dumps(HEAT))
+    assert version_hash(heat, FILES) == "4c36c2a8f16e4f16153ba65163ba9804f7eca61fe51c89df29e1d58b13a75176"
+    beam = ModelSpec.from_json(json.dumps(BEAM))
+    assert version_hash(beam, ()) == "e49d0b5babe2733729e48662a9a2f792a3a98ba5637753a827614eeaa665a3bf"
+
+
 def test_files_order_does_not_matter_and_settings_are_not_covered():
     spec = ModelSpec.from_json(json.dumps(HEAT))
     other_settings = ModelSpec.from_json(edited(HEAT, keep="none", timeout_s=1))
