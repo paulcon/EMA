@@ -248,3 +248,12 @@ State lives in git and on disk; nothing is only in the conversation.
   before anything is read), concurrent rebuilds safe through the store's move-aside, `reproduce` never raising,
   no FIFO hang, a Workspace bound to its thread with an `EMAError`, C49's figures and C51 tested. Step 14 done
   (its round 2 with the final integrated review).
+- **Step 15** built and merged (the MCP server; AR3 split into one contract for the CLI and one for the server;
+  8 import contracts kept). Checked by the coordinator: `ema mcp --root ~/ema_demo` answers `initialize` and
+  lists the 10 tools; a real MCP client over stdio priced and ran a scatter with one elicitation (the price and
+  what each run starts), read the report resource, and a repeat asked nothing. The demo directory
+  `~/ema_demo` set up per `docs/notes/demo_mcp.md` §1 (three models loaded with `ema model add`). Found:
+  `save_model` refuses an existing spec file given its own text ("exists, with other text"), so a client can't
+  load an existing spec; sent to the review.
+- **Diagnostics cleanup** merged (the lean interval method in the contract: 36 s → 15 s; the minors of 10–12).
+- Review of 15 and 16 started; step 13's review running.
