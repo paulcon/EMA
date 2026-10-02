@@ -236,3 +236,6 @@ State lives in git and on disk; nothing is only in the conversation.
   tests for the rank-deficient and LOO-undefined notes; the LOO note's wording; a lean interval method in the
   contract's checks that don't need the real bootstrap (the fast tier's cost: about 30 s of CPU per
   bootstrapped diagnostic).
+- **Step 16** built and merged (the CLI, 13 commands, C54's check that each prints its workspace call's text;
+  `ema mcp` importing the server lazily). One test fixed at the merge (it assumed only two diagnostics).
+  Review comes with step 15's.
