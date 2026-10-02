@@ -49,3 +49,16 @@ The public names of the modules that exist so far (`architecture.md`), one page 
    ema.models.spec
    ema.models.files
 ```
+
+The store (step 06):
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _autosummary
+
+   ema.store.store
+   ema.store.records
+   ema.store.layout
+   ema.store.lock
+   ema.store.migrations
+```

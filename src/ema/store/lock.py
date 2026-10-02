@@ -1,0 +1,58 @@
+"""The run lock: one process at a time makes runs in a workspace (data_model.md §10; architecture.md §5; trust.md).
+
+``fcntl.flock(LOCK_EX | LOCK_NB)`` on a descriptor of ``run.lock`` kept open while the lock is held, so it excludes
+a second holder in the same process as well as in another (a per-process POSIX lock would not), and is released when
+the descriptor closes or the process exits. The holder writes its process id, host, and start time into the file,
+so a second process is refused naming it. Only the workspace that makes runs takes it.
+"""
+
+import fcntl
+import os
+import socket
+from collections.abc import Iterator
+from contextlib import contextmanager
+from datetime import UTC, datetime
+
+from ema.types.errors import WorkspaceBusy
+from ema.types.text import timestamp_text
+
+
+def _holder(fd: int) -> str:
+    try:
+        text = os.pread(fd, 1024, 0).decode("utf-8", "replace").strip()
+    except OSError:
+        text = ""
+    return text or "another process"
+
+
+@contextmanager
+def run_lock(path: str) -> Iterator[None]:
+    """Hold the run lock at ``path`` for a ``with`` block.
+
+    Parameters
+    ----------
+    path
+        The workspace's ``run.lock``; created when missing.
+
+    Raises
+    ------
+    WorkspaceBusy
+        When another holder, in this process or another, has it; the message names the holder and the lock.
+    """
+    fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o644)
+    try:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise WorkspaceBusy(
+                f"another process is making runs in this workspace ({_holder(fd)}); it holds {path}"
+            ) from None
+        holder = f"process {os.getpid()} on {socket.gethostname()}, since {timestamp_text(datetime.now(UTC))}"
+        os.ftruncate(fd, 0)
+        os.pwrite(fd, holder.encode("utf-8") + b"\n", 0)
+        try:
+            yield
+        finally:
+            os.ftruncate(fd, 0)
+    finally:
+        os.close(fd)  # releases the lock
