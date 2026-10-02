@@ -2,13 +2,15 @@
 
 Paths are compared as files, never as strings (trust.md T1; P3, C33): ``same_file`` and ``is_within``. The
 tracked files are hashed at loading (``hash_files``, which also refuses a named file whose link leads to a
-credentials file, T7) and before every call (``check_files``, M16). ``remove_tree`` comes with the run phases
-(step 04).
+credentials file, T7) and before every call (``check_files``, M16). Run and batch directories are deleted without
+following links (``remove_tree``), and EMA's own files in them written without following links (``write_own``)
+(trust.md, T9; 0061).
 """
 
 import errno
 import hashlib
 import os
+import shutil
 import stat
 import sys
 import unicodedata
@@ -310,3 +312,85 @@ def check_files(model: "LoadedModel") -> None:
             ) from None
         if changed:
             raise ModelChanged(f"{label}: {f.path} changed since loading; load the model again for a new model version")
+
+
+def remove_tree(path: str | os.PathLike[str]) -> None:
+    """Delete a run or batch directory without following links (trust.md, T9; 0061).
+
+    A link in it is removed, never its target, so a data directory a script linked there survives; a directory
+    the model made read-only, or unreadable, at any depth, is made writable to be emptied (never a directory above
+    ``path``). A link or file at ``path`` itself is removed; nothing at ``path`` is nothing to do.
+
+    Parameters
+    ----------
+    path
+        The directory.
+
+    Raises
+    ------
+    OSError
+        When something in it can't be removed.
+    """
+    path = os.fspath(path)
+    if not os.path.lexists(path):
+        return
+    if os.path.islink(path) or not os.path.isdir(path):
+        os.unlink(path)
+        return
+
+    root = os.path.join(os.path.abspath(path), "")
+    retried: set[str] = set()
+
+    def retry(function: object, failed: str, error: BaseException) -> None:
+        """Make the failed entry's directory, and the entry if it is one, writable and searchable; try again.
+
+        Only directories at or below ``path`` are changed, each entry retried once (a failure again is raised).
+        """
+        if not isinstance(error, PermissionError) or failed in retried:
+            raise error
+        retried.add(failed)
+        for directory in (os.path.dirname(failed), failed):
+            inside = os.path.join(os.path.abspath(directory), "").startswith(root)
+            if inside and os.path.isdir(directory) and not os.path.islink(directory):
+                os.chmod(directory, 0o700)
+        if os.path.isdir(failed) and not os.path.islink(failed):
+            shutil.rmtree(failed, onexc=retry)
+        elif os.path.lexists(failed):
+            os.unlink(failed)
+
+    shutil.rmtree(path, onexc=retry)
+
+
+def write_own(directory: str, name: str, data: bytes) -> None:
+    """Write one of EMA's own files in a run or batch directory without following a link (trust.md, T9).
+
+    The directory is opened without following a link; a link or file the model left at ``name`` is removed, then
+    the file is created exclusively, so nothing outside the directory is ever written.
+
+    Parameters
+    ----------
+    directory
+        The run or batch directory.
+    name
+        ``run.json`` or ``predictions.json``.
+    data
+        The bytes.
+
+    Raises
+    ------
+    OSError
+        When it can't be written: the directory is a link or gone, a directory stands at ``name``, or the model
+        made the file again meanwhile.
+    """
+    dir_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        try:
+            os.unlink(name, dir_fd=dir_fd)
+        except FileNotFoundError:
+            pass
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW
+        fd = os.open(name, flags, 0o644, dir_fd=dir_fd)
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+    finally:
+        os.close(dir_fd)

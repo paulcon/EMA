@@ -3,15 +3,17 @@
 Loading reads the spec and checks it (``ModelSpec.from_json``), hashes its tracked files (``hash_files``), checks
 the input deck templates' names (M10), and warns about unlisted local imports (M17) by parsing the function's file,
 never importing it, so nothing of the model runs in EMA's process (trust.md, T4; 0057 item 8). ``resolve_program``
-comes with the run phases (step 04).
+says what will run, for the first approval (U2, 0029).
 """
 
 import ast
 import os
 import string
+import sys
 from dataclasses import dataclass
 
 from ema.models.files import hash_files, leads_to_credentials, open_regular, same_file
+from ema.models.sandbox import find_program, model_environment
 from ema.types.errors import PathRefused, SpecError
 from ema.types.identity import TrackedFile, version_hash
 from ema.types.model import CommandLine, ModelSpec, PythonFunction, is_credentials_file
@@ -260,3 +262,27 @@ def save_spec(spec: ModelSpec, path: str) -> None:
         raise PathRefused(f"{path} appeared before it could be written; it is kept, and nothing was saved") from None
     with os.fdopen(fd, "wb") as f:
         f.write(data)
+
+
+def resolve_program(model: LoadedModel) -> str | None:
+    """Return the program a model's runs will start, for the first approval's question before any run (U2, 0029).
+
+    A command's program is resolved as ``execute`` resolves it, against the model's own ``PATH``
+    (``model_environment``, an ``env`` that sets ``PATH`` included); a program given with a ``/`` is one of the
+    model's files, shown at its place in the model's directory (each run starts its copy). A Python function's
+    program is the child's interpreter, EMA's own (0029).
+
+    Parameters
+    ----------
+    model
+        The loaded model.
+
+    Returns
+    -------
+    str or None
+        The absolute path, or None when the program isn't found.
+    """
+    if isinstance(model.spec.interface, PythonFunction):
+        return sys.executable
+    program = model.spec.interface.command[0]
+    return find_program(program, model_environment(model.spec), model.model_dir)
