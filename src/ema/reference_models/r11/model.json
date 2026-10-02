@@ -1,0 +1,11 @@
+{
+  "name": "r11",
+  "description": "R11: a product of Runge-type functions, g(a) g(b), g(u) = 1 / (1 + 4 u^2)",
+  "interface": "python_function",
+  "function": "r11.py:f",
+  "parameters": [
+    {"name": "a", "units": "", "nominal": 0.0, "description": "a, in [-1, 1]"},
+    {"name": "b", "units": "", "nominal": 0.0, "description": "b, in [-1, 1]"}
+  ],
+  "predictions": [{"name": "y", "units": "", "description": ""}]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "r3",
+  "description": "R3: the borehole function, the water flow through a borehole, with a log range on r",
+  "interface": "python_function",
+  "function": "borehole.py:f",
+  "parameters": [
+    {"name": "rw", "units": "m", "nominal": 0.1, "description": "the borehole's radius", "limits": {"gt": 0}},
+    {"name": "r", "units": "m", "nominal": 2236.06797749979, "description": "the radius of influence",
+     "limits": {"gt": 0}},
+    {"name": "Tu", "units": "m²/yr", "nominal": 89335.0, "description": "the upper aquifer's transmissivity"},
+    {"name": "Hu", "units": "m", "nominal": 1050.0, "description": "the upper aquifer's potentiometric head"},
+    {"name": "Tl", "units": "m²/yr", "nominal": 89.55, "description": "the lower aquifer's transmissivity"},
+    {"name": "Hl", "units": "m", "nominal": 760.0, "description": "the lower aquifer's potentiometric head"},
+    {"name": "L", "units": "m", "nominal": 1400.0, "description": "the borehole's length"},
+    {"name": "Kw", "units": "m/yr", "nominal": 10950.0, "description": "the borehole's hydraulic conductivity"}
+  ],
+  "predictions": [{"name": "y", "units": "m³/yr", "description": "water flow through the borehole"}]
+}

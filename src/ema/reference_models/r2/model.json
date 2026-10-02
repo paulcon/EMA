@@ -1,0 +1,12 @@
+{
+  "name": "ishigami",
+  "description": "R2: the Ishigami function, sin x1 + 7 sin^2 x2 + 0.1 x3^4 sin x1",
+  "interface": "python_function",
+  "function": "ishigami.py:f",
+  "parameters": [
+    {"name": "x1", "units": "", "nominal": 0.0, "description": "x1, in [-pi, pi]"},
+    {"name": "x2", "units": "", "nominal": 0.0, "description": "x2, in [-pi, pi]"},
+    {"name": "x3", "units": "", "nominal": 0.0, "description": "x3, in [-pi, pi]: no first-order effect"}
+  ],
+  "predictions": [{"name": "y", "units": "", "description": ""}]
+}

@@ -37,7 +37,7 @@ dev = [
 [tool.ruff]
 line-length = 120
 # Python files only: the Markdown documents are not formatted (they hold specs and guides, edited by hand).
-extend-exclude = ["docs/checks", "*.md"]
+extend-exclude = ["docs/checks", "*.md", "src/ema/reference_models"]
 
 [tool.ruff.lint]
 extend-select = ["B905", "NPY", "I", "D", "TID251"]
@@ -82,6 +82,8 @@ convention = "numpy"
 
 [tool.mypy]
 files = ["src"]
+# The reference models are data beside the layers: model files, not EMA's code (architecture.md §11).
+exclude = ["^src/ema/reference_models/"]
 
 [[tool.mypy.overrides]]
 module = ["scipy", "scipy.*"]
@@ -110,7 +112,7 @@ exclude_type_checking_imports = true
 name = "AR1 One-way layers"
 type = "layers"
 layers = [
-    "ema.runner | ema.approval",
+    "ema.runner | ema.approval | ema.diagnostics",
     "ema.plotting | ema.report",
     "ema.models | ema.store",
     "ema.numerics | ema.designs",
@@ -161,6 +163,7 @@ source_modules = [
     "ema.report",
     # Step 07: ema.runner is the one module that imports ema.models.execute; its sibling ema.approval may not.
     "ema.approval",
+    "ema.diagnostics",
 ]
 forbidden_modules = [
     "ema.models.execute",
@@ -179,6 +182,7 @@ source_modules = [
     "ema.report",
     "ema.runner",
     "ema.approval",
+    "ema.diagnostics",
 ]
 forbidden_modules = [
     "sqlite3",
@@ -215,6 +219,7 @@ source_modules = [
     "ema.report",
     "ema.runner",
     "ema.approval",
+    "ema.diagnostics",
 ]
 forbidden_modules = [
     "ema.reference_models",

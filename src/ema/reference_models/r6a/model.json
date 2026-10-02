@@ -1,0 +1,13 @@
+{
+  "name": "r6a",
+  "description": "R6a: R1 with visible noise, 0.05 times a standard normal draw, declared deterministic",
+  "interface": "python_function",
+  "function": "r6a.py:f",
+  "parameters": [
+    {"name": "a", "units": "", "nominal": 1.0, "description": "a, in [0, 2]"},
+    {"name": "b", "units": "", "nominal": 0.0, "description": "b, in [-1, 1]"},
+    {"name": "c", "units": "", "nominal": 15.0, "description": "c, in [10, 20]: no effect"},
+    {"name": "k", "units": "", "nominal": 10.0, "description": "k, in [1, 100] on a log range", "limits": {"gt": 0}}
+  ],
+  "predictions": [{"name": "y", "units": "", "description": ""}]
+}

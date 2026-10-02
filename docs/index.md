@@ -76,6 +76,15 @@ The store (step 06):
    ema.plotting.figures
    ema.report.render
    ema.report.pdf
+
+.. Step 09: the diagnostics' base, the point run, and the reference models (a block of its own, to ease merging).
+
+.. autosummary::
+   :toctree: _autosummary
+
+   ema.diagnostics.base
+   ema.diagnostics.point_run
+   ema.reference_models
 ```
 
 The runner and approval (step 07):
