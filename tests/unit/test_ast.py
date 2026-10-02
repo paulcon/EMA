@@ -89,3 +89,42 @@ def test_the_execute_scan_sees_each_form():
                    "from ema.models import execute as e"):  # fmt: skip
         assert execute_imports(source), source
     assert not execute_imports("from ema.models.spec import load_spec\nimport executor")
+
+
+def mcp_imports(source: str) -> tuple[list[str], list[str]]:
+    """The imports of ``ema.mcp`` in ``source``: those inside the ``mcp`` command's function, and all the others."""
+    inside, outside = [], []
+
+    def names(node: ast.AST) -> list[str]:
+        if isinstance(node, ast.Import):
+            return [alias.name for alias in node.names]
+        if isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            return [module] + [f"{module}.{alias.name}" for alias in node.names]
+        return []
+
+    def visit(node: ast.AST, in_command: bool) -> None:
+        for child in ast.iter_child_nodes(node):
+            found = [n for n in names(child) if n == "ema.mcp" or n.startswith("ema.mcp.")]
+            if found:
+                (inside if in_command else outside).append(found[0])
+            command = isinstance(child, ast.FunctionDef) and child.name == "_mcp"
+            visit(child, in_command or command)
+
+    visit(ast.parse(source), False)
+    return inside, outside
+
+
+def test_ar3_the_cli_imports_ema_mcp_only_in_its_mcp_command():
+    """architecture.md §10: ``ema.cli`` imports ``ema.mcp`` lazily, in ``_mcp`` only (AR3; 0061)."""
+    inside, outside = mcp_imports((SOURCE / "cli.py").read_text(encoding="utf-8"))
+    assert inside == ["ema.mcp.server"] and outside == []
+
+
+def test_the_mcp_scan_sees_a_module_level_import():
+    """A negative control for the scan itself: an import at module level, or in another function, is outside."""
+    source = (
+        "import ema.mcp\ndef _mcp():\n    from ema.mcp.server import serve\ndef other():\n    from ema import mcp\n"
+    )
+    inside, outside = mcp_imports(source)
+    assert inside == ["ema.mcp.server"] and outside == ["ema.mcp", "ema.mcp"]

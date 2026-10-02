@@ -14,6 +14,10 @@ dependencies = [
     "matplotlib>=3.9.2",
 ]
 
+# The command line (architecture.md §8; build step 16).
+[project.scripts]
+ema = "ema.cli:main"
+
 [build-system]
 requires = ["uv_build>=0.12.21,<0.13"]
 build-backend = "uv_build"
@@ -112,6 +116,9 @@ exclude_type_checking_imports = true
 name = "AR1 One-way layers"
 type = "layers"
 layers = [
+    # Step 16: ema.cli on top. §10 puts ema.mcp between it and ema.workspace; step 15 adds that layer when it
+    # merges (ema.mcp doesn't exist on this branch, and a layer must; record 0082).
+    "ema.cli",
     "ema.workspace",
     "ema.runner | ema.approval | ema.diagnostics",
     "ema.plotting | ema.report",
@@ -142,6 +149,27 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
+name = "AR3 The interfaces call only the workspace"
+type = "forbidden"
+allow_indirect_imports = true
+# Step 16: ema.cli imports only ema.workspace and ema.types (and ema.mcp.server lazily, in its mcp command: the AST
+# test in tests/unit/test_ast.py). Step 15 adds ema.mcp to source_modules (record 0082).
+source_modules = [
+    "ema.cli",
+]
+forbidden_modules = [
+    "ema.numerics",
+    "ema.designs",
+    "ema.models",
+    "ema.store",
+    "ema.plotting",
+    "ema.report",
+    "ema.runner",
+    "ema.approval",
+    "ema.diagnostics",
+]
+
+[[tool.importlinter.contracts]]
 name = "AR4 Only the runner runs a model"
 type = "forbidden"
 allow_indirect_imports = true
@@ -167,6 +195,7 @@ source_modules = [
     "ema.diagnostics",
     # Step 14: the workspace orchestrates the runs through ema.runner, and never runs a model itself.
     "ema.workspace",
+    "ema.cli",
 ]
 forbidden_modules = [
     "ema.models.execute",
@@ -187,6 +216,7 @@ source_modules = [
     "ema.approval",
     "ema.diagnostics",
     "ema.workspace",
+    "ema.cli",
 ]
 forbidden_modules = [
     "sqlite3",
@@ -225,6 +255,7 @@ source_modules = [
     "ema.approval",
     "ema.diagnostics",
     "ema.workspace",
+    "ema.cli",
 ]
 forbidden_modules = [
     "ema.reference_models",

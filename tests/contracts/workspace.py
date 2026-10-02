@@ -2,7 +2,9 @@
 "Done when", on the reference models; the get-started guide's Python blocks run as written on R2 (0060).
 
 ``check_use_case`` is parametrized over the use cases, and ``check_get_started`` runs the guide; both are slow tier.
-U9 is the MCP server's (step 15, ``tests/contracts/tools.py``); C54 joins with the CLI (step 16). A use case needs
+U9 is the MCP server's (step 15, ``tests/contracts/tools.py``). C54 (step 16, record 0082): ``check_cli_matches_workspace``
+runs each CLI command against a workspace on R2 and checks that it called its one workspace function (§8's table) and
+printed exactly the text that function returned; its negative control is a CLI that formats a number itself. A use case needs
 the diagnostics it names: until a diagnostic is registered (scatter, coordinate lines, the linear and polynomial
 models are built on parallel branches), the use case runs up to the first step that needs it and is skipped there,
 naming it (record 0080). The negative control: a workspace that runs before showing the price fails every use case
@@ -293,3 +295,123 @@ def test_a_workspace_that_runs_before_asking_fails_the_use_cases(tmp_path: Path)
     finally:
         for w in broken:
             w.close()
+
+
+# -- C54: each CLI command's result equals the workspace function it calls (architecture.md §8; step 16) ---------
+
+#: The workspace functions a CLI command may call: §8's table.
+CLI_FUNCTIONS = ("load_model", "list_models", "describe_model", "test_model", "list_diagnostics",
+                 "describe_diagnostic", "price", "run", "get_result", "list_results", "report", "failed_runs",
+                 "run_dirs", "reproduce", "export")  # fmt: skip
+
+
+def _commands(p: dict[str, str], tmp: Path) -> dict[str, tuple[list[str], str]]:
+    """Each command of §8 (but ``mcp``, step 15's) with its arguments, and the workspace function it calls."""
+    space = ["--space", str(Path(R2).parent / "space.json"), "--param", "n=20", "--param", "seed=1"]
+    return {
+        "model add": (["model", "add", R2], "load_model"),
+        "model test": (["model", "test", "ishigami"], "test_model"),
+        "models": (["models"], "list_models"),
+        "models NAME": (["models", "ishigami"], "describe_model"),
+        "diagnostics": (["diagnostics"], "list_diagnostics"),
+        "diagnostics NAME": (["diagnostics", "scatter"], "describe_diagnostic"),
+        "price": (["price", "ishigami", "scatter", *space[:4], "--param", "seed=2"], "price"),
+        "run": (["run", "ishigami", "scatter", *space], "run"),
+        "results": (["results", "--model", "ishigami"], "list_results"),
+        "results ID": (["results", p["scatter"]], "get_result"),
+        "report": (["report", p["scatter"]], "report"),
+        "failed-runs": (["failed-runs", p["scatter"]], "failed_runs"),
+        "run-dirs": (["run-dirs", p["point_run"], "--point", str(tmp / "point.json")], "run_dirs"),
+        "reproduce": (["reproduce", p["scatter"]], "reproduce"),
+        "export": (["export", p["scatter"], str(tmp / "export")], "export"),
+    }
+
+
+CLI_COMMANDS = list(_commands({"scatter": "", "point_run": ""}, Path("unused")))
+
+
+@pytest.fixture(scope="module")
+def cli_workspace(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+    """A workspace on R2 with its test run, a scatter result (n = 20), and a point run, made through Python."""
+    need("scatter")
+    path = tmp_path_factory.mktemp("c54") / "ws"
+    with open_workspace(path) as ws:
+        ws.load_model(R2)
+        ws.test_model("ishigami", approve=Asked())
+        scatter = ws.run("ishigami", "scatter", PI_SPACE, n=20, seed=1, approve=Asked())
+        point = ws.run("ishigami", "point_run", x={"x1": 1.0}, approve=Asked())
+    return {"ws": str(path), "scatter": scatter.result_id[:8], "point_run": point.result_id[:8]}
+
+
+def _expected(returned: object) -> str:
+    """The text a command prints for what its function returned: EMA's text, and nothing the CLI computed (C54)."""
+    if isinstance(returned, ema.Report):
+        return returned.markdown
+    if isinstance(returned, list):
+        texts = [str(item) for item in returned]
+        joined = ("\n\n" if any("\n" in t for t in texts) else "\n").join(texts)
+        return joined + "\n" if texts else ""
+    return f"{returned}\n"
+
+
+def check_cli_matches_workspace(
+    command: str,
+    cli_workspace: dict[str, str],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    cli: Callable[[list[str]], int] | None = None,
+) -> None:
+    """C54: the command calls its one workspace function (§8's table), and prints exactly the text it returned."""
+    from ema.cli import main
+
+    run_cli = cli or main
+    argv, function = _commands(cli_workspace, tmp_path)[command]
+    (tmp_path / "point.json").write_text('{"x1": 1.0, "x2": 0.0, "x3": 0.0}')
+    calls: list[tuple[str, object]] = []
+    depth = [0]
+
+    def spy(name: str) -> Callable[..., object]:
+        original = getattr(Workspace, name)
+
+        def wrapper(self: Workspace, *args: object, **kwargs: object) -> object:
+            depth[0] += 1
+            try:
+                returned = original(self, *args, **kwargs)
+            finally:
+                depth[0] -= 1
+            if depth[0] == 0:
+                calls.append((name, returned))
+            return returned
+
+        return wrapper
+
+    for name in CLI_FUNCTIONS:
+        monkeypatch.setattr(Workspace, name, spy(name))
+    monkeypatch.setattr(sys, "stdin", io.StringIO(""))  # no terminal: a question would be a no, and fail the command
+    capsys.readouterr()
+    code = run_cli(["--workspace", cli_workspace["ws"], *argv])
+    out = capsys.readouterr().out
+    assert code == 0, (command, code)
+    assert [name for name, _ in calls] == [function], calls
+    assert out == _expected(calls[0][1]), (command, out)
+
+
+@pytest.fixture(params=CLI_COMMANDS)
+def command(request: pytest.FixtureRequest) -> str:
+    return str(request.param)
+
+
+def test_a_cli_that_formats_its_own_numbers_fails_c54(cli_workspace, tmp_path, monkeypatch, capsys) -> None:
+    """C54's negative control: a CLI that rounds the numbers EMA rendered fails the check (meta-test)."""
+    from ema.cli import main
+
+    def rounding(argv: list[str]) -> int:
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            code = main(argv)
+        sys.stdout.write(re.sub(r"\d+\.\d+", lambda m: f"{float(m.group()):.1f}", buffer.getvalue()))
+        return code
+
+    with pytest.raises(AssertionError):
+        check_cli_matches_workspace("report", cli_workspace, tmp_path, monkeypatch, capsys, cli=rounding)
