@@ -59,6 +59,8 @@ MODULES += ["ema/diagnostics/scatter.py"]
 MODULES += ["ema/diagnostics/_lines.py", "ema/diagnostics/coordinate_lines.py", "ema/diagnostics/lines.py"]
 #: The linear model (step 12).
 MODULES += ["ema/diagnostics/linear_model.py", "ema/diagnostics/_fits.py"]
+#: The CLI (step 16).
+MODULES += ["ema/cli.py"]
 
 
 @pytest.mark.slow
@@ -74,3 +76,5 @@ def test_the_wheel_holds_ema_and_its_modules(tmp_path):
     assert not missing, f"not in the wheel: {missing}"
     assert any(n.endswith(".dist-info/licenses/LICENSE") for n in names), "the license is not in the wheel"
     assert not any(n.startswith(("tests/", "docs/")) for n in names)
+    (entry_points,) = [n for n in names if n.endswith(".dist-info/entry_points.txt")]
+    assert "ema = ema.cli:main" in zipfile.ZipFile(wheel).read(entry_points).decode()  # the console script (step 16)

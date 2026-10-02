@@ -120,3 +120,14 @@ The workspace (step 14):
 
    ema.workspace
 ```
+
+The command line (step 16):
+
+```{eval-rst}
+.. Step 16: the CLI, ema (a block of its own, to ease merging).
+
+.. autosummary::
+   :toctree: _autosummary
+
+   ema.cli
+```
