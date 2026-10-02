@@ -244,3 +244,7 @@ State lives in git and on disk; nothing is only in the conversation.
   20–150 (134 s alone); to re-time on a quiet machine. Review round 1 started.
 - **All use cases on merged `demo`** (edf68e3): `pytest --slow tests/contracts/workspace.py`: 28 passed, 0
   skipped (U1–U8, the get-started guide, C54 over 15 CLI forms).
+- **Step 14, fixing round 1** merged: the T5 hole closed (a linked spec's files checked beside its real path,
+  before anything is read), concurrent rebuilds safe through the store's move-aside, `reproduce` never raising,
+  no FIFO hang, a Workspace bound to its thread with an `EMAError`, C49's figures and C51 tested. Step 14 done
+  (its round 2 with the final integrated review).
