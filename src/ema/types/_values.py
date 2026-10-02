@@ -32,3 +32,15 @@ def as_int(value: Any, what: str, minimum: int, error: type[EMAError] = RequestE
         if number >= minimum:
             return number
     raise error(f"{what} must be an integer >= {minimum}, not {value!r}")
+
+
+def finite_doubles(values: Any, what: str) -> tuple[float, ...]:
+    """Return ``values`` as a tuple of doubles; raise ``ValueError`` naming ``what`` unless each is finite.
+
+    For EMA's own records (a run's point, a run key's, the test run's), where a bad value is a mistake in EMA's
+    code, not a user's request (record 0070).
+    """
+    out = tuple(float(v) if is_number(v) else math.nan for v in values)
+    if not all(math.isfinite(v) for v in out):
+        raise ValueError(f"{what} must be finite numbers: {tuple(values)!r}")
+    return out

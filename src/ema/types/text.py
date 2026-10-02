@@ -1,6 +1,8 @@
-"""Numbers and durations as users read them (S3, 0044; U2; 0061, 0062, 0063)."""
+"""Numbers, durations, and timestamps as users read them (S3, 0044; U2; 0061, 0062, 0063; data_model.md §3.2)."""
 
 import math
+import re
+from datetime import UTC, datetime
 from fractions import Fraction
 
 
@@ -90,3 +92,43 @@ def duration(seconds: float) -> str:
         return f"about {minutes} min"
     hours, rest = divmod(minutes, 60)
     return f"about {hours} h {rest} min" if rest else f"about {hours} h"
+
+
+_TIMESTAMP = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z")
+
+
+def timestamp_text(when: datetime) -> str:
+    """Write a stored timestamp: ISO 8601 in UTC, to the millisecond (data_model.md §3.2; record 0070).
+
+    Parameters
+    ----------
+    when
+        An aware datetime, in any zone; the microseconds below a millisecond are dropped.
+
+    Returns
+    -------
+    str
+        For example "2026-10-01T14:03:07.123Z".
+
+    Raises
+    ------
+    ValueError
+        For a naive datetime, whose zone is unknown.
+    """
+    if when.tzinfo is None or when.utcoffset() is None:
+        raise ValueError(f"a timestamp needs a time zone: {when!r}")
+    utc = when.astimezone(UTC)
+    return utc.strftime("%Y-%m-%dT%H:%M:%S.") + f"{utc.microsecond // 1000:03d}Z"
+
+
+def parse_timestamp(text: str) -> datetime:
+    """Read a stored timestamp written by ``timestamp_text``, as an aware datetime in UTC.
+
+    Raises
+    ------
+    ValueError
+        For text of any other form.
+    """
+    if not isinstance(text, str) or not _TIMESTAMP.fullmatch(text):
+        raise ValueError(f"not a stored timestamp: {text!r}")
+    return datetime.strptime(text[:-1] + "000", "%Y-%m-%dT%H:%M:%S.%f").replace(tzinfo=UTC)
