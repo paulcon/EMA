@@ -76,14 +76,23 @@ Each is record 0074's, numbered as there, one line each.
 18. The three toys log each point they are called at to `TOY_CALLS` when set.
 19. Ctrl-C in the checks: 0.1 s after a progress count, from a timer started in the callback.
 20. Fast tier: C46, C47, C56 (and their meta-test), C48, C49 over the Python toy; the rest slow.
+21. Review round 1: a call is also cut at the first key W4 wouldn't store (`current_keys`); none runnable refuses.
+22. An exception after W4's COMMIT leaves the call stored: directories deleted only when it isn't, else `keep`.
+23. "0/n runs" once the first call has passed Q13 and `check_files`; a refused first call reports nothing.
+24. `resolve` reads `Store.current_keys` and hashes each point once.
+25. `ask_approval` checks the design against `asked_for`, the model version, the files (first approval), `reused`.
+26. An approver's exception text is a code span; a backslash in a path shown in a question is doubled.
 
 ## Notes
 
-- **Size:** `ema.runner` 168 code lines, `ema.approval` 196: 364 against §11's 418 (record 0074, Consequences).
+- **Size:** `ema.runner` 189 code lines, `ema.approval` 211: 400 against §11's 418 (record 0074, Consequences);
+  364 before review round 1.
 - **Tests:** 33 fast (about 1 s), 51 with the slow tier (about 5 s with `-n auto`). The whole fast tier measured
   27.6 s to 30.5 s on this machine under other builds' load (27.9 s before this step); the full slow tier 23 s.
-- **Deferred:** `Store.current_keys` in `resolve` (merging `demo-06-store` here was refused by the permission
-  system; about 3 lines in `_current` on merge); `tests/contracts/store.py`'s docstring pointer to the runner's
-  checks (that file changes on `demo-06-store`).
+- **Review round 1** (`demo-07fix`; record 0074 items 21–26): both majors (a stale resolution's key run twice,
+  M1; a stored call's directories deleted by Ctrl-C after W4's COMMIT, M2) and the minors fixed, each with a test;
+  `check_run_once` added to the fast tier (its meta-test slow); now 40 fast tests, 62 with the slow tier (the
+  whole fast tier 36.5 s with `-n auto` at a load average near 57); `resolve` at 10⁵ points 1.08 s (was 1.51 s). The
+  deferrals (`Store.current_keys`, `tests/contracts/store.py`'s pointer) are closed.
 - **Spec edits on acceptance** (record 0074): `architecture.md` §9's contract table names `tests/contracts/runner.py`;
   §6's `run_new` raises `ValueError` for an uncovered call; `trust.md`: Ctrl-C at the question is recorded as a no.

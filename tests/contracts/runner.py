@@ -201,6 +201,24 @@ def check_approval_cap(impl: Runner) -> None:
         assert list(shared.row_keys) == [-1, 0] and len(shared.new_keys) == 1
 
 
+def check_run_once(impl: Runner) -> None:
+    """C46, C48 (P3; I2, I4; M14): a key's run is made once. A stale resolution, whose keys were run since under
+    another approval that covers them too, is refused before its call starts (Q13 counts only its own approval's
+    runs): the model isn't called again, and the stored runs keep their directories."""
+    with workbench() as w:
+        model = w.model(impl.kind, lambda s: s.update(keep="all"))
+        points = [point(0, a=1.0), point(0, a=2.0)]
+        stale = impl.resolve(design(points), model, w.store, retry_failed=False)
+        first, second = w.approve(stale), w.approve(stale)
+        assert impl.run_new(model, stale, first, w.store, w.processes) == 2
+        made = {key: run.run_id for key, run in w.stored(model, points).items()}
+        assert refused(lambda: impl.run_new(model, stale, second, w.store, w.processes)), "a key was run twice"
+        assert w.calls() == points, f"the model was called again at a key already run: {w.calls()}"
+        assert {key: run.run_id for key, run in w.stored(model, points).items()} == made
+        for run_id in made.values():
+            assert (w.run_dir(run_id) / "run.json").is_file(), "a stored run's directory was deleted"
+
+
 def check_interrupt(impl: Runner) -> None:
     """C49 (0015, 0028, 0051; I1, I5): Ctrl-C between calls keeps every finished run, and a rerun makes only the
     others; Ctrl-C during a call kills it, stores no record of the run stopped partway, and keeps the finished ones."""
@@ -323,6 +341,18 @@ class CountsAtFinish(_Loop):
         return pending[: self.size]
 
 
+class AsksQ13Only(_Loop):
+    """Asks Q13 only, which counts this approval's runs, not whether a key was run under another (I4's control)."""
+
+    def next_call(self, pending: tuple[RunKey, ...]) -> tuple[RunKey, ...]:
+        candidate = pending[: self.size]
+        coverage = self.store.approval_coverage(self.approval_id, candidate)
+        covered = next((i for i, c in enumerate(coverage.covered) if not c), len(candidate))
+        if not covered:
+            raise ValueError("not covered")
+        return candidate[:covered]
+
+
 class FillsLastBatch(_Loop):
     """Fills the last batch past the approved count: Q13 asked of a call's first key only (C37's control)."""
 
@@ -385,6 +415,7 @@ BROKEN: dict[str, list[Runner]] = {
     "check_failed_reused": [Runner(resolve=resolve_always_retrying)],
     "check_design_order": [Runner(read_batch=read_batch_sorted)],
     "check_approval_cap": [Runner(run_new=loop_runner(CountsAtFinish))],
+    "check_run_once": [Runner(run_new=loop_runner(AsksQ13Only))],
     "check_interrupt": [Runner(run_new=loop_runner(OneTransaction)), Runner(run_new=loop_runner(StoresStopped))],
     "check_refused_call": [Runner(run_new=loop_runner(ChecksOnce))],
     "check_batch_sizes": [Runner(run_new=loop_runner(FillsLastBatch))],
@@ -400,7 +431,7 @@ STORED_ONLY = ("check_reuse", "check_failed_reused", "check_design_order")
 #: The toys each check over a model runs (C37 is the batch model's); the command-line variants are slow.
 RUN_OVER = {"check_batch_sizes": ("batch",)}
 #: The fast tier's checks over a model (contracts.md, Test tiers: 30 s); the rest are slow (record 0074).
-FAST = ("check_approval_cap", "check_interrupt")
+FAST = ("check_approval_cap", "check_interrupt", "check_run_once")
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:

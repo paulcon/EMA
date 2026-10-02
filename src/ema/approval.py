@@ -17,7 +17,9 @@ import re
 import sys
 import unicodedata
 
-from ema.models.files import open_regular
+import numpy as np
+
+from ema.models.files import check_files, open_regular
 from ema.models.spec import LoadedModel, resolve_program
 from ema.store import Store
 from ema.types.design import DesignIdentity
@@ -50,9 +52,12 @@ def _longest_ticks(text: str) -> int:
     return max((len(run) for run in _TICKS.findall(text)), default=0)
 
 
-def _span(text: str) -> str:
-    """Show a string EMA didn't write, on one line: a code span, its backticks longer than any run in it (T7)."""
-    shown = _visible(text, lines=False)
+def _span(text: str, *, path: bool = False) -> str:
+    """Show a string EMA didn't write, on one line: a code span, its backticks longer than any run in it (T7).
+
+    In a path a backslash is doubled, so a backslash typed in a name can't pass for a hidden character's code.
+    """
+    shown = _visible(text.replace("\\", "\\\\") if path else text, lines=False)
     if not shown:
         return "(empty)"
     ticks = "`" * (_longest_ticks(shown) + 1)
@@ -81,14 +86,16 @@ def _what_runs(model: LoadedModel, program: str | None, pass_env: dict[str, bool
     lines = ["", "The model version's first approval: what each run starts."]
     if isinstance(interface, CommandLine):
         lines.append(f"Command: {_span(json.dumps(list(interface.command), ensure_ascii=False))}")
-        lines.append(f"Program: {_span(program)}" if program else
+        lines.append(f"Program: {_span(program, path=True)}" if program else
                      f"Program: {_span(interface.command[0])}, not found on the model's PATH")  # fmt: skip
         for deck in interface.input_decks:
-            lines.append(f"Input deck {_span(deck.writes)}, from the template {_span(deck.template)}:")
+            lines.append(
+                f"Input deck {_span(deck.writes, path=True)}, from the template {_span(deck.template, path=True)}:"
+            )
             lines.append(_fenced(_file_text(model, deck.template)))
     else:
         lines.append(f"Function: {_span(interface.function)}")
-        lines.append(f"Interpreter: {_span(program or sys.executable)}")
+        lines.append(f"Interpreter: {_span(program or sys.executable, path=True)}")
     where = (
         "each batch call's directory"
         if isinstance(interface, PythonFunction) and interface.batch
@@ -96,7 +103,7 @@ def _what_runs(model: LoadedModel, program: str | None, pass_env: dict[str, bool
     )
     if spec.files:
         lines.append(f"Files in {where}:")
-        lines += [f"- {_span(f.path)}" + (" (shared: a link to a read-only stored copy)" if f.shared else "")
+        lines += [f"- {_span(f.path, path=True)}" + (" (shared: a link to a read-only stored copy)" if f.shared else "")
                   for f in spec.files]  # fmt: skip
     else:
         lines.append(f"Files in {where}: none.")
@@ -116,6 +123,8 @@ def _approval_request(store: Store, model: LoadedModel, asked_for: str, request:
     spec, interface = model.spec, model.spec.interface
     label = model_version_label(spec.name, model.model_version_id)
     first = not store.has_approval(model.model_version_id)
+    if first:  # the templates shown are the model version's own (M16, P3; record 0074, item 25)
+        check_files(model)
     program = resolve_program(model)
     pass_env = {name: name in os.environ for name in spec.pass_env}
     if isinstance(request, TestRunRequest):
@@ -148,7 +157,7 @@ def _answer(approve: Approver, question: ApprovalRequest | ConfirmationRequest) 
     try:
         return approve(question) is True, ""
     except Exception as e:  # noqa: BLE001  (an approver that fails says no: trust.md, No answer is a no)
-        return False, f" (the question failed: {type(e).__name__}: {e})"
+        return False, f" (the question failed: {_span(f'{type(e).__name__}: {e}')})"
 
 
 def ask_approval(
@@ -201,7 +210,12 @@ def ask_approval(
     ApprovalDeclined
         On a no ("declined: no runs made").
     ValueError
-        For no new runs (C50), a price that isn't the resolution's, or a request that isn't ``asked_for``'s.
+        For no new runs (C50), a price that isn't the resolution's, or a request or design that isn't
+        ``asked_for``'s; nothing is asked or recorded.
+    NotFound
+        For a model version the store doesn't hold; nothing is asked or recorded.
+    ModelChanged
+        On a first approval, when a tracked file changed since loading; nothing is asked or recorded.
     """
     if approve is None:
         raise CannotAsk("nobody can be asked to approve new runs: use the CLI or Python; nothing was asked (P3)")
@@ -209,13 +223,19 @@ def ask_approval(
         raise ValueError("no approval is asked for no new runs (C50)")
     if resolution.model_version_id != model.model_version_id:
         raise ValueError("the resolution is of another model version than the model's")
-    if (price.new, price.reused_failed) != (len(resolution.new_keys), resolution.reused_failed):
-        raise ValueError(f"the price ({price.text}) isn't the resolution's ({len(resolution.new_keys)} new runs)")
+    stored = resolution.row_runs[resolution.row_keys < 0]
+    reused = len(np.unique(stored)) if len(stored) else 0
+    if (price.new, price.reused, price.reused_failed) != (len(resolution.new_keys), reused, resolution.reused_failed):
+        raise ValueError(f"the price ({price.text}) isn't the resolution's ({len(resolution.new_keys)} new runs, "
+                         f"{reused} reused)")  # fmt: skip
     if (asked_for == "test_run") != isinstance(request, TestRunRequest) or asked_for not in (
         "test_run",
         "diagnostic_evaluation",
     ):
         raise ValueError(f"an approval for {asked_for!r} doesn't take a {type(request).__name__}")
+    if (design is None) != (asked_for == "test_run"):
+        raise ValueError("an approval has a design exactly when it is for a diagnostic evaluation (0049)")
+    store.model_version(model.model_version_id)  # NotFound before anything is asked (W3; T3)
     question = _approval_request(store, model, asked_for, request, price)
 
     def record(answer: bool) -> str:
@@ -245,7 +265,10 @@ def _meaning(store: Store, spec_text: str, saved: bool) -> str | None:
         return None
     label = model_version_label(name, loading.model_version_id)
     doing = "loading" if saved else "saving"
-    return f"{_span(name)} now means {_span(label)} at {_span(loading.spec_path)}; {doing} makes it mean this spec."
+    return (
+        f"{_span(name)} now means {_span(label)} at {_span(loading.spec_path, path=True)}; {doing} makes it "
+        "mean this spec."
+    )
 
 
 def _same_bytes(path: str, data: bytes) -> bool:
@@ -290,8 +313,9 @@ def ask_confirmation(*, store: Store, spec_path: str, spec_text: str, confirm: A
     data = spec_text.encode("utf-8")
     saved = _same_bytes(spec_path, data)
     replaces = _meaning(store, spec_text, saved)
-    first = (f"{_span(spec_path)} is already saved, unchanged: load it?" if saved else
-             f"Save the model spec an MCP client drafted to {_span(spec_path)}?")  # fmt: skip
+    shown = _span(spec_path, path=True)
+    first = (f"{shown} is already saved, unchanged: load it?" if saved else
+             f"Save the model spec an MCP client drafted to {shown}?")  # fmt: skip
     lines = [first, *([replaces] if replaces else []), "The spec's full text:", _fenced(spec_text)]
     question = ConfirmationRequest(spec_path, replaces, spec_text, "\n".join(lines))
     try:

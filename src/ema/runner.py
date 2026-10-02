@@ -10,7 +10,8 @@ starts and stored (W4) when it ends; ``read_batch`` and ``replay_batch`` give a 
 order (C56).
 """
 
-from collections.abc import Callable, Sequence
+import contextlib
+from collections.abc import Callable
 
 import numpy as np
 
@@ -20,9 +21,10 @@ from ema.models.files import check_files, remove_tree
 from ema.models.prepare import PreparedCall, prepare
 from ema.models.processes import ModelProcesses
 from ema.models.spec import LoadedModel
-from ema.store import BatchCall, Store
+from ema.store import BatchCall, CurrentKey, Store
 from ema.types.design import Design
-from ema.types.identity import ID_DTYPE, batch_call_id, id_array, model_version_label, point_hash
+from ema.types.errors import NotFound
+from ema.types.identity import ID_DTYPE, batch_call_id, id_array, model_version_label, point_hash, run_id
 from ema.types.model import PythonFunction
 from ema.types.requests import Progress
 from ema.types.results import Provenance
@@ -31,15 +33,11 @@ from ema.types.runs import Price, Resolution, Run, RunBatch, RunKey, RunStatus
 _NO_RUN = "00" * 32
 
 
-def _current(
-    store: Store, model_version_id: str, hashes: Sequence[str]
-) -> dict[tuple[str, int], tuple[str, int, bool]]:
-    """Q1: each stored key's current run: its id, its attempt, and whether it failed (C46, C47).
-
-    The one store read ``resolve`` makes; the store's key-only read (record 0072's deferral) replaces it here.
-    """
-    runs = store.current_runs(model_version_id, hashes)
-    return {key: (run.run_id, run.attempt, run.status is RunStatus.FAILED) for key, run in runs.items()}
+def _runnable(key: RunKey, current: CurrentKey | None) -> bool:
+    """W4's attempt precondition (I2, I4; 0010): no run at the key and attempt 0, or the next attempt after a failure."""
+    if current is None:
+        return key.attempt == 0
+    return current.status is RunStatus.FAILED and key.attempt == current.attempt + 1
 
 
 def resolve(design: Design, model: LoadedModel, store: Store, *, retry_failed: bool) -> Resolution:
@@ -84,22 +82,25 @@ def resolve(design: Design, model: LoadedModel, store: Store, *, retry_failed: b
     for row in range(len(design)):
         row_distinct[row] = distinct.setdefault((points[row].tobytes(), replicates[row]), len(distinct))
     hashes = {raw: point_hash(np.frombuffer(raw, dtype="<f8")) for raw, _ in distinct}
-    current = _current(store, mv, list(hashes.values()))
+    current = store.current_keys(mv, list(hashes.values()))  # Q1, keys only: the one store read
     run_ids: list[str] = []
     key_rows: list[int] = []
     new_keys: list[RunKey] = []
     reused_failed = 0
     for raw, replicate in distinct:
-        stored = current.get((hashes[raw], replicate))
-        if stored is not None and not (retry_failed and stored[2]):
-            run_ids.append(stored[0])
+        digest = hashes[raw]
+        stored = current.get((digest, replicate))
+        failed = stored is not None and stored.status is RunStatus.FAILED
+        if stored is not None and not (retry_failed and failed):
+            run_ids.append(stored.run_id)
             key_rows.append(-1)
-            reused_failed += stored[2]
+            reused_failed += failed
             continue
-        attempt = 0 if stored is None else stored[1] + 1
+        attempt = 0 if stored is None else stored.attempt + 1
         run_ids.append(_NO_RUN)
         key_rows.append(len(new_keys))
-        new_keys.append(RunKey.make(mv, np.frombuffer(raw, dtype="<f8").tolist(), replicate, attempt))
+        point = tuple(np.frombuffer(raw, dtype="<f8").tolist())  # hashed once (record 0074, item 24)
+        new_keys.append(RunKey(point, digest, replicate, attempt, run_id(mv, digest, replicate, attempt)))
     distinct_ids = id_array(run_ids) if run_ids else np.zeros(0, dtype=ID_DTYPE)
     distinct_keys = np.asarray(key_rows, dtype=np.int64)
     return Resolution(design, mv, distinct_ids[row_distinct], distinct_keys[row_distinct], tuple(new_keys),
@@ -138,8 +139,9 @@ class _Loop:
     A class only so that the contract's broken toys change one step each (tests/contracts/runner.py; no
     monkeypatching, 0065; record 0074, item 6).
 
-    The steps: ``next_call`` (Q13 and the call's size), ``check`` (the files, M16), ``call`` (prepare, execute,
-    collect, then ``record``, W4, and ``keep``; on any exception before W4 returns, ``stopped``).
+    The steps: ``next_call`` (Q13, W4's attempt precondition, and the call's size), ``check`` (the files, M16),
+    ``call`` (prepare, execute, collect, then ``record``, W4, and ``keep``; on any exception, ``stored`` tells
+    whether W4 committed: if not, ``stopped``, else ``keep``).
     """
 
     def __init__(
@@ -165,11 +167,12 @@ class _Loop:
         total = len(keys)
         if not total:
             return 0
-        self.progress(0, total)
         done = 0
         while done < total:
             call = self.next_call(keys[done:])
             self.check()
+            if not done:  # "0/n runs" once the first call is allowed to start (record 0074, item 23)
+                self.progress(0, total)
             self.call(call)
             done += len(call)
             self.progress(done, total)
@@ -180,21 +183,29 @@ class _Loop:
             self.on_progress(Progress.of_runs(done, total))
 
     def next_call(self, pending: tuple[RunKey, ...]) -> tuple[RunKey, ...]:
-        """Q13 for the next ``size`` keys: the call is the leading keys the approval covers (C37, C48, P3)."""
+        """Cut the next ``size`` keys to the leading ones Q13 covers and W4 would store (C37, C46, C48; P3, I4).
+
+        Q13 counts only this approval's runs; a key run since the resolution, under another approval, fails W4's
+        attempt precondition and is cut here, before its call could run it again and ``prepare`` wipe the stored
+        run's directory (M14; record 0074, item 21).
+        """
+        mv = self.model.model_version_id
         candidate = pending[: self.size]
         coverage = self.store.approval_coverage(self.approval_id, candidate)
-        label = model_version_label(self.model.spec.name, self.model.model_version_id)
-        if coverage.model_version_id != self.model.model_version_id:
+        label = model_version_label(self.model.spec.name, mv)
+        if coverage.model_version_id != mv:
             raise ValueError(f"approval {self.approval_id} is of another model version than {label} (P3)")
         if not coverage.answer:
             raise ValueError(f"approval {self.approval_id} was answered no: no run is made under it (P3)")
         covered = next((i for i, c in enumerate(coverage.covered) if not c), len(candidate))
-        if covered == 0:
-            raise ValueError(
-                f"approval {self.approval_id} doesn't cover run {candidate[0].run_id} of {label}: its point isn't "
-                "approved, or its run is made (P3, C48)"
-            )
-        return candidate[:covered]
+        current = self.store.current_keys(mv, [k.point_hash for k in candidate[:covered]])
+        runnable = next((i for i, k in enumerate(candidate[:covered])
+                         if not _runnable(k, current.get((k.point_hash, k.replicate)))), covered)  # fmt: skip
+        if runnable == 0:
+            why = "its run is already made, or its attempt isn't the next (I2, I4)" if covered else (
+                "its point isn't approved, or its run is made (C48)")  # fmt: skip
+            raise ValueError(f"approval {self.approval_id} can't make run {candidate[0].run_id} of {label}: {why}")
+        return candidate[:runnable]
 
     def check(self) -> None:
         """M16, C34: the tracked files hashed again; ``ModelChanged`` names the file."""
@@ -202,17 +213,38 @@ class _Loop:
 
     def call(self, keys: tuple[RunKey, ...]) -> tuple[Run, ...]:
         layout = self.store.layout
-        prepared = None
+        prepared: PreparedCall | None = None
+        runs: tuple[Run, ...] | None = None
         try:
             prepared = prepare(self.model, keys, layout.runs, layout.files, approval_id=self.approval_id)
             executed = execute(self.model, prepared, self.processes)
             runs = collect(self.model, executed)
             self.record(runs, executed)
         except BaseException:
-            self.stopped(keys, prepared)
+            if not self.stored(keys):
+                self.stopped(keys, prepared)
+            elif prepared is not None and runs is not None:
+                # Ctrl-C just after W4's COMMIT: the runs are stored, so ``keep`` applies (I5, M14); the exception
+                # that stopped the call matters more than one from ``keep``
+                with contextlib.suppress(Exception):
+                    self.keep(prepared, runs)
             raise
         self.keep(prepared, runs)
         return runs
+
+    def stored(self, keys: tuple[RunKey, ...]) -> bool:
+        """Whether W4 stored the call (I5): an exception can arrive after its COMMIT, before ``record`` returns.
+
+        ``next_call`` lets no key with a run at its id start, so a stored first key is this call's. A check that is
+        itself interrupted counts as stored: keeping a stopped call's directory is safer than deleting a stored one's.
+        """
+        try:
+            self.store.get_run(keys[0].run_id)
+        except NotFound:
+            return False
+        except BaseException:  # noqa: BLE001  (the exception that stopped the call is the one raised)
+            return True
+        return True
 
     def record(self, runs: tuple[Run, ...], executed: ExecutedCall) -> None:
         """W4: the call's runs together, with its batch call (I5, C49)."""
@@ -252,8 +284,10 @@ def run_new(
     ``check_files`` (M16, C34). A call holds at most ``batch_size`` keys, and never more than remain approved,
     counted when it starts (C37, C48); a model that isn't a batch function has calls of one run. Each call is
     prepared, executed, collected, stored (W4), and then ``keep`` applied (I5, M14). Ctrl-C, or any exception, during
-    a call kills it, deletes its directories, and passes through, with every finished call's runs stored (C49); an
-    exception from ``on_progress`` passes through the same way.
+    a call kills it, deletes its directories, and passes through, with every finished call's runs stored (C49); one
+    that arrives after W4's COMMIT leaves the call stored, and ``keep`` applied. An exception from ``on_progress``
+    passes through the same way. A key whose run was made since the resolution, under another approval, is refused
+    before its call starts (I4).
 
     Parameters
     ----------
@@ -278,7 +312,10 @@ def run_new(
     Raises
     ------
     ValueError
-        For a call its approval can't cover (an error in EMA's code: the workspace approves the resolution it runs).
+        For a call its approval can't cover, or a key whose run was made since the resolution (an error in EMA's
+        code: the workspace approves the resolution it runs, under the run lock).
+    NotFound
+        For an unknown approval.
     ModelChanged
         When a tracked file changed since loading, naming it.
     """

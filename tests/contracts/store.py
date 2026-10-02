@@ -3,9 +3,9 @@ one check per invariant of data_model.md §9, I1–I12.
 
 The implementation is the store's class, opened on a fresh workspace by each check (``tests.support.store``). Each
 check has a broken toy, a subclass of ``Store`` that differs from it in one way, and must fail it (contracts.md,
-Negative controls); ``test_every_check_fails_on_its_broken_toy`` is the meta-test. The runner's parts of C47–C49
-(the cap counted when a call starts, an interrupt during a call) are step 07's; the workspace's parts of C50 and C51
-(a repeated request asks nothing; a replay gives an identical result) are step 14's.
+Negative controls); ``test_every_check_fails_on_its_broken_toy`` is the meta-test. The runner's parts of C46–C49
+and C56 (the cap counted when a call starts, an interrupt during a call) are in ``tests/contracts/runner.py``; the
+workspace's parts of C50 and C51 (a repeated request asks nothing; a replay gives an identical result) are step 14's.
 """
 
 from __future__ import annotations

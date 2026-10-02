@@ -105,11 +105,12 @@ class Workbench:
 
 
 @contextmanager
-def workbench() -> Iterator[Workbench]:
-    """A workbench in a temporary directory; its children stopped and its store closed at the end."""
+def workbench(store_type: type[Store] = Store) -> Iterator[Workbench]:
+    """A workbench in a temporary directory, its store opened as ``store_type`` (a broken store, in a test); its
+    children stopped and its store closed at the end."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp).resolve()
-        store = Store.open(root / "ws")
+        store = store_type.open(root / "ws")
         processes = ModelProcesses()
         try:
             yield Workbench(root, store, processes, root / "calls.log")

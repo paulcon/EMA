@@ -17,7 +17,7 @@ from ema.approval import ask, ask_approval, ask_confirmation
 from ema.models.spec import LoadedModel, load_spec
 from ema.runner import price, resolve
 from ema.store import Store
-from ema.types.errors import ApprovalDeclined, CannotAsk
+from ema.types.errors import ApprovalDeclined, CannotAsk, ModelChanged, NotFound
 from ema.types.identity import model_version_label, sha256_hex
 from ema.types.requests import ApprovalRequest, ConfirmationRequest, TestRunRequest
 from tests.support import store as world
@@ -171,15 +171,66 @@ def test_no_question_for_no_new_runs_and_a_price_that_isnt_the_resolutions(tmp_p
     with toy(tmp_path) as (store, model):
         res = resolve(design([point(0)]), model, store, retry_failed=False)
         request = TestRunRequest(tuple(point(0)))
-        wrong = replace(price(res, store), new=2)
-        with pytest.raises(ValueError):
-            ask_approval(store=store, model=model, asked_for="test_run", request=request, design=None,
-                         resolution=res, price=wrong, approve=Asked(True))  # fmt: skip
+        for wrong in (replace(price(res, store), new=2), replace(price(res, store), reused=1, from_runs=1, time_s=1.0)):
+            with pytest.raises(ValueError, match="isn't the resolution's"):
+                ask_approval(store=store, model=model, asked_for="test_run", request=request, design=None,
+                             resolution=res, price=wrong, approve=Asked(True))  # fmt: skip
         empty = resolve(design(np.zeros((0, 3))), model, store, retry_failed=False)
         with pytest.raises(ValueError, match="no new runs"):
             ask_approval(store=store, model=model, asked_for="test_run", request=request, design=None,
                          resolution=empty, price=price(empty, store), approve=Asked(True))  # fmt: skip
         assert store.approvals() == ()
+
+
+def test_a_design_that_isnt_asked_fors_and_an_unknown_model_version_ask_nothing(tmp_path):
+    """W3, T3 (record 0074, review round 1): checked before the question is rendered or asked, so nothing is."""
+    approver = Asked(True)
+    with toy(tmp_path) as (store, model):
+        res = resolve(design([point(0)]), model, store, retry_failed=False)
+        request = world.request(prediction="y")
+        identity = world.identity(model.model_version_id, request)
+        for asked_for, req, dsg in (("test_run", TestRunRequest(tuple(point(0))), identity),
+                                    ("diagnostic_evaluation", request, None)):  # fmt: skip
+            with pytest.raises(ValueError, match="a design exactly when"):
+                ask_approval(store=store, model=model, asked_for=asked_for, request=req, design=dsg, resolution=res,
+                             price=price(res, store), approve=approver)  # fmt: skip
+        assert store.approvals() == ()
+    with Store.open(tmp_path / "empty") as empty:
+        res = resolve(design([point(0)]), model, empty, retry_failed=False)
+        with pytest.raises(NotFound):
+            ask_approval(store=empty, model=model, asked_for="test_run", request=TestRunRequest(tuple(point(0))),
+                         design=None, resolution=res, price=price(res, empty), approve=approver)  # fmt: skip
+        assert empty.approvals() == ()
+    assert approver.questions == []
+
+
+def test_a_first_approval_after_a_template_changed_asks_nothing(tmp_path):
+    """M16, P3 (record 0074, review round 1): the first approval shows the model version's own templates."""
+    with toy(tmp_path) as (store, model):
+        template = Path(model.model_dir) / "deck.in.template"
+        template.write_text(template.read_text() + "x = 1\n")
+        approver = Asked(True)
+        with pytest.raises(ModelChanged, match="deck.in.template"):
+            asking(store, model, approver, test_run=True)
+        assert approver.questions == [] and store.approvals() == ()
+
+
+def test_an_approvers_failure_shows_its_hidden_characters_as_codes(tmp_path):
+    """T7: the reason a failed question gives is text EMA didn't write."""
+    with toy(tmp_path) as (store, model):
+        with pytest.raises(ApprovalDeclined) as raised:
+            asking(store, model, Asked(RuntimeError("gone\x1b[2K")))
+        message = str(raised.value)
+        assert "\x1b" not in message and "`RuntimeError: gone\\u001b[2K`" in message, message
+
+
+def test_a_backslash_in_a_path_is_doubled_so_it_cant_pass_for_a_code(tmp_path):
+    """T7 (record 0074, review round 1): a path holding a backslash and "u202e" isn't shown as U+202E is."""
+    with Store.open(tmp_path / "ws") as store:
+        approver = Asked(True)
+        target = tmp_path / f"a\\u202e{U202E}.json"
+        ask_confirmation(store=store, spec_path=str(target), spec_text='{"name": "fresh"}\n', confirm=approver)
+        assert "a\\\\u202e\\u202e.json" in approver.questions[0].text
 
 
 def test_the_confirmation_shows_the_path_what_the_name_means_now_and_the_full_text(tmp_path):

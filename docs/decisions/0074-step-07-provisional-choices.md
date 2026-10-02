@@ -104,21 +104,49 @@ We will, provisionally:
     C49's checks over the Python toy, about 1 s; C34's, C37's, and C41's checks, the command-line variants, the
     meta-test of the checks that run a model, and a batch unit test are slow (about 5 s with `-n auto`).
 
+## Review round 1
+
+The independent review's findings, and the choices their fixes make (each implemented on `demo-07fix`):
+
+21. **A call is also cut at the first key W4 wouldn't store** (M1; P3, I2, I4, M14): Q13 counts only this
+    approval's runs, so a stale resolution's key run since under another approval passed it, ran again, had its
+    stored run's directory wiped by `prepare`, and was then refused by W4. `next_call` reads the call's keys'
+    current runs (`Store.current_keys`) and cuts the call at the first key that isn't runnable: no current run and
+    attempt 0, or a failed current run and attempt one more. A first key not runnable is the refusal (`ValueError`,
+    item 1). The check `check_run_once` (C46, C48) and its broken toy `AsksQ13Only` (Q13 only) test it, with a unit
+    test of a stale retry.
+22. **An exception after W4's COMMIT leaves the call stored** (M2; I5, M14, C49): item 4's deletion applies only
+    when the call isn't stored, which the loop's `stored` step asks of the store (`get_run` of the call's first key,
+    whose id no earlier run has, by item 21; `NotFound` is not stored). A check that is itself interrupted counts
+    as stored: keeping a stopped call's directory is safer than deleting a stored run's. In the stored case `keep`
+    is applied, an exception from it ignored, and the exception that stopped the call passes through.
+23. **Progress "0/n runs" is reported once the first call has passed Q13 and `check_files`**, just before it starts,
+    so a refusal of the first call reports nothing (item 5).
+24. **`resolve` reads `Store.current_keys`** (record 0072's key-only read; the deferral below is closed) and builds
+    each new `RunKey` from the point hash it already computed (`run_id` of it), hashing each point once. At 10⁵
+    distinct points over an empty store, the best of four runs took 1.08 s, against 1.51 s before (this machine,
+    load average about 28).
+25. **`ask_approval` checks, before rendering or asking:** that a design is given exactly for a diagnostic
+    evaluation (W3's rule, 0049), and that the store holds the model version (`NotFound`, Q14); on a first approval,
+    `check_files(model)` (M16), so the question shows the model version's own templates (`ModelChanged`). Nothing
+    is asked or recorded when one fails. The price check of item 14 also compares `reused` (distinct stored runs).
+26. **Text EMA didn't write, beyond item 12:** the reason an approver's exception gives in `ApprovalDeclined` is a
+    code span (hidden characters as codes, T7); in a path shown in a question (the program or interpreter, a
+    template, an input deck, a file, a spec path) a backslash is doubled, so a typed `\u202e` can't pass for a
+    hidden character's code.
+
 ## Deferrals
 
-- **`Store.current_keys` in `resolve`** (record 0072's deferral, now on `demo-06-store`): merging that branch into
-  this worktree was refused by the permission system; `resolve` uses Q1's `current_runs` through `_current`. On
-  merge: `_current` returns `{key: (k.run_id, k.attempt, k.status is RunStatus.FAILED) for key, k in
-  store.current_keys(...).items()}`, about 3 lines.
-- **`tests/contracts/store.py`'s module docstring** still says the runner's parts of C47–C49 are step 07's: that file
-  is being changed on `demo-06-store`, so the pointer to `tests/contracts/runner.py` is left to the merge (one line).
+- None left: `Store.current_keys` is used by `resolve` and `run_new` (item 24), and `tests/contracts/store.py`'s
+  docstring points to `tests/contracts/runner.py` (review round 1).
 
 ## Spec edits on acceptance
 
 - `architecture.md` §9: the store contract's row gains "the runner's parts in `tests/contracts/runner.py`" (item
   17), or a row of its own for the runner.
-- `architecture.md` §6: `run_new` raises `ValueError` for a call its approval can't cover (item 1); the question's
-  text holds no prompt (item 11).
+- `architecture.md` §6: `run_new` raises `ValueError` for a call its approval can't cover, or a key run since the
+  resolution (items 1, 21), and `NotFound` for an unknown approval; `ask_approval` raises `NotFound` for an unknown
+  model version and, on a first approval, `ModelChanged` (item 25); the question's text holds no prompt (item 11).
 - `trust.md`, What needs a yes: Ctrl-C at the question is recorded as a no (item 13).
 
 ## Alternatives considered
@@ -134,8 +162,8 @@ We will, provisionally:
 
 ## Consequences
 
-- **Size:** `ema.runner` is 168 code lines (without docstrings, comments, and blanks; 357 physical), `ema.approval`
-  196 (330): 364 against `architecture.md` §11's 418 (the roadmap's 440).
+- **Size:** `ema.runner` is 189 code lines (without docstrings, comments, and blanks; 394 physical), `ema.approval`
+  211 (354): 400 against `architecture.md` §11's 418 (the roadmap's 440); 364 before review round 1.
 - **Tests:** the fast tier gains about 1 s (the whole fast tier measured 27.6 s to 30.5 s on this machine under
   other builds' load, against 27.9 s before; the coordinator should measure the merged tier against 30 s).
 - **For step 14:** `_evaluate.py` resolves, takes the lock, resolves again, prices, calls `ask_approval`, then
