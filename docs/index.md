@@ -48,4 +48,13 @@ The public names of the modules that exist so far (`architecture.md`), one page 
    ema.designs.lines
    ema.models.spec
    ema.models.files
+
+.. Step 08: figures and reports (a block of its own, to ease merging).
+
+.. autosummary::
+   :toctree: _autosummary
+
+   ema.plotting.figures
+   ema.report.render
+   ema.report.pdf
 ```
