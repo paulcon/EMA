@@ -96,6 +96,8 @@ def _read_only(array: Any, dtype: Any, ndim: int, n: int | None, what: str) -> n
     integral = dtype is not None and np.dtype(dtype).kind == "i"
     if integral and given.size and given.dtype.kind not in "iu":
         raise ValueError(f"{what}: integers, not {given.dtype}")
+    if integral and given.size and not np.can_cast(given.dtype, dtype) and int(given.max()) > np.iinfo(dtype).max:
+        raise ValueError(f"{what}: integers up to {np.iinfo(dtype).max:,}, not {int(given.max()):,}")
     out = np.asarray(given, dtype=dtype)
     if out.ndim != ndim or (n is not None and out.shape[0] != n):
         raise ValueError(f"{what}: shape {out.shape}, expected {ndim} dimensions with {n} rows")
@@ -360,6 +362,10 @@ class RunColumns:
             raise ValueError("a status code is 0 or 1, a kind code -1, 0, 1, or 2 (record 0070, item 2)")
         if not np.array_equal(self.kind == -1, self.status == RunStatus.OK.code):
             raise ValueError("a run has a kind exactly when it failed")
+        failed = self.status != RunStatus.OK.code
+        for name, column in self.values.items():
+            if not np.isnan(column[failed]).all():
+                raise ValueError(f"values[{name!r}]: a failed run's value is NaN (architecture.md §3)")
 
     def __len__(self) -> int:
         """Return the number of rows."""

@@ -163,6 +163,14 @@ def test_estimator_shape_is_checked() -> None:
         Bootstrap().intervals(np.arange(5), None, est, spawned(0, TAG))
 
 
+def test_no_usable_runs_is_refused_plainly() -> None:
+    """Record 0068, review round 2: with no usable runs (the precheck's to refuse first), a clear ValueError, not
+    1000 resamples of nothing."""
+    est = [Estimator("e", ("a",), lambda idx: np.array([1.0]), False)]
+    with pytest.raises(ValueError, match="no usable runs|there are none"):
+        Bootstrap().intervals(np.arange(0), None, est, spawned(0, TAG))
+
+
 def test_interval_refuses_inconsistent_fields() -> None:
     with pytest.raises(ValueError):
         Interval(None, None, 0)

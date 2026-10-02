@@ -566,6 +566,9 @@ class TestReviewRound1:
             lambda: result(measured_noisy=noisy()),  # another result's record (§5.11)
             lambda: provenance(measured_noisy_read=(noisy(prediction="z"),)),  # Q10: this model prediction
             lambda: provenance(measured_noisy_read=(noisy(model_version_id=RID),)),  # Q10: this model version
+            lambda: provenance(  # Q10: newest first (data_model.md §5.12)
+                measured_noisy_read=(noisy(), noisy(made_at=datetime(2026, 10, 2, tzinfo=UTC)))
+            ),
             lambda: provenance(design=DesignIdentity(**{**identity().canonical(), "model_version_id": RID})),
         ],
     )
@@ -573,6 +576,12 @@ class TestReviewRound1:
         """Finding 10."""
         with pytest.raises(ValueError):
             make()
+
+    def test_measured_noisy_records_read_newest_first_are_valid(self):
+        """0070, review round 2: Q10's order, newest first, ties included."""
+        older = noisy(made_at=datetime(2026, 9, 30, tzinfo=UTC))
+        p = provenance(measured_noisy_read=(noisy(), noisy(), older))
+        assert p.measured_noisy_read[-1] is older
 
     def test_a_replay_with_no_new_runs_and_no_approval_is_valid(self):
         r = result(counts=counts(new=0, reused=2), provenance=provenance(approval_id=None))

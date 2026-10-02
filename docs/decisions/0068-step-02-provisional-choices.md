@@ -165,6 +165,18 @@ The independent review (2026-10-02) found no blockers or majors, and every numbe
   (within 2.3·10⁻¹⁶ of the range; the deferral is gone); PRESS's NaN at leverage 1 (item 9); the cost of `svd(R)`
   (item 7); the C30 fake moved to `tests/support/fakes.py` (item 17).
 
+## Review round 2
+
+The minor findings left from wave 2 (m3 and a nit). Fixed:
+
+- **The banned list, longer** (item 1; P4): `numpy.cov`, `numpy.corrcoef`, `scipy.stats.pearsonr`,
+  `scipy.stats.linregress`, and `operator.matmul` (`@` by another name); the AST test also refuses
+  `__matmul__`, `__rmatmul__`, and `__imatmul__`, as attributes or strings. Neither sees a library's internals:
+  step 09's diagnostic contract checks each whole compute for identical bytes at memory offsets (said in
+  `pyproject.toml`). Nothing in `src` used a newly banned name.
+- **The bootstrap with no usable runs** (item 15): a `ValueError` naming it, not 1,000 resamples of nothing (the
+  precheck refuses first; this is the method's own guard).
+
 ## Alternatives considered
 
 - **`degrees_above_floor` taking n and applying the window itself:** puts `LINE_RATE_WINDOW`, a diagnostic

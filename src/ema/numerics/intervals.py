@@ -217,9 +217,12 @@ class Bootstrap:
         Raises
         ------
         ValueError
-            When an estimator gives a number of values other than its labels', or two share a name.
+            When there are no usable runs, an estimator gives a number of values other than its labels', or two
+            share a name.
         """
         usable = np.asarray(usable)
+        if len(usable) == 0:
+            raise ValueError("the bootstrap resamples the usable runs, and there are none (shared.md, the precheck)")
         if len({e.name for e in estimators}) != len(estimators):
             raise ValueError("two estimators share a name")
         values = {e.name: np.empty((BOOTSTRAP_RESAMPLES, len(e.labels))) for e in estimators}

@@ -188,6 +188,8 @@ class TestRunColumns:
             {"status": np.array([0, 0, 7, 0]), "kind": np.array([-1, -1, 1, -1])},  # no status 7
             {"kind": np.array([-1, -1, 9, -1])},  # no kind 9
             {"replicates": np.zeros(4)},  # integers, not doubles
+            {"replicates": np.array([2**63, 0, 0, 0], dtype=np.uint64)},  # over int64's max (0070, review round 2)
+            {"values": {"y": np.array([1.0, 2.0, 3.0, 4.0])}},  # a failed run's value isn't NaN (architecture §3)
         ],
     )
     def test_refusals(self, kw):
@@ -205,6 +207,12 @@ def test_arrays_do_not_alias_their_sources():
     assert cols.time_s[0] == 0.0
     shared = columns(run_ids=cols.run_ids)  # a read-only array is shared, not copied
     assert np.shares_memory(shared.run_ids, run_ids)
+
+
+def test_unsigned_integers_within_int64_are_read():
+    """0070, review round 2: a uint64 array is read when its values fit, refused (above) when they don't."""
+    cols = columns(replicates=np.array([0, 1, 2, 2**63 - 1], dtype=np.uint64))
+    assert cols.replicates.dtype == np.int64 and cols.replicates[-1] == 2**63 - 1
 
 
 class TestRunBatch:

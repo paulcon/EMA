@@ -50,7 +50,10 @@ convention = "numpy"
 # No vector-vector BLAS in EMA (record 0068 item 1, and its review round 1): on Accelerate their results depend on
 # the operands' addresses mod 64 (docs/notes/blas_determinism_2026-10-01.md). Inner products and norms of 1-D arrays
 # go through ema.numerics._vector's dot and norm, matrix-vector products through its matvec. What Ruff can't see,
-# `.dot(` and `@`, an AST test refuses (tests/unit/numerics/test_determinism.py): `@` only in _vector.matvec.
+# `.dot(`, `@`, and `__matmul__`, an AST test refuses (tests/unit/numerics/test_determinism.py): `@` only in
+# _vector.matvec. Both see EMA's own code only, not a library's internals (a scipy function may call BLAS inside):
+# step 09's diagnostic contract checks each whole compute for identical bytes at memory offsets (record 0068, review
+# round 2).
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "numpy.linalg.norm".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.norm (0068)"
 "numpy.dot".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot or matvec (0068)"
@@ -64,6 +67,11 @@ convention = "numpy"
 "numpy.einsum".msg = "with optimize, reduces to vector-vector BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
 "numpy.matmul".msg = "a one-row product is vector-vector BLAS: use ema.numerics._vector.matvec (0068)"
 "numpy.linalg.matmul".msg = "a one-row product is vector-vector BLAS: use ema.numerics._vector.matvec (0068)"
+"operator.matmul".msg = "`@` by another name; a one-row product is vector-vector BLAS: use ema.numerics._vector.matvec (0068)"
+"numpy.cov".msg = "its products are BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
+"numpy.corrcoef".msg = "its products are BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
+"scipy.stats.pearsonr".msg = "its products are BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
+"scipy.stats.linregress".msg = "its products are BLAS, which varies with memory alignment: use ema.numerics.fitting (0068)"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D", "TID251"]

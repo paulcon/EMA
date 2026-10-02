@@ -8,6 +8,7 @@ Numbers only (P2): a result holds full doubles and EMA's notes; ``ema.report`` w
 """
 
 import dataclasses
+import itertools
 import json
 import math
 from collections.abc import Mapping
@@ -479,6 +480,9 @@ class Provenance:
         for read in self.measured_noisy_read:  # Q10's rows: this model version, this model prediction
             if (read.model_version_id, read.prediction) != (self.model_version_id, self.request.prediction):
                 raise ValueError(f"a measured-noisy record read is of this model version and prediction: {read!r}")
+        made = [read.made_at for read in self.measured_noisy_read if read.made_at is not None]
+        if any(newer < older for newer, older in itertools.pairwise(made)):
+            raise ValueError("a provenance's measured-noisy records read are newest first (data_model.md §5.12, Q10)")
 
     def _column_data(self) -> dict[str, Any]:
         return {name: _plain(getattr(self, name)) for name in _PROVENANCE_COLUMN}

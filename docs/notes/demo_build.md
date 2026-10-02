@@ -95,3 +95,18 @@ Each wave's review rounds: the findings (counted by severity), what was fixed, a
   mismatches; every meta-test pinned to its toy's reason. Step 01 done. Minors carried to a cleanup pass: an
   alpha text with a huge exponent stalls the request; the float path's precision and the exact refinement
   untested.
+- **Step 08** built (6684ad9): all six mock reports rebuilt by hand and matched; 660 lines against 540. Review
+  round 1 started.
+- **Step 06** built (a8d3a85): every W and Q; the store contract with 13 broken toys; 1,103 lines against 715;
+  Q1's 10⁶-point timing target deferred (about 20–25 s now; a key-only read for the runner, 1–2 h). Review round
+  1 started.
+
+### Wave 4 (started early)
+
+- **Step 09** started from step 08's branch (`demo-09-diagnostics`), since it needs the reports but not the
+  store or the runner; it carries the hand-offs: canonical identities (0067), a whole-`compute` alignment check
+  in the diagnostic contract (0068), and step 08's result conventions (0073).
+- **Cleanup pass** (waves 1–2's remaining minors): a huge alpha exponent read lazily and refused at once;
+  the float path pinned against an 80-digit reference with a negative control; `_power_bounds` and the
+  refinement tested; more banned library calls (`np.cov`, `pearsonr`, …) and `__matmul__` in the AST test; the
+  wave 2 nits. Records 0067 (39–41), 0068, 0070 (28–30).

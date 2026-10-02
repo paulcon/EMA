@@ -150,6 +150,15 @@ We will, provisionally:
     `ApprovalRequest`, `DiagnosticParameterInfo`, `RunInfo`) set `__hash__ = None`, so `hash` fails at once;
     `Request` hashes by its canonical JSON. Step 01's and step 03's types are theirs to change.
 
+**Review round 2** (the minor findings left from wave 2)
+
+28. **An integer column refuses unsigned values past int64's maximum** (amends item 22): a uint64 array is read
+    when its values fit, and refused, naming the value, when one would wrap.
+29. **A failed run's model predictions are NaN in `RunColumns.values`** (`architecture.md` §3), checked when
+    built; **a provenance's measured-noisy records read are newest first** (`data_model.md` §5.12, Q10), ties
+    allowed, checked by their `made_at`.
+30. **Nit:** `identity.py`'s docstring says the approval id and the reuse key are here (step T).
+
 ## Deferrals
 
 - **Each summary type as strict JSON** (the MCP envelope's `data`, step 15): `results._plain` is the seam (it

@@ -224,3 +224,155 @@ def test_alpha_as_a_numpy_float_is_its_double():
     """m2: np.float64(0.5) reads as the float 0.5 does (0047)."""
     a = identity(CONTRACT, "convergent", CONTRACT_SPACE, n_min=18, alpha=np.float64(0.7072), level=3)
     assert CONVERGENT.levels(a, CONTRACT)[0] == (18, 36, 72, 144)
+
+
+# --------------------------------------------------------------------------------------------------------------
+# Review round 2 (0067): huge exponents, the float path's precision, the exact path's bounds
+
+
+@pytest.mark.parametrize(
+    ("alpha", "level", "outcome"),
+    [
+        ("1e-10000000", 0, (5,)),
+        ("1e-10000000", 1, "DesignTooLarge"),
+        ("1e-99999999999", 0, (5,)),
+        ("1e-99999999999", 3, "DesignTooLarge"),
+        ("1e+10000000", 0, "RequestError"),
+        ("1e+10000000", 1, "RequestError"),
+        ("0e10000000", 1, "RequestError"),
+        ("-1e-10000000", 1, "RequestError"),
+        ("1e-9999999999999999999999", 1, "RequestError"),
+        ("5e-1001", 1, "DesignTooLarge"),
+    ],
+)
+def test_g5_c24_an_alpha_with_a_huge_exponent_is_answered_at_once(alpha, level, outcome):
+    """0067 review round 2: the exponent isn't expanded (``Fraction("1e-10000000")`` builds 10^(10^7)). Below
+    10^-1000, level 0 is n_min and level >= 1 is too large (n_1 > 10^2000); 1 or more, 0 or less, and an exponent
+    past Decimal's are refused as alpha; no MemoryError."""
+    import time
+
+    from ema.types.errors import DesignTooLarge
+
+    ident = identity(CONTRACT, "convergent", CONTRACT_SPACE, n_min=5, alpha=alpha, level=level)
+    t0 = time.perf_counter()
+    if isinstance(outcome, tuple):
+        assert CONVERGENT.levels(ident, CONTRACT) == (outcome, outcome[-1])
+    elif outcome == "DesignTooLarge":
+        with pytest.raises(DesignTooLarge, match=r"more than 10\^2000 points"):
+            CONVERGENT.size(ident, CONTRACT)
+    else:
+        with pytest.raises(RequestError, match="alpha"):
+            CONVERGENT.size(ident, CONTRACT)
+    assert time.perf_counter() - t0 < 0.5
+
+
+def test_alpha_at_ten_to_the_minus_1000_is_still_read_exactly():
+    """The boundary: 10^-1000 itself is read as its fraction: n_1 = 2 10^2000 exactly, and at level 2 the refusal
+    names level 1's size."""
+    from ema.types.errors import DesignTooLarge
+
+    one = identity(CONTRACT, "convergent", CONTRACT_SPACE, n_min=2, alpha="1e-1000", level=1)
+    assert CONVERGENT.size(one, CONTRACT) == 2 * 10**2000
+    two = identity(CONTRACT, "convergent", CONTRACT_SPACE, n_min=2, alpha="1e-1000", level=2)
+    with pytest.raises(DesignTooLarge, match=r"level 1 alone has more than 2\^6644"):
+        CONVERGENT.size(two, CONTRACT)
+
+
+def test_an_echoed_alpha_text_is_cut_to_40_characters():
+    """n (0067 review round 2): a long alpha text isn't echoed whole."""
+    text = "0." + "9" * 200 + "x"
+    ident = identity(CONTRACT, "convergent", CONTRACT_SPACE, n_min=2, alpha=text, level=1)
+    with pytest.raises(RequestError) as caught:
+        CONVERGENT.size(ident, CONTRACT)
+    assert "9" * 60 not in str(caught.value) and "…" in str(caught.value)
+
+
+def reference_sizes(n_min, alpha, level):
+    """designs.md, Convergent's sizes to 80 significant digits (``decimal``), levels 0 ... level, stopping at the
+    first over the cap, and n_L: an independent reference for long runs, where the plain integers are too slow.
+    Each size is checked to be more than 10^-40 (relative) from an integer, unless it is one, so its ceiling is
+    the exact rule's."""
+    from decimal import ROUND_CEILING, Decimal, localcontext
+
+    from ema.designs.generators import MAX_DESIGN_POINTS
+
+    def ceil(x):
+        nearest = x.to_integral_value()
+        assert x == nearest or abs(x - nearest) > Decimal("1e-40") * x
+        return int(x.to_integral_value(rounding=ROUND_CEILING))
+
+    with localcontext() as ctx:
+        ctx.prec = 80
+        factor = (1 / Decimal(alpha)) ** 2
+        x, sizes = Decimal(n_min), []
+        for _ in range(level + 1):
+            sizes.append(ceil(x))
+            if sizes[-1] > MAX_DESIGN_POINTS:
+                break
+            x *= factor
+        return tuple(sizes), ceil(Decimal(n_min) * factor**level)
+
+
+@pytest.mark.parametrize(
+    ("n_min", "alpha", "level"),
+    [(3_401_420, "0.99999284", 188_069), (5_000_000, "0.9999999", 20_000), (1_000_000, "0.99999", 60_000)]
+    + [(9_999, "0.9999", 40_000), pytest.param(2_500_000, "0.999999", 700_000, marks=pytest.mark.slow)],
+)
+def test_g7_long_runs_near_alpha_one_equal_a_high_precision_reference(n_min, alpha, level):
+    """B (0067 review round 2): tens of thousands of float estimates near alpha = 1, each checked against
+    ``reference_sizes``; their ln f must be log1p's."""
+    ident = identity(CONTRACT, "convergent", CONTRACT_SPACE, n_min=n_min, alpha=alpha, level=level)
+    assert CONVERGENT.levels(ident, CONTRACT) == reference_sizes(n_min, alpha, level)
+
+
+def test_the_float_path_needs_log1p(monkeypatch):
+    """The negative control for the test above: with ln f as log(f), the first case's sizes at levels 53,311 and
+    70,793 are each one too small (the precision the guard assumes is lost)."""
+    import math
+
+    from ema.designs import convergent
+
+    monkeypatch.setattr(convergent, "_log_factor", lambda factor: math.log(float(factor)))
+    ident = identity(CONTRACT, "convergent", CONTRACT_SPACE, n_min=3_401_420, alpha="0.99999284", level=188_069)
+    sizes, _ = CONVERGENT.levels(ident, CONTRACT)
+    reference, _ = reference_sizes(3_401_420, "0.99999284", 188_069)
+    assert [lv for lv, (a, b) in enumerate(zip(sizes, reference, strict=True)) if a != b] == [53_311, 70_793]
+
+
+def test_power_bounds_bracket_the_exact_power():
+    """``_power_bounds``: lo <= (num/den)^level 2^bits <= hi, over random num, den, level, and bits, tiny bits
+    included, checked in exact integers."""
+    import random
+
+    from ema.designs.convergent import _power_bounds
+
+    rng = random.Random(20261002)
+    for trial in range(2000):
+        num, den = rng.randint(1, 2**40), rng.randint(1, 2**40)
+        level = rng.randint(0, 300)
+        bits = rng.choice([1, 2, 3, 5, 8, 13]) if trial % 2 else rng.randint(1, 256)
+        lo, hi = _power_bounds(num, den, level, bits)
+        exact_num, exact_den = num**level << bits, den**level
+        assert 0 <= lo <= hi and lo * exact_den <= exact_num <= hi * exact_den, (num, den, level, bits)
+
+
+def test_ceil_size_refines_its_bounds(monkeypatch):
+    """``_ceil_size`` from 8 bits: the first bounds don't agree, and the doubled ones give the exact size."""
+    from fractions import Fraction
+
+    from ema.designs import convergent
+
+    calls = []
+    power_bounds = convergent._power_bounds
+
+    def counted(num, den, level, bits):
+        calls.append(bits)
+        return power_bounds(num, den, level, bits)
+
+    monkeypatch.setattr(convergent, "_power_bounds", counted)
+    factor = (1 / Fraction("0.999")) ** 2
+    for n_min in (1, 5, 12345):
+        calls.clear()
+        exact = -(-n_min * factor.numerator**900 // factor.denominator**900)
+        assert convergent._ceil_size(n_min, factor, 900, bits=8) == exact
+        assert calls[:2] == [8, 16], calls

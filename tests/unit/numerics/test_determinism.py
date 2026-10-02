@@ -1,11 +1,12 @@
 """No vector-vector BLAS: identical bytes at 8 memory offsets, and no ``.dot(`` or stray ``@`` (P4; record 0068
-item 1 and its review round 1).
+item 1 and its review rounds 1 and 2).
 
 On this Mac's Accelerate, a vector-vector BLAS product (``x @ y`` of two 1-D arrays, a one-row matrix times a
 vector, ``np.dot``, ``x.dot(y)``, ``np.vecdot``, ``np.tensordot``, ``np.linalg.norm``) depends on its operands'
 addresses mod 64, among 16-byte-aligned ones too (docs/notes/blas_determinism_2026-10-01.md). Ruff's banned-api
-catches the named calls; ``test_no_dot_method_and_one_matmul`` catches ``.dot(`` and ``@``, which Ruff can't; the
-offset tests catch the rest, here and on OpenBLAS.
+catches the named calls; ``test_no_dot_method_and_one_matmul`` catches ``.dot(``, ``@``, and ``__matmul__``,
+which Ruff can't; the offset tests catch the rest, here and on OpenBLAS. Neither sees inside a library: step 09's
+diagnostic contract checks each whole compute at memory offsets.
 
 The fits' and the bootstrap's own temporaries come from numpy's small-block cache, so moving the inputs and
 Python's heap doesn't move them: ``scramble_heap`` empties the cache and moves malloc before each call. The
@@ -63,11 +64,15 @@ def blas_back(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 # --------------------------------------------------------------------------------------------------------------
-# What Ruff can't see: `.dot(` and `@`
+# What Ruff can't see: `.dot(`, `@`, and `__matmul__`
+
+#: ``@`` by its method's names (record 0068, review round 2): refused everywhere, ``_vector.matvec`` included.
+MATMUL_METHODS = {"__matmul__", "__rmatmul__", "__imatmul__"}
 
 
 def products(source: str) -> list[tuple[int, str]]:
-    """Every ``.dot(`` call (but ``_vector.dot``) and every ``@`` or ``@=`` in a module's source, as (line, kind)."""
+    """Every ``.dot(`` call (but ``_vector.dot``), every ``@`` or ``@=``, and every ``__matmul__`` (an attribute, or
+    a string, as for ``getattr``) in a module's source, as (line, kind)."""
     found = []
     for node in ast.walk(ast.parse(source)):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "dot":
@@ -76,6 +81,10 @@ def products(source: str) -> list[tuple[int, str]]:
                 found.append((node.lineno, ".dot("))
         elif isinstance(node, ast.BinOp | ast.AugAssign) and isinstance(node.op, ast.MatMult):
             found.append((node.lineno, "@"))
+        elif (isinstance(node, ast.Attribute) and node.attr in MATMUL_METHODS) or (
+            isinstance(node, ast.Constant) and node.value in MATMUL_METHODS
+        ):
+            found.append((node.lineno, "__matmul__"))
     return sorted(found)
 
 
@@ -83,18 +92,23 @@ def test_products_finds_dot_methods_and_matmul() -> None:
     """The negative control for the next test: each form is found, ``_vector.dot`` and decorators aren't."""
     source = "x.dot(y)\nz = a @ b\nw @= v\n_vector.dot(a, b)\nnp.dot(a, b)\n@decorator\ndef f(): pass\n"
     assert products(source) == [(1, ".dot("), (2, "@"), (3, "@"), (5, ".dot(")]
+    source = "a.__matmul__(b)\nf = b.__rmatmul__\ngetattr(a, '__imatmul__')(b)\nmatmul = 1\n"
+    assert products(source) == [(1, "__matmul__"), (2, "__matmul__"), (3, "__matmul__")]
 
 
 def test_no_dot_method_and_one_matmul() -> None:
-    """Record 0068 item 1: no ``.dot(`` in ``src/ema``, and ``@`` only where ``MATMUL_ALLOWED`` says."""
-    dots, matmuls = [], {}
+    """Record 0068 item 1: no ``.dot(`` or ``__matmul__`` in ``src/ema``, and ``@`` only where ``MATMUL_ALLOWED``
+    says."""
+    dots, methods, matmuls = [], [], {}
     for path in sorted(SRC.rglob("*.py")):
         rel = path.relative_to(SRC).as_posix()
         found = products(path.read_text(encoding="utf-8"))
         dots += [f"{rel}:{line}" for line, kind in found if kind == ".dot("]
+        methods += [f"{rel}:{line}" for line, kind in found if kind == "__matmul__"]
         if count := sum(kind == "@" for _, kind in found):
             matmuls[rel] = count
     assert not dots, f".dot( is vector-vector BLAS on 1-D arrays: use ema.numerics._vector (0068): {dots}"
+    assert not methods, f"__matmul__ is @ by another name: route it through matvec (0068): {methods}"
     assert matmuls == MATMUL_ALLOWED, f"@ outside _vector.matvec: route it through matvec (0068): {matmuls}"
 
 

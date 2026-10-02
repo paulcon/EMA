@@ -155,6 +155,19 @@ We will, provisionally:
     terminology test scans a Protocol's attributes (n5); the map back's clamp at x <= 0 on a log range is
     tested (n10).
 
+**Review round 2** (2026-10-02; the minor findings left from wave 1)
+
+39. **Alpha's exponent is never expanded** (G5, C24): the text is read first as a `Decimal`, its exponent an
+    integer; alpha ≤ 0 or ≥ 1 is refused there, an exponent past `Decimal`'s (10^18) is refused as not a number,
+    and below 10^−1000 level 0 is (n_min,) and level ≥ 1 is `DesignTooLarge` (n_1 > 10^2000 at r = 1/2), so
+    "1e-10000000" no longer builds 10^(10^7) (`test_g5_c24_an_alpha_with_a_huge_exponent_is_answered_at_once`).
+40. **The float path's precision is pinned** (G7): long runs near alpha = 1 (up to 693,000 levels) equal an
+    80-digit `decimal` reference, and with ln f from `log` instead of `log1p` two sizes of n_min = 3,401,420,
+    alpha = 0.99999284 are one too small (a negative control); `_power_bounds` brackets the exact power over
+    2,000 random cases, bits from 1, and `_ceil_size` takes its starting bits (from 8 it refines to 16).
+41. **Nits:** the n_min + L refusal says the design "would have at least … if its sizes strictly increase"; an
+    echoed alpha text is cut to 40 characters and "…".
+
 ## Deferrals
 
 - **The 3.13 lowest-versions measurement** (task 7's scratch copy): deferred, as 0066 allows. The workflow's
