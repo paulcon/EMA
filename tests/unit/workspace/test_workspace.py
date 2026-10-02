@@ -12,6 +12,8 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -24,6 +26,7 @@ from ema.types.errors import (
     ApprovalDeclined,
     CannotAsk,
     DesignTooLarge,
+    EMAError,
     ModelChanged,
     NotFound,
     RequestError,
@@ -223,6 +226,33 @@ def test_the_run_lock_refuses_a_second_maker_of_runs(ws, toy):
     assert runs_stored(ws) == 0
 
 
+def test_a_workspace_is_bound_to_its_thread(ws, toy):
+    """Review round 1, m4 and n2: a workspace used from another thread is refused with EMA's error, not SQLite's;
+    the run lock held by another workspace of this process says so."""
+    ws.load_model(R2)
+    with ThreadPoolExecutor(1) as pool, pytest.raises(EMAError, match="opened on another thread"):
+        pool.submit(ws.list_results).result()
+    assert ws.list_results() == []
+    with (
+        open_workspace(ws.path) as other,
+        other._store.run_lock(),
+        pytest.raises(WorkspaceBusy, match="another workspace of this process"),
+    ):
+        ws.run("ishigami", "toy", PI_SPACE, n=5, approve=Asked())
+
+
+def test_list_results_by_label_honors_the_name(ws, toy):
+    """Review round 1, n4 (Q8): a model version's label names its model; another name is NotFound."""
+    ws.load_model(R2)
+    result = ws.run("ishigami", "toy", PI_SPACE, n=5, seed=1, approve=Asked())
+    label = result.shown.model_version
+    assert [r.result_id for r in ws.list_results(model_version=label)] == [result.result_id]
+    prefix = label.split("@")[1]
+    assert [r.result_id for r in ws.list_results(model_version=prefix[:6])] == [result.result_id]
+    with pytest.raises(NotFound, match="a version of 'ishigami'"):
+        ws.list_results(model_version=f"beam@{prefix}")
+
+
 def test_an_interrupted_evaluation_keeps_its_runs_and_a_rerun_matches(tmp_path, toy):
     """C49: Ctrl-C keeps every finished run and stores no result; the rerun asks for the rest, its counts and
     approval are its own, and its estimates and observations equal an uninterrupted evaluation's."""
@@ -243,8 +273,44 @@ def test_an_interrupted_evaluation_keeps_its_runs_and_a_rerun_matches(tmp_path, 
         assert (rerun.counts.new, rerun.counts.reused) == (16, 4)
         whole = b.run("ishigami", "toy", PI_SPACE, n=20, seed=2, approve=Asked())
         on = json.loads(rerun.to_json()), json.loads(whole.to_json())
-        for key in ("estimates", "observations"):
+        for key in ("estimates", "observations", "figures"):
             assert on[0][key] == on[1][key]
+        cards = [
+            {f.card: (Path(w.path) / "results" / r.result_id / f.card).read_bytes() for f in r.figures}
+            for w, r in ((a, rerun), (b, whole))
+        ]
+        assert cards[0] and cards[0] == cards[1]  # the figures' values (review round 1, m5)
+
+
+def _without(value, key):
+    """A JSON value with every entry named ``key`` left out, at any depth."""
+    if isinstance(value, dict):
+        return {k: _without(v, key) for k, v in value.items() if k != key}
+    if isinstance(value, list):
+        return [_without(v, key) for v in value]
+    return value
+
+
+def test_a_seed_or_model_version_change_differs_in_that_field_and_what_it_decides(tmp_path, toy):
+    """C51 end to end (review round 1, m5): rerunning with another seed gives a provenance differing in the seed
+    (in the request and the design), the runs used, and their approval, and in nothing else; with another model
+    version, in the model version (its own and the design's), the runs used, and their approval."""
+    spec = copy_model("python", tmp_path / "toy")
+    space = {"a": (0.0, 2.0), "b": (-1.0, 1.0)}
+    with open_workspace(tmp_path / "ws") as w:
+        w.load_model(spec)
+        first = w.run("toy", "toy", space, prediction="y", n=6, seed=1, approve=Asked()).provenance.canonical()
+        seeded = w.run("toy", "toy", space, prediction="y", n=6, seed=2, approve=Asked()).provenance.canonical()
+        assert {k for k in first if first[k] != seeded[k]} == {"request", "design", "run_ids", "approval_id"}
+        for k in ("request", "design"):
+            assert first[k] != seeded[k] and _without(first[k], "seed") == _without(seeded[k], "seed")
+        (spec.parent / "helper.py").write_text((spec.parent / "helper.py").read_text() + "\n# edited\n")
+        w.load_model(spec)
+        versioned = w.run("toy", "toy", space, prediction="y", n=6, seed=1, approve=Asked()).provenance.canonical()
+        assert {k for k in first if first[k] != versioned[k]} == {"model_version_id", "design", "run_ids",
+                                                                   "approval_id"}  # fmt: skip
+        mv = "model_version_id"
+        assert _without(first["design"], mv) == _without(versioned["design"], mv)
 
 
 # -- failures (U3; C47) ----------------------------------------------------------------------------------------
@@ -325,6 +391,29 @@ def test_a_missing_result_directory_is_rebuilt_byte_identical(ws, toy):
     assert (directory / "toy.json").read_bytes() == files["toy.json"]
 
 
+def test_rebuilds_at_once_all_succeed_with_the_same_bytes(ws, toy):
+    """Review round 1, m1 (data_model.md §6): three threads, each with its own workspace (a workspace stays on its
+    thread), rebuilding a result directory missing its figure, all succeed, and leave the same bytes."""
+    ws.load_model(R2)
+    result = ws.run("ishigami", "toy", PI_SPACE, n=10, seed=1, approve=Asked())
+    directory = Path(ws.path) / "results" / result.result_id
+    files = {p.name: p.read_bytes() for p in directory.iterdir()}
+    barrier = threading.Barrier(3)
+
+    def rebuild():
+        with open_workspace(ws.path) as w:
+            barrier.wait(30)
+            return w.report(result.result_id).markdown
+
+    for _ in range(3):
+        (directory / "toy.png").unlink()
+        with ThreadPoolExecutor(3) as pool:
+            reports = [f.result() for f in [pool.submit(rebuild) for _ in range(3)]]
+        assert {r.encode() for r in reports} == {files["report.md"]}
+        assert {p.name: p.read_bytes() for p in directory.iterdir()} == files
+    assert not [p for p in directory.parent.iterdir() if p.name.startswith(".")]
+
+
 # -- reproduce (U8; C51; 0055, 0062, 0063) ---------------------------------------------------------------------
 
 
@@ -397,6 +486,37 @@ def test_reproduce_across_a_generator_version(ws, toy):
     finally:
         generators.unregister("uniform")
         generators.register(uniform)
+
+
+def test_reproduce_never_raises_for_a_generator_that_raises(ws, toy):
+    """Review round 1, m2 (0062, 0063): a generator whose build raises any exception is a sentence; the replay,
+    from the stored points, is still identical."""
+    from ema.designs import generators
+
+    ws.load_model(R2)
+    result = ws.run("ishigami", "toy", PI_SPACE, n=8, seed=1, approve=Asked())
+    uniform = generators.get("uniform")
+
+    @dataclasses.dataclass
+    class Broken:
+        name: str = "uniform"
+        version: str = uniform.version
+
+        def size(self, identity, spec):
+            return uniform.size(identity, spec)
+
+        def build(self, identity, spec, start=0, stop=None):
+            raise ValueError("boom")
+
+    generators.unregister("uniform")
+    try:
+        generators.register(Broken())
+        check = ws.reproduce(result)
+    finally:
+        generators.unregister("uniform")
+        generators.register(uniform)
+    assert check.identical is True
+    assert check.provenance_differences == ("the design could not be rebuilt: ValueError: boom",)
 
 
 # -- export (E1-E6) --------------------------------------------------------------------------------------------

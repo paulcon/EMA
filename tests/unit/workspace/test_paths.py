@@ -114,3 +114,59 @@ def test_save_refuses_before_asking(project):
             ws.save_model(drafted(), path, confirm=asked)
     assert asked.questions == []
     assert ws.propose_model(drafted("later.py:f"), "r2/later.json").missing_files == ("later.py",)
+
+
+def test_a_linked_spec_names_the_files_beside_its_target(project, monkeypatch):
+    """Review round 1, M1 (T5; C33): a spec that is a link names the files beside its target, as loading reads them,
+    so a function file there linking out of the root is refused by propose_model, save_model, and load_model, and
+    load_model refuses before the spec's files are read or hashed."""
+    ws, root, tmp = project
+    (tmp / "far.py").write_text("def f(x1, x2, x3):\n    return 0.0\n")
+    text = ws.propose_model(drafted(), "r2/model.json").spec_text
+    (root / "b").mkdir()
+    (root / "b" / "model.json").write_text(text)
+    (root / "b" / "ishigami.py").symlink_to(tmp / "far.py")
+    (root / "a").mkdir()
+    (root / "a" / "model.json").symlink_to(root / "b" / "model.json")
+    (root / "c").symlink_to(root / "b", target_is_directory=True)
+    asked = Asked()
+    with pytest.raises(PathRefused, match="ishigami.py resolves outside the root"):
+        ws.propose_model(drafted(), "a/model.json")
+    with pytest.raises(PathRefused, match="ishigami.py resolves outside the root"):
+        ws.save_model(drafted(), "a/model.json", confirm=asked)
+    assert asked.questions == [] and ws._store.confirmations() == ()
+    loaded = []
+    monkeypatch.setattr("ema.workspace.load_spec", lambda path: loaded.append(path))
+    for path in ("a/model.json", "b/model.json", "c/model.json"):
+        with pytest.raises(PathRefused, match="ishigami.py resolves outside the root"):
+            ws.load_model(path)
+    assert loaded == [] and ws.list_models() == []
+
+
+def test_propose_model_never_blocks_on_a_fifo(project):
+    """Review round 1, m3 (T6): a FIFO at the proposed path is refused at once, not opened for reading and waited on."""
+    import signal
+
+    ws, root, _ = project
+    os.mkfifo(root / "r2" / "fifo.json")
+
+    def stuck(signum, frame):
+        raise TimeoutError("propose_model blocked on a FIFO")
+
+    previous = signal.signal(signal.SIGALRM, stuck)
+    signal.alarm(10)
+    try:
+        with pytest.raises(PathRefused, match="isn't a file EMA can read"):
+            ws.propose_model(drafted(), "r2/fifo.json")
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous)
+
+
+def test_an_export_never_makes_a_credentials_directory(project):
+    """Review round 1, n3 (T5, T7): an export into a new ``.ssh`` or ``.aws`` directory is refused, nothing written."""
+    ws, root, _ = project
+    for bad in (".ssh", "deep/.aws", ".config/gcloud"):
+        with pytest.raises(PathRefused, match="credentials"):
+            ws.export("0" * 64, bad)
+    assert not (root / ".ssh").exists() and not (root / "deep").exists()

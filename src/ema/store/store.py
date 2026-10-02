@@ -13,7 +13,7 @@ import os
 import shutil
 import sqlite3
 import tempfile
-from collections.abc import Iterable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -321,13 +321,18 @@ class Store:
         return run_lock(self.layout.lock)
 
     @contextmanager
-    def result_directory(self, result_id: str) -> Iterator[str]:
+    def result_directory(self, result_id: str, *, complete: Callable[[str], bool] | None = None) -> Iterator[str]:
         """Yield a temporary directory for a result's files, renamed into ``results/<result id>/`` on exit (§6).
 
         If the result's directory exists already: with a stored result (Q5), the temporary directory is discarded,
         and the stored result is the answer (W5 then writes nothing, 0056); with no stored result, it is a
         leftover (or another process's identical directory, S10) and is replaced. On an exception, the temporary
         directory is removed and nothing is put in place.
+
+        With ``complete`` (a stored result's directory rebuilt, §6), a directory in place that ``complete`` says is
+        incomplete is replaced too, moved aside under the write lock as a leftover is; a complete one is kept, and
+        ours discarded. So rebuilds at once, in threads or processes, all succeed, and a directory found complete is
+        never moved from under its reader (record 0080, Review round 1).
 
         Safe for several processes at once (review round 1, M1): the directory in place is never deleted where it
         is. A first rename that finds it there is retried under the database's write lock, which W5 also holds
@@ -346,13 +351,16 @@ class Store:
         tmp = tempfile.mkdtemp(prefix=f".{result_id[:12]}-", dir=self.layout.results)
         try:
             yield tmp
-            self._put_in_place(tmp, final, result_id)
+            self._put_in_place(tmp, final, result_id, complete)
         finally:
             if os.path.lexists(tmp):
                 shutil.rmtree(tmp, ignore_errors=True)
 
-    def _put_in_place(self, tmp: str, final: str, result_id: str) -> None:
-        """Rename ``tmp`` to ``final``; if a directory is there, keep it with a stored result, else replace it (§6)."""
+    def _put_in_place(self, tmp: str, final: str, result_id: str, complete: Callable[[str], bool] | None) -> None:
+        """Rename ``tmp`` to ``final``; if a directory is there, keep it with a stored result, else replace it (§6).
+
+        With ``complete``, a stored result's directory is kept only when complete.
+        """
         try:
             os.rename(tmp, final)
             return
@@ -364,7 +372,7 @@ class Store:
             with self._write() as c:
                 while not c.execute(
                     "SELECT 1 FROM results WHERE result_id = ?", (bytes.fromhex(result_id),)
-                ).fetchone():
+                ).fetchone() or (complete is not None and not complete(final)):
                     aside = tempfile.mkdtemp(prefix=f".{result_id[:12]}-old-", dir=self.layout.results)
                     asides.append(aside)
                     try:
@@ -377,7 +385,7 @@ class Store:
                     except OSError as error:
                         if error.errno not in (errno.ENOTEMPTY, errno.EEXIST):
                             raise
-                # stored meanwhile, with its directory in place: ours is discarded (0056)
+                # stored meanwhile, with its directory in place (complete, with ``complete``): ours is discarded (0056)
         finally:
             for aside in asides:
                 shutil.rmtree(aside, ignore_errors=True)

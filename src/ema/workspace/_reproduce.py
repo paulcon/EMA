@@ -32,10 +32,15 @@ from ema.workspace import _evaluate
 _ROWS_SHOWN = 10
 
 
+def _names(result: DiagnosticResult) -> list[str]:
+    """Name the files of a result's directory compared byte for byte: the report and the data cards (S10)."""
+    return ["report.md", *(f.card for f in result.figures)]
+
+
 def _files(directory: str, result: DiagnosticResult) -> dict[str, bytes]:
-    """Read the report and the data cards of a result's directory, by name (S10)."""
+    """Read the report and the data cards of a result's directory, by name (S10); a missing one as no bytes."""
     out = {}
-    for name in ("report.md", *(f.card for f in result.figures)):
+    for name in _names(result):
         try:
             with open(os.path.join(directory, name), "rb") as f:
                 out[name] = f.read()
@@ -123,8 +128,20 @@ def design_check(
 ) -> tuple[list[tuple[str, str, str]], list[str]]:
     """Rebuild the design when its generator's and sampler's versions are today's, as a check (0062, 0063).
 
-    Returns the versions that differ, as (name, here, there), and the rebuilt design's differences; never raises.
+    Returns the versions that differ, as (name, here, there), and the rebuilt design's differences; never raises:
+    any exception of a generator, a sampler, or the comparison is a sentence (0062, 0063; record 0080, Review
+    round 1).
     """
+    try:
+        return _design_check(provenance, spec, stored)
+    except Exception as error:  # noqa: BLE001  (a registered generator or sampler may raise anything: §7)
+        why = str(error) if isinstance(error, EMAError) else f"{type(error).__name__}: {error}"
+        return [], [f"the design could not be rebuilt: {why}"]
+
+
+def _design_check(
+    provenance: Provenance, spec: ModelSpec, stored: Design
+) -> tuple[list[tuple[str, str, str]], list[str]]:
     identity = provenance.design
     try:
         generator = generators.get(identity.kind)
@@ -142,11 +159,8 @@ def design_check(
             versions.append((f"sampler {identity.sampler}", here, str(identity.sampler_version)))
     if versions:
         return versions, []
-    try:
-        rebuilt = generator.build(identity, spec)
-        space = ModelParameterSpace.parse(identity.canonical()["space"])
-    except EMAError as error:
-        return [], [f"the design could not be rebuilt: {error}"]
+    rebuilt = generator.build(identity, spec)
+    space = ModelParameterSpace.parse(identity.canonical()["space"])
     return [], compare_designs(stored, rebuilt, spec, space)
 
 
@@ -180,7 +194,7 @@ def reproduce(store: Store, original: DiagnosticResult | None, provenance: Prove
         if original is not None:
             found = differences(original, replayed)
             directory = store.layout.result_dir(result_id)
-            if not all(os.path.isfile(os.path.join(directory, n)) for n in _files(directory, original)):
+            if not all(os.path.isfile(os.path.join(directory, n)) for n in _names(original)):
                 os.mkdir(original_dir)  # the original's files, drawn again from it and its runs (S10)
                 ctx = _evaluate.context(p.request, spec, p.measured_noisy_read, None)
                 drawn = dataclasses.replace(original, figures=())  # as evaluate draws them (P1)

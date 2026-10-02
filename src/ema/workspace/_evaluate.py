@@ -9,13 +9,12 @@ it (data_model.md §6). Records 0054, 0055, 0063, 0072, 0074, 0075, 0080.
 
 import dataclasses
 import os
-import shutil
 from collections.abc import Callable, Mapping
 from typing import Any
 
 import numpy as np
 
-from ema.approval import _fenced, ask_approval
+from ema.approval import ask_approval, fenced
 from ema.designs import generators
 from ema.designs.generators import MAX_DESIGN_POINTS
 from ema.diagnostics import base
@@ -261,15 +260,19 @@ def result_directory(store: Store, result: DiagnosticResult) -> str:
     """
     directory = store.layout.result_dir(result.result_id)
     names = ["report.md", *(f.png for f in result.figures), *(f.card for f in result.figures)]
-    if all(os.path.isfile(os.path.join(directory, n)) for n in names):
+
+    def complete(path: str) -> bool:
+        return all(os.path.isfile(os.path.join(path, n)) for n in names)
+
+    if complete(directory):
         return directory
-    if os.path.lexists(directory):  # incomplete: rebuilt whole, as the store keeps a directory that has a row
-        shutil.rmtree(directory)
     spec = store.model_version(result.model_version_id).spec
     prov = result.provenance
     batch = replay_batch(prov, store)
     ctx = context(prov.request, spec, prov.measured_noisy_read, None)
-    with store.result_directory(result.result_id) as tmp:
+    # rebuilt whole, then put in place of an incomplete directory under the store's write lock, never deleted where
+    # it is: rebuilds at once all succeed, and a complete directory is never moved from under its reader
+    with store.result_directory(result.result_id, complete=complete) as tmp:
         base.get(result.diagnostic).figures(batch, dataclasses.replace(result, figures=()), ctx, tmp)
         write_report(tmp, result, spec)
     return directory
@@ -333,7 +336,7 @@ def run_info(
         line += f"; run directory: {kept}"
     lines = [line]
     if stderr_tail:
-        lines += ["Its stderr's last lines (the model's own output, quoted):", _fenced(stderr_tail)]
+        lines += ["Its stderr's last lines (the model's own output, quoted):", fenced(stderr_tail)]
     return RunInfo(
         run_id=run_id,
         short_id=short,
