@@ -56,7 +56,7 @@ two). The layout is then:
 ├── borehole/  model.json  borehole.py  space.json
 ├── ishigami/  model.json  ishigami.py  space.json
 ├── r5/        model.json  r5.py        space.json
-└── ema_workspace/            # EMA's: ema.db, runs/, results/
+└── ema_workspace/            # EMA's: ema.db, runs/, results/, files/
 ```
 
 To start the demo again from nothing, delete `ema_workspace/`, `beam/beam.json`, and `exports/`, and load again.
@@ -148,17 +148,19 @@ The prompts, in order (the tools each one calls are in brackets):
 8. **"Show me the scatter of y against x1."** [the resource `ema://results/{id}/figures/scatter_x1.png`] The figure;
    its numbers are in `scatter_x1.json`, the data card.
 9. **"Run exactly the same scatter again."** [`run_diagnostic`] No form: the same request reuses the stored result,
-   the same id, nothing run (C50).
+   the same id, nothing run (C50). Its line repeats the stored result's own counts ("200 runs: 200 new, …"):
+   those are the counts of the evaluation that made it; the evidence that nothing ran now is no form and the
+   same id. Say so as the answer appears.
 
 If there is time:
 
 10. **"Load ishigami/model.json into EMA."** [`save_model`] The agent passes the file's text and its path; the
     form asks "…/ishigami/model.json is already saved, unchanged: load it?" with the file's text; Accept, and EMA
-    loads it, writing nothing (record 0081 item 17): "Loaded ishigami@…", or "Already loaded: nothing changed" when
-    §1 loaded it. This is how a client loads a spec that wasn't loaded in §1. A file at the path with another spec
+    loads it, writing nothing (record 0081 item 17): "Loaded ishigami@…", followed by "Already loaded: nothing
+    changed" when §1 loaded it. This is how a client loads a spec that wasn't loaded in §1. A file at the path with another spec
     is refused.
-11. **"Set up beam/beam.py as an EMA model: f(x1, x2, x3), each nominal 0, no units, one prediction y. Then test
-    it."** [`propose_model`, `save_model`, `test_model`] The agent drafts the spec; the form shows the absolute path
+11. **"Set up beam/beam.py as an EMA model: f(x1, x2, x3), each nominal 0, no units, a short description of
+    each, one prediction y. Then test it."** [`propose_model`, `save_model`, `test_model`] The agent drafts the spec; the form shows the absolute path
     `/Users/paulconstantine/ema_demo/beam/beam.json` and the spec's full text; approve, and EMA writes that one file
     (never code) and loads it. The test run asks its own form: "1 new run, 0 reused, time unknown".
 12. **"Run a scatter of r5's y over a and b in [-1, 1] with n = 100, then list the failed runs."**

@@ -10,8 +10,10 @@
   Log of every wave and review round: `docs/notes/demo_build.md`. On `demo`: the six diagnostics, the workspace
   (U1–U8 and the get-started guide pass), the CLI (`ema`), and the MCP server (`ema mcp --root DIR`), checked end to
   end through a real MCP client. The demo's instructions: `docs/notes/demo_mcp.md` (the demo root,
-  `~/ema_demo`, is set up with three models loaded). Still open: reviews of steps 13, 15, 16; a final integrated
-  review; record 0084's final line counts (about 10,500 against 8,300); step 17 (guides' full text, release).
+  `~/ema_demo`, is set up with three models loaded). Every step's review rounds are done, the final integrated
+  review and a rehearsal of the demo's 13 prompts passed, and every test passes (2,076 in the slow tier). Not
+  done: step 17's guides' full text and release. Record 0084 gives the final size, 10,957 code lines against
+  8,300, for the owner to choose (raise the budget, or trim).
 - Writing the design documents by hand (`TODO.md`): steps 1–13 done.
 - "Before the first line of code" (`TODO.md`) done: the specs checked against each other, and the contradictions
   resolved (records 0061–0064). The first plan written: `docs/plans/01-scaffolding-and-designs.md`

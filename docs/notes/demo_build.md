@@ -126,150 +126,8 @@ Each wave's review rounds: the findings (counted by severity), what was fixed, a
   ported after re-review. Review round 1 started. The fast tier is near its 30 s budget (about 25 s under load).
 - **Step 07** started (`demo-07-runner`, from `demo` with 04 and 06 merged, 3c26723), before 06's fixes land.
 
-## How to resume (if the session stops)
+### Waves 3 and 4, later rounds
 
-State lives in git and on disk; nothing is only in the conversation.
-
-1. `git worktree list` and, in each worktree under `../EMA-worktrees/`, `git status --short` and
-   `git log --oneline -3`. A worktree with uncommitted changes was being built or fixed when the session stopped:
-   run its checks (`uv run pytest -q && uv run lint-imports && uv run ruff check && uv run mypy`); if green and
-   its plan/record look complete, commit it; otherwise hand it to a new agent with its plan
-   (`docs/plans/NN-*.md`) and record, saying "finish this step".
-2. The last entries in "Rounds" above say which step is at which stage (built, in review, fixing). A step whose
-   fixing round is committed but not re-reviewed gets a round-2 review.
-3. Branches (as of 2026-10-02, evening): `demo` holds every build step 01–16 and T, each reviewed and fixed;
-   all use cases pass. One branch still open: `demo-15fix` (the MCP server's and CLI's review fixes: loading a
-   hand-written spec through `save_model`, the approval form's `approve` checked by default, SIGTERM, reserved
-   `params` names, cancel/disconnect tests). When its agent reports: run its checks in its worktree, commit,
-   merge into `demo`, and rerun `pytest -q --slow -n auto tests/contracts/tools.py tests/unit/mcp`.
-4. Then: step 17 — rehearse `docs/notes/demo_mcp.md` once with a scripted client in a scratch copy of the demo
-   root; a final integrated review of `demo` (one agent, read-only); record 0084's final line counts; STATUS.md.
-   The demo root `~/ema_demo` is set up (three models loaded); don't run the demo's own requests there before the
-   demo, so the first approval shows. Agents follow `docs/notes/demo_agent_brief.md`.
-
-## Rounds
-
-Each wave's review rounds: the findings (counted by severity), what was fixed, and what was left, with why.
-
-### Wave 1
-
-- **Step 01, review round 1** (independent agent, on 7727695): 0 blockers, 1 major, 8 minor, 10 nits; all
-  checks green; G7, G12, G13 recomputed independently and agreeing; every broken toy failing for its reason;
-  31 mutants, 26 killed. Major: convergent's `size()` hangs on a large level near alpha 1 (a request could hang
-  the MCP server). Minor: a float seed crashing random lines; non-canonical identities (handed to step 09); the
-  far-end face rule untested; the meta-test accepting any exception; the sampler hash check a tautology; a
-  lines block costing the whole design; `size()` accepting what `build()` refuses; the size budget (the
-  coordinator's: a budget record after wave 2's counts). Fixing round 1 started.
-- **BLAS determinism** (02's first task): QR, lstsq, and matrix products bit-for-bit repeatable on Accelerate;
-  the Lanczos process varies through `np.linalg.norm` (a 1-D dot product whose bits depend on memory
-  alignment). Adopted in step 02 (record 0068): `dot` and `norm` through `np.sum`, banned 1-D BLAS calls, an
-  alignment test.
-
-### Wave 2
-
-- **Step T** built (683e90c on `demo-T-types`): 128 new tests; `ema.types` at about 1,304 code lines. Review
-  round 1 started.
-- **Step T, review round 1** (on 683e90c): 0 blockers, 2 major, 10 minor, 6 nits; ids, C17's round trip, the
-  shown text, and the counts' invariants verified independently. Major: the provenance's JSON forms held the run
-  ids that `data_model.md` §5.9 and §5.12 keep in their own columns (a 10⁷-row design would pass SQLite's
-  limit); `Reproduction` named the replayed result's id, not the original's. Fixing round 1 started.
-- **Step 02** built (778cd84 on `demo-02-numerics`): 148 tests; the scatter mock report reproduced through the
-  numerics to four digits; 341 code lines against 553; v1's `core/legendre.py` ported. Review round 1 started.
-- **Step 03** built (f28b3c6 on `demo-03-model-specs`): 224 tests; a fuzz of 8,000 one-field spec mutations
-  raised only `SpecError`; about 665 lines against the roadmap's 450. Review round 1 started.
-- **Step 02, review round 1** (on 778cd84): 0 blockers, 0 major, 5 minor, 5 nits; every number recomputed
-  independently and agreeing (Legendre, R7's rates in exact arithmetic, PRESS, Sobol, the binned index, the
-  scatter mock report's 16 bounds within 1.1e-16). Minor: gaps in the no-vector-BLAS enforcement (`x @ y`,
-  `.dot`, `vecdot` uncaught; the fits' test without power); `Bootstrap.settings` not encodable; Sobol indices
-  on a constant y unguarded; the rank-from-R rule untested; 0035's second half untested. Fixing round 1
-  started.
-- **Step 03, review round 1** (on f28b3c6): 0 blockers, 2 major, 9 minor, 8 nits; the version hash recomputed
-  independently from `data_model.md` §3.4 on 7 specs and agreeing; about 40 refusal probes (paths, links to
-  credentials files, hidden characters, environment) holding. Major: credentials-file names not refused on
-  `writes` and a parser's `file` (ruled: follow `model_interface.md`'s broader wording, refuse them); names that
-  aren't NFKC-stable or ASCII failing as keyword arguments and template names after runs are paid for (ruled:
-  ASCII identifiers, a provisional clarification in 0069). Minor: the case probe one directory too high, the
-  spec's path not resolved, aliases refused, a FIFO hanging EMA, stray exception types, no frozen version-hash
-  answer, `writes` collisions compared by case. Fixing round 1 started.
-- **Step 01, fixing round 1:** M1 fixed (n_min + L over the cap refused at once; each size from a float estimate
-  checked against a guard, exact fixed-point bounds otherwise; sizes equal to the exact rule over 17 alphas, 9
-  n_min, and 3,000 levels; record 0067 item 31, which departs from `designs.md`'s "computed in exact rational
-  arithmetic" in method only); m1, m3, m4, m5, m8 and every nit fixed; m2 fixed in convergent, the rest handed
-  to step 09; m6 fixed for coordinate lines' 0051 check, a block's line segments deferred (1–2 h). Round 2
-  review started.
-- **Fixing round 1** for 02 (2840bbe), 03 (22b8781), and T (277752f): every blocker, major, and minor fixed but
-  the size budget (the coordinator's); 03's majors ruled as above. Merged on `demo-wave2` (ea087eb), with
-  conflicts in `identity.py` (both sides kept) and AR1's layers resolved; 1,090 tests pass, every check green.
-  Round 2 review of the merged wave started.
-
-### Wave 3
-
-- Started from `demo-wave2` (ea087eb): steps 04 and 05 together (`demo-04-models`), 06 (`demo-06-store`), 08
-  (`demo-08-reports`).
-- **Wave 2, review round 2** (merged, ea087eb): 0 blockers, 0 major, 4 minor, 6 nits; the merge lost nothing; the
-  column forms, the cross-checks (point runs, all-failed results, repeated runs, replays), and 03's refusals
-  verified. Wave 2 done. Carried forward: m1 (a result's own measured-noisy `made_at`) ruled for step 06 (None
-  inside a result; the table keeps it); m3 (library calls such as `np.cov`, `pearsonr` vary with alignment too)
-  goes into step 09's diagnostic contract as a whole-`compute` alignment check, with more banned names; m2 (a
-  caller's earlier writable view) documented as a limit; m4 the size budget record (the coordinator's).
-- **Step 01, review round 2** (e148069): 0 blockers, 0 major, 3 minor, 3 nits; convergent's sizes against an
-  independent high-precision reference on about 70,000 requests (adversarial near-integers included): 0
-  mismatches; every meta-test pinned to its toy's reason. Step 01 done. Minors carried to a cleanup pass: an
-  alpha text with a huge exponent stalls the request; the float path's precision and the exact refinement
-  untested.
-- **Step 08** built (6684ad9): all six mock reports rebuilt by hand and matched; 660 lines against 540. Review
-  round 1 started.
-- **Step 06** built (a8d3a85): every W and Q; the store contract with 13 broken toys; 1,103 lines against 715;
-  Q1's 10⁶-point timing target deferred (about 20–25 s now; a key-only read for the runner, 1–2 h). Review round
-  1 started.
-
-### Wave 4 (started early)
-
-- **Step 09** started from step 08's branch (`demo-09-diagnostics`), since it needs the reports but not the
-  store or the runner; it carries the hand-offs: canonical identities (0067), a whole-`compute` alignment check
-  in the diagnostic contract (0068), and step 08's result conventions (0073).
-- **Cleanup pass** (waves 1–2's remaining minors): a huge alpha exponent read lazily and refused at once;
-  the float path pinned against an 80-digit reference with a negative control; `_power_bounds` and the
-  refinement tested; more banned library calls (`np.cov`, `pearsonr`, …) and `__matmul__` in the AST test; the
-  wave 2 nits. Records 0067 (39–41), 0068, 0070 (28–30).
-- **Step 08, review round 1** (6684ad9): 1 blocker, 3 major, 9 minor, 4 nits; rebuilds byte-identical after
-  every round trip; PNGs identical across processes; no interpretation found. Blocker: the coordinate-lines
-  Design row indexed varied-only unit coordinates by all model parameters (a crash with a held parameter
-  first). Major: the user's rcParams reaching figures (`text.usetex` read `/etc/hosts` through a label;
-  margins changed the data cards), and the PDF reader keeping TeX math (T10's second guard missing). Fixing
-  round 1 started.
-- **Step 06, review round 1** (a8d3a85): 0 blockers, 2 major, 5 minor, 8 nits; the lock (same Store, second
-  Store, subprocess, SIGKILL), round trips (−0.0, subnormals), Q1's construction, and SQL safety verified.
-  Major: two processes writing one result at once raised raw OS errors and leaked temporary directories
-  (18 of 260 attempts); W5 let an approval's runs be split across results or cited by another request (I12).
-  Fixing round 1 started.
-- **Steps 04 and 05** built (3cc811a): the model adapter contract C31–C45 over Python, batch, and command-line
-  toys with 15 broken toys; 1,210 lines of `ema.models` against 1,323; v1's `_sandbox.py` and `_worker.py`
-  ported after re-review. Review round 1 started. The fast tier is near its 30 s budget (about 25 s under load).
-- **Step 07** started (`demo-07-runner`, from `demo` with 04 and 06 merged, 3c26723), before 06's fixes land.
-
-## How to resume (if the session stops)
-
-State lives in git and on disk; nothing is only in the conversation.
-
-1. `git worktree list` and, in each worktree under `../EMA-worktrees/`, `git status --short` and
-   `git log --oneline -3`. A worktree with uncommitted changes was being built or fixed when the session stopped:
-   run its checks (`uv run pytest -q && uv run lint-imports && uv run ruff check && uv run mypy`); if green and
-   its plan/record look complete, commit it; otherwise hand it to a new agent with its plan
-   (`docs/plans/NN-*.md`) and record, saying "finish this step".
-2. The last entries in "Rounds" above say which step is at which stage (built, in review, fixing). A step whose
-   fixing round is committed but not re-reviewed gets a round-2 review.
-3. Branches (as of 2026-10-02 afternoon): `demo` holds steps 01–12 and 14, reviewed, with their fixes. Still
-   on their own branches: `demo-13-polynomial` (building), `demo-15-mcp` (building; writes
-   `docs/notes/demo_mcp.md`, the demo's instructions), `demo-16-cli` (building), `demo-14fix` (the workspace's
-   review fixes, incl. a T5 hole). Merge each into `demo` when its worktree's checks pass; conflicts are
-   usually only `docs/index.md`, `tests/slow/test_wheel.py`, and `pyproject.toml`'s import contracts (keep
-   both sides; AR1's layers: cli, mcp, workspace, runner|approval|diagnostics, plotting|report, models|store,
-   numerics|designs, types).
-4. Then: reviews of 13, 15, 16 (and 12's, if not logged below); a cleanup pass for the diagnostics' minors;
-   the demo (step 17): follow `docs/notes/demo_mcp.md`, register the server, run the demo prompts once; a
-   final integrated review; STATUS.md; record 0084's final counts. Agents follow
-   `docs/notes/demo_agent_brief.md`.
 - **Step 06, fixing round 1** (d9affd4): both majors (the directory race: rename-only under BEGIN IMMEDIATE,
   4-process test; an approval tied to one result of its own request with every approved run used, three new
   broken toys) and every minor fixed; `current_keys` added for the runner. Round 2 review comes with wave 3's
@@ -401,3 +259,33 @@ State lives in git and on disk; nothing is only in the conversation.
   61 s with the final review loading the machine; `--slow -n auto` 2,076 passed, 1 skipped (the point run's C6
   exemption), 0 failed, in 5 min. 10,957 code lines (record 0084, for the owner). Final integrated review and
   demo rehearsal (step 17) running.
+
+- **Step 17, final integrated review and rehearsal**: 0 blockers, 1 major, 6 minor, 8 nits. All 13 prompts of
+  `docs/notes/demo_mcp.md` ran over stdio in 12.5 s (the scatter of 200 in 4 s), with the doc's texts and ids;
+  resources byte-identical; 55 PNGs valid; one result id for one request in three fresh workspaces;
+  `reproduce` identical for six results; every diagnostic run once through MCP; no advice in any text (0017).
+  Major, fixed by the coordinator: `tools.md` didn't say every model parameter and prediction needs a
+  description, so prompt 11's draft was refused twice (now said, and the prompt asks for descriptions). Minor,
+  fixed in the doc: a repeated run's line repeats the stored counts ("200 new"), so the presenter says nothing
+  ran (no form, same id). The others are listed under "How to resume" as the owner's questions. Demo ready.
+
+## How to resume (if the session stops)
+
+State lives in git and on disk; nothing is only in the conversation.
+
+1. `git worktree list` and, in each worktree under `../EMA-worktrees/`, `git status --short` and
+   `git log --oneline -3`. A worktree with uncommitted changes was being built or fixed when the session stopped:
+   run its checks (`uv run pytest -q && uv run lint-imports && uv run ruff check && uv run mypy`); if green and
+   its plan/record look complete, commit it; otherwise hand it to a new agent with its plan
+   (`docs/plans/NN-*.md`) and record, saying "finish this step".
+2. The last entries in "Rounds" above say which step is at which stage (built, in review, fixing). A step whose
+   fixing round is committed but not re-reviewed gets a round-2 review.
+3. State at the end of the demo build (2026-10-02, evening): `demo` holds every build step 01–16 and T, each
+   reviewed, fixed, and (where its round 1 had majors) re-reviewed; the final integrated review and the demo's
+   rehearsal (13 prompts over stdio) passed; every test passes. No worktree branch holds unmerged work.
+4. What is left is the owner's: review `demo` and records 0066–0084 (each lists its spec edits on acceptance),
+   and decide on merging into `main`. Open questions from the final review, for the owner: the shared notes'
+   "Most frequent reasons" list renders as one line in CommonMark, and the notes name Python calls
+   (`ws.failed_runs`) that an MCP reader can't use (both spec wordings in `shared.md`); the spread row says |y|
+   whatever the model prediction's name; `lines`' `m` has no default in its JSON schema; parameter meanings show
+   record ids such as "(0032)".

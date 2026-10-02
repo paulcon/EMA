@@ -48,7 +48,8 @@ schema `params` must meet (`data.params_schema`).
 
 Validate a drafted model spec and show where it would be saved, with its full text. Saves nothing and runs nothing.
 The spec names a Python function ("interface": "python_function", "function": "file.py:f") or a command line, its
-model parameters (name, units, nominal), and its model predictions.
+model parameters (name, units, nominal, description), and its model predictions (name, units, description).
+Every description is required; an empty string is allowed.
 
 - `spec`: The model spec, as a JSON object (or its JSON text).
 - `path`: Where to save it: a path ending in .json, inside the root, whose directory exists; the files the spec names are relative to that directory.
