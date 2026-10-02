@@ -57,6 +57,8 @@ MODULES += ["ema/runner.py", "ema/approval.py"]
 MODULES += ["ema/diagnostics/scatter.py"]
 #: Coordinate lines and lines (step 11).
 MODULES += ["ema/diagnostics/_lines.py", "ema/diagnostics/coordinate_lines.py", "ema/diagnostics/lines.py"]
+#: The linear model (step 12).
+MODULES += ["ema/diagnostics/linear_model.py", "ema/diagnostics/_fits.py"]
 
 
 @pytest.mark.slow
