@@ -10,6 +10,9 @@ import numpy as np
 
 
 def f(X):
+    if os.environ.get("TOY_CALLS"):  # the runner's tests: each point the toy is called at (tests/support/runner.py)
+        with open(os.environ["TOY_CALLS"], "a") as calls:
+            calls.writelines(json.dumps(row) + "\n" for row in X.tolist())
     with open("mesh.dat") as file:
         scale = float(file.read().split()[0])
     mode = X[:, 2].astype(int)

@@ -110,6 +110,7 @@ exclude_type_checking_imports = true
 name = "AR1 One-way layers"
 type = "layers"
 layers = [
+    "ema.runner | ema.approval",
     "ema.plotting | ema.report",
     "ema.models | ema.store",
     "ema.numerics | ema.designs",
@@ -158,6 +159,8 @@ source_modules = [
     "ema.store",
     "ema.plotting",
     "ema.report",
+    # Step 07: ema.runner is the one module that imports ema.models.execute; its sibling ema.approval may not.
+    "ema.approval",
 ]
 forbidden_modules = [
     "ema.models.execute",
@@ -174,6 +177,8 @@ source_modules = [
     "ema.models",
     "ema.plotting",
     "ema.report",
+    "ema.runner",
+    "ema.approval",
 ]
 forbidden_modules = [
     "sqlite3",
@@ -208,6 +213,8 @@ source_modules = [
     "ema.store",
     "ema.plotting",
     "ema.report",
+    "ema.runner",
+    "ema.approval",
 ]
 forbidden_modules = [
     "ema.reference_models",

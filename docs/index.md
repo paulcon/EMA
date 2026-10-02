@@ -77,3 +77,13 @@ The store (step 06):
    ema.report.render
    ema.report.pdf
 ```
+
+The runner and approval (step 07):
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _autosummary
+
+   ema.runner
+   ema.approval
+```

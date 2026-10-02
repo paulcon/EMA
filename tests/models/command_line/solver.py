@@ -11,6 +11,9 @@ with open(sys.argv[1]) as deck:
         name, _, value = line.partition("=")
         values[name.strip()] = value.strip()
 a, b, mode = float(values["a"]), float(values["b"]), int(float(values["mode"]))
+if os.environ.get("TOY_CALLS"):  # the runner's tests: each point the toy is called at (tests/support/runner.py)
+    with open(os.environ["TOY_CALLS"], "a") as calls:
+        calls.write(json.dumps([a, b, float(values["mode"])]) + "\n")
 with open("mesh.dat") as mesh:
     scale = float(mesh.read().split()[0])
 y = a + 2 * b + scale

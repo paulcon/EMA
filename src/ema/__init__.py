@@ -1,8 +1,8 @@
 """EMA: diagnostics that find exploitable structure in computational models.
 
 The root package only re-exports, lazily (PEP 562), so ``import ema.types`` loads nothing else (AR7). So far
-its public names are the errors (architecture.md §2); the workspace, ``ask``, and the result types join them
-with their build steps.
+its public names are the errors and ``ask``, the terminal approver (architecture.md §2, §6); the workspace and the
+result types join them with their build steps.
 """
 
 import importlib
@@ -28,6 +28,7 @@ _EXPORTS: dict[str, str] = {
         "PathRefused",
     )
 }
+_EXPORTS["ask"] = "ema.approval"
 
 __all__ = [
     "AmbiguousId",
@@ -44,6 +45,7 @@ __all__ = [
     "SpecError",
     "WorkspaceBusy",
     "WorkspaceVersion",
+    "ask",
 ]
 
 
