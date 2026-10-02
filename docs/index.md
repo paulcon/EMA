@@ -127,9 +127,14 @@ The command line (step 16):
 
 ```{eval-rst}
 .. Step 16: the CLI, ema (a block of its own, to ease merging).
+The MCP server (step 15):
+
+```{eval-rst}
+.. Step 15: the MCP server (a block of its own, to ease merging).
 
 .. autosummary::
    :toctree: _autosummary
 
    ema.cli
+   ema.mcp.server
 ```

@@ -18,6 +18,13 @@ dependencies = [
 [project.scripts]
 ema = "ema.cli:main"
 
+# The MCP server's extra (scope.md; architecture.md §8): its lower bound is the release the server's code was written
+# and tested against (record 0081 item 1).
+[project.optional-dependencies]
+mcp = [
+    "mcp>=2.2.0",
+]
+
 [build-system]
 requires = ["uv_build>=0.12.21,<0.13"]
 build-backend = "uv_build"
@@ -33,6 +40,8 @@ dev = [
     "sphinx>=9.1.0",
     "myst-parser>=5.1.0",
     "furo>=2025.12.19",
+    # The MCP server and its tests (record 0059, item 3; step 15).
+    "ema[mcp]",
 ]
 
 # ---------------------------------------------------------------------------------------------------------
@@ -116,9 +125,9 @@ exclude_type_checking_imports = true
 name = "AR1 One-way layers"
 type = "layers"
 layers = [
-    # Step 16: ema.cli on top. §10 puts ema.mcp between it and ema.workspace; step 15 adds that layer when it
-    # merges (ema.mcp doesn't exist on this branch, and a layer must; record 0082).
+    # ema.cli over ema.mcp over ema.workspace (0061; records 0081, 0082).
     "ema.cli",
+    "ema.mcp",
     "ema.workspace",
     "ema.runner | ema.approval | ema.diagnostics",
     "ema.plotting | ema.report",
@@ -149,11 +158,11 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "AR3 The interfaces call only the workspace"
+name = "AR3 The CLI calls only the workspace"
 type = "forbidden"
 allow_indirect_imports = true
 # Step 16: ema.cli imports only ema.workspace and ema.types (and ema.mcp.server lazily, in its mcp command: the AST
-# test in tests/unit/test_ast.py). Step 15 adds ema.mcp to source_modules (record 0082).
+# test in tests/unit/test_ast.py) (record 0082).
 source_modules = [
     "ema.cli",
 ]
@@ -167,6 +176,36 @@ forbidden_modules = [
     "ema.runner",
     "ema.approval",
     "ema.diagnostics",
+    "ema.reference_models",
+    "numpy",
+    "scipy",
+    "matplotlib",
+]
+
+[[tool.importlinter.contracts]]
+name = "AR3 The MCP server calls only the workspace"
+type = "forbidden"
+allow_indirect_imports = true
+# Step 15 (record 0081): the MCP server imports only ema.workspace and ema.types, the standard library, and the mcp
+# SDK; never ema.cli, which sits above it (0061); and no numerical library, so it can compute no number itself (P1).
+source_modules = [
+    "ema.mcp",
+]
+forbidden_modules = [
+    "ema.numerics",
+    "ema.designs",
+    "ema.models",
+    "ema.store",
+    "ema.plotting",
+    "ema.report",
+    "ema.runner",
+    "ema.approval",
+    "ema.diagnostics",
+    "ema.reference_models",
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "ema.cli",
 ]
 
 [[tool.importlinter.contracts]]
@@ -196,6 +235,8 @@ source_modules = [
     # Step 14: the workspace orchestrates the runs through ema.runner, and never runs a model itself.
     "ema.workspace",
     "ema.cli",
+    # Step 15: the MCP server.
+    "ema.mcp",
 ]
 forbidden_modules = [
     "ema.models.execute",
@@ -217,6 +258,7 @@ source_modules = [
     "ema.diagnostics",
     "ema.workspace",
     "ema.cli",
+    "ema.mcp",
 ]
 forbidden_modules = [
     "sqlite3",
@@ -256,6 +298,7 @@ source_modules = [
     "ema.diagnostics",
     "ema.workspace",
     "ema.cli",
+    "ema.mcp",
 ]
 forbidden_modules = [
     "ema.reference_models",
