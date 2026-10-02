@@ -397,3 +397,7 @@ State lives in git and on disk; nothing is only in the conversation.
   malformed elicitation reply a no at once; cancel, disconnect, and SIGTERM tested over stdio; `tools.md`
   reworded. Checked again on a scratch copy of the demo root by the fixing agent. Lint, 8 import contracts,
   mypy, and the docs build pass on `demo`.
+- **The whole suite on final `demo`** (ebeef8a): fast tier `-n auto` 2,016 passed, 61 skipped (slow tests) in
+  61 s with the final review loading the machine; `--slow -n auto` 2,076 passed, 1 skipped (the point run's C6
+  exemption), 0 failed, in 5 min. 10,957 code lines (record 0084, for the owner). Final integrated review and
+  demo rehearsal (step 17) running.
