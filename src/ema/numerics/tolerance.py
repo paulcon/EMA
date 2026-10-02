@@ -1,9 +1,10 @@
-"""P6's one tolerance function: every tolerance on a model prediction is relative to its range.
+"""P6's one tolerance function, and its one test of "constant" (0035), which has no tolerance.
 
-principles.md, P6; diagnostics/shared.md, The precheck.
+principles.md, P6; diagnostics/shared.md, The precheck; 0035.
 
-So changing a model prediction's units (y -> a·y + b, a > 0) scales every tolerance by a, and changes no note.
-Diagnostics use no absolute tolerance on model predictions.
+Every tolerance on a model prediction is relative to its range, so changing a model prediction's units
+(y -> a·y + b, a > 0) scales every tolerance by a, and changes no note. Diagnostics use no absolute tolerance on
+model predictions. A model prediction is constant only when every value is the same double.
 """
 
 import math
@@ -37,3 +38,20 @@ def tolerance(values: np.ndarray, rel: float) -> float:
     if values.size == 0 or not np.isfinite(values).all():
         raise ValueError("a tolerance needs at least one value, each finite")
     return rel * float(np.max(values) - np.min(values))
+
+
+def is_constant(y: np.ndarray) -> bool:
+    """Return True when every value of y is the same double (0035; P6): no flatness tolerance.
+
+    The one test of "constant" in ``ema``: a constant y gives the diagnostics' note, and makes R², the relative
+    residual, the LOO error, the Sobol indices, rho, and S undefined on a resample (uncertainty.md, the
+    bootstrap's step 3). A y that varies, however little (R4b's 1e-12 wiggle), is not constant. An empty y is
+    not constant: too few runs decides that case. Values compare with ``==``, so -0.0 and 0.0 are the same.
+
+    Examples
+    --------
+    >>> is_constant(np.full(20, 0.1)), is_constant(np.array([2.5, 2.5 + 1e-12]))
+    (True, False)
+    """
+    y = np.asarray(y, dtype=np.float64)
+    return y.size > 0 and bool(np.all(y == y.flat[0]))

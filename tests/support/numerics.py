@@ -98,6 +98,19 @@ def at_offset(values: np.ndarray, offset: int, keep: list[bytearray]) -> np.ndar
 OFFSETS = tuple(range(0, 64, 8))
 
 
+def scramble_heap(offset: int, keep: list[object]) -> None:
+    """Move where numpy puts its next small arrays, so a computation's own temporaries move between calls.
+
+    numpy keeps up to 7 freed blocks of each size under 1,024 bytes and hands them back (its small-block cache), so
+    moving Python's heap alone leaves a function's temporaries where they were. Holding 8 new arrays of every size
+    that is a multiple of 8 bytes empties the cache; then an array of 16·(offset + 1) bytes moves malloc's next
+    block (macOS's tiny blocks are 16-byte aligned, so the temporaries land at 0, 16, 32, or 48 mod 64). ``keep``
+    holds them until the caller is done.
+    """
+    keep.append([np.empty(size, dtype=np.uint8) for size in range(8, 1024, 8) for _ in range(8)])
+    keep.append(np.empty(2 * (offset + 1)))
+
+
 def gauss_legendre_grid(d: int, m: int) -> tuple[np.ndarray, np.ndarray]:
     """Tensor Gauss-Legendre nodes ``(m**d, d)`` on [-1, 1]^d and weights for the uniform measure (sum 1)."""
     x, w = np.polynomial.legendre.leggauss(m)

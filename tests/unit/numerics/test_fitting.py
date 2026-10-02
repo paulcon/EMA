@@ -106,7 +106,28 @@ def test_rank_is_numpys_matrix_rank_rule() -> None:
     tiny = np.column_stack([full[:, :5], 1e-15 * full[:, 5] + full[:, 0]])
     for A in (full, deficient, tiny, full[:4]):
         assert rank(A) == np.linalg.matrix_rank(A)
+        assert least_squares(A, rng.standard_normal(len(A))).rank == np.linalg.matrix_rank(A)
     assert rank(deficient) == 5
+
+
+@pytest.mark.parametrize("p", [1, 2, 3])
+def test_rank_on_a_resample_with_p_values_along_one_parameter(p: int) -> None:
+    """0051, as a bootstrap meets it: a resample whose runs take only p distinct values along one model parameter
+    can't determine its degree-p term, so A's rank is P - 1 in exact arithmetic (rounding puts a singular value
+    near eps sigma_max); with p + 1 values, P. ``rank``, ``least_squares``' rank (from R's singular values), and
+    ``matrix_rank`` agree (record 0068 item 7)."""
+    b = TotalDegree()
+    for d in (2, 3, 4):
+        terms = b.terms(d, p)
+        for seed in range(10):
+            rng = np.random.default_rng(seed)
+            Z = 2 * rng.random((40, d)) - 1
+            for distinct, want in ((p, len(terms) - 1), (p + 1, len(terms))):
+                Z[:, 0] = rng.choice(2 * rng.random(distinct) - 1, 40)
+                A = b.evaluate(Z, terms)
+                fit = least_squares(A, Z[:, 1])
+                assert rank(A) == fit.rank == np.linalg.matrix_rank(A) == want
+                assert np.isnan(fit.coefficients).all() == (want < len(terms))
 
 
 def test_a_rank_deficient_fit_is_undefined() -> None:
@@ -151,3 +172,15 @@ def test_fit_type() -> None:
     assert not fit.coefficients.flags.writeable
     with pytest.raises(ValueError):
         least_squares(np.eye(3), np.arange(4.0))
+
+
+def test_r4b_wiggle_is_fitted() -> None:
+    """0035; linear_model.md and polynomial_model.md, Expected answers: R4b, 2.5 + 1e-12 sin(40 (a + b + c)), is
+    not constant: the relative residual, R², and LOO are finite (estimates of the wiggle, not a note)."""
+    Z = unit_points(11, 60, 3)
+    y = 2.5 + 1e-12 * np.sin(40 * Z.sum(axis=1))
+    for A in (np.column_stack([np.ones(60), Z]), design_matrix(Z, 2)):
+        fit = least_squares(A, y)
+        numbers = [relative_residual(y, fit), r2(y, fit), press(A, y, fit)]
+        assert all(math.isfinite(v) for v in numbers), numbers
+        assert 0 < numbers[0] <= 1 + 1e-9

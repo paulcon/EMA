@@ -39,14 +39,14 @@ def test_orthonormal(n: int) -> None:
 @pytest.mark.parametrize("n", [17, 65, 129])
 @pytest.mark.parametrize("i", [0, 1, 2, 3])
 def test_against_exact_rational_arithmetic(n: int, i: int) -> None:
-    """CL2: R7's lines, c_0 ... c_K within 1e-14 of the line's range of the exact coefficients; c_0 the mean;
-    the sum of c_k^2 (k >= 1) the variance, ddof 0."""
+    """CL2: R7's lines, every c_1 ... c_(n-1) within 1e-14 of the line's range of the exact coefficients (the
+    window's and the top half's; measured: within 2.3e-16); c_0 the mean; the sum of c_k^2 (k >= 1) the variance,
+    ddof 0."""
     y = coordinate_line(r7_unit, 4, i, n)
     c = gram_coefficients(y)
     rng = float(np.max(y) - np.min(y))
-    K = (n - 1) // 2
-    exact = exact_gram_coefficients(y, K)
-    assert np.abs(c[1 : K + 1] - exact[1:]).max() <= 1e-14 * rng
+    exact = exact_gram_coefficients(y, n - 1)
+    assert np.abs(c[1:] - exact[1:]).max() <= 1e-14 * rng
     assert c[0] == pytest.approx(np.mean(y), rel=1e-15, abs=1e-15)
     assert math.fsum(c[1:] ** 2) == pytest.approx(np.var(y), rel=1e-13)
 
@@ -129,3 +129,14 @@ def test_a_constant_line() -> None:
 def test_refuses_fewer_than_two_points() -> None:
     with pytest.raises(ValueError):
         gram_coefficients(np.array([1.0]))
+
+
+@pytest.mark.parametrize("n", [17, 33])
+def test_r4b_wiggle_has_a_rate(n: int) -> None:
+    """coordinate_lines.md, Expected answers; 0035: R4b, 2.5 + 1e-12 sin(40 (a + b + c)), is not constant: each
+    line has k* >= 3 and a finite rate, no note."""
+    for i in range(3):
+        y = coordinate_line(lambda z: 2.5 + 1e-12 * np.sin(40 * z[:, :3].sum(axis=1)), 3, i, n)
+        assert not (y == y[0]).all()
+        k_star, fitted = line_rate(y)
+        assert k_star >= 3 and fitted is not None and all(math.isfinite(v) for v in fitted)

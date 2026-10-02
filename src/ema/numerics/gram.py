@@ -5,7 +5,7 @@ c_k = (1/n) sum_j y_j G_k(s_j), with G_0 ... G_(n-1) the Gram polynomials, ortho
 n points; the tail T(k) = sqrt(sum_(j >= k) c_j^2); the decay rate is minus the least-squares slope of
 log10 T(k) over k = 1 ... k*. The window K = floor((n - 1)/2), the floor (1e-10 of the line's range, through
 ``ema.numerics.tolerance``), and the fewest degrees for a rate (3) are coordinate lines' constants: the caller
-passes T up to K, the floor, and the minimum (record 0068 item 2).
+passes T up to K, the floor, and the minimum (record 0068 item 4).
 """
 
 import math
@@ -13,7 +13,8 @@ from functools import lru_cache
 
 import numpy as np
 
-from ema.numerics._vector import norm
+from ema.numerics._vector import matvec, norm
+from ema.numerics.tolerance import is_constant
 
 
 def _lanczos(n: int) -> np.ndarray:
@@ -22,15 +23,17 @@ def _lanczos(n: int) -> np.ndarray:
     The Lanczos process on diag(s) from the vector of ones, with full reorthogonalization (two passes), as
     coordinate_lines.md specifies; not the three-term recurrence, which loses orthonormality in doubles. Each
     new vector is divided by its norm, a positive number, so each G_k keeps a positive leading coefficient.
-    The norm is ``_vector.norm``, not BLAS's (record 0068 item 1).
+    The norm is ``_vector.norm``, not BLAS's, and the products go through ``_vector.matvec``: at k = 1 the
+    projection is a one-row product, which numpy sends to ``ddot`` (record 0068 item 1).
     """
     s = -1 + 2 * np.arange(n) / (n - 1)
     Q = np.zeros((n, n))
     Q[:, 0] = 1 / math.sqrt(n)
     for k in range(1, n):
         w = s * Q[:, k - 1]
+        done = Q[:, :k]
         for _ in range(2):
-            w -= Q[:, :k] @ (Q[:, :k].T @ w)
+            w -= matvec(done, matvec(done.T, w))
         Q[:, k] = w / norm(w)
     return Q * math.sqrt(n)
 
@@ -74,11 +77,11 @@ def gram_coefficients(y: np.ndarray) -> np.ndarray:
     y = np.asarray(y, dtype=np.float64)
     if y.ndim != 1 or len(y) < 2:
         raise ValueError(f"a Gram spectrum needs a line of at least 2 values, not shape {y.shape}")
-    if (y == y[0]).all():  # exactly (y_0, 0, ..., 0); Lanczos would leave rounding, and the floor is 0 (record 0068)
+    if is_constant(y):  # exactly (y_0, 0, ..., 0); Lanczos would leave rounding, and the floor is 0 (0068 item 2)
         c = np.zeros(len(y))
         c[0] = y[0]
         return c
-    return _basis(len(y)).T @ y / len(y)
+    return matvec(_basis(len(y)).T, y) / len(y)
 
 
 def tail(c: np.ndarray) -> np.ndarray:

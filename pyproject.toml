@@ -47,15 +47,23 @@ extend-ignore = ["D105"]
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
-# No vector-vector BLAS in EMA (record 0068 item 1): on Accelerate their results depend on the operands' addresses
-# mod 64 (docs/notes/blas_determinism_2026-10-01.md). Inner products and norms of 1-D arrays go through
-# ema.numerics._vector; `x @ y` of two 1-D arrays can't be caught here, and the 8-offset test catches it.
+# No vector-vector BLAS in EMA (record 0068 item 1, and its review round 1): on Accelerate their results depend on
+# the operands' addresses mod 64 (docs/notes/blas_determinism_2026-10-01.md). Inner products and norms of 1-D arrays
+# go through ema.numerics._vector's dot and norm, matrix-vector products through its matvec. What Ruff can't see,
+# `.dot(` and `@`, an AST test refuses (tests/unit/numerics/test_determinism.py): `@` only in _vector.matvec.
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "numpy.linalg.norm".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.norm (0068)"
-"numpy.dot".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot, or @ with a matrix (0068)"
+"numpy.dot".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot or matvec (0068)"
 "numpy.inner".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot (0068)"
 "numpy.vdot".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot (0068)"
 "numpy.vecdot".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot (0068)"
+"numpy.linalg.vecdot".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot (0068)"
+"numpy.tensordot".msg = "reduces to vector-vector BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
+"numpy.linalg.tensordot".msg = "reduces to vector-vector BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
+"numpy.linalg.multi_dot".msg = "reduces to vector-vector BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
+"numpy.einsum".msg = "with optimize, reduces to vector-vector BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
+"numpy.matmul".msg = "a one-row product is vector-vector BLAS: use ema.numerics._vector.matvec (0068)"
+"numpy.linalg.matmul".msg = "a one-row product is vector-vector BLAS: use ema.numerics._vector.matvec (0068)"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D", "TID251"]

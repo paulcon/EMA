@@ -84,3 +84,12 @@ def test_refusals() -> None:
         binned_index(np.arange(4.0), np.arange(4.0), 0)
     with pytest.raises(ValueError):
         rank_correlation(np.arange(4.0), np.arange(3.0))
+
+
+def test_r4b_wiggle_has_estimates() -> None:
+    """0035; scatter.md, Expected answers: R4b, 2.5 + 1e-12 sin(40 (a + b + c)), is not constant: rho and S are
+    finite for each model parameter."""
+    Z = 2 * np.random.default_rng(0).random((200, 3)) - 1
+    y = 2.5 + 1e-12 * np.sin(40 * Z.sum(axis=1))
+    for j in range(3):
+        assert math.isfinite(rank_correlation(Z[:, j], y)) and math.isfinite(binned_index(Z[:, j], y, 14))

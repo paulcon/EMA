@@ -3,9 +3,10 @@
 What any method promises (uncertainty.md, the interface): the same runs, estimators, and stream give the same
 intervals, bit for bit, and another stream other intervals (V1); an estimator marked "distinct runs" receives each
 index set's distinct runs, once each, in the design's order (V3); undefined values are dropped and counted (V4);
-each estimate gets an interval or "none" with its reason, and the method has a name and settings. The fake is a
-toy that keeps every promise, registered by the fixture with ``register`` and removed with ``unregister``
-(0065 item 1); each of the four broken toys differs from it in one way and fails one check (the meta-test).
+each estimate gets an interval or "none" with its reason, and the method has a name and settings that
+``canonical_json`` writes (P5). The fake (``tests.support.fakes.FakeIntervalMethod``) keeps every promise,
+registered by the fixture with ``register`` and removed with ``unregister`` (0065 item 1); each of the four broken
+toys differs from it in one way and fails one check (the meta-test).
 """
 
 from __future__ import annotations
@@ -15,15 +16,16 @@ import math
 import sys
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from types import MappingProxyType
 from typing import Any
 
 import numpy as np
 import pytest
 
 from ema.numerics import intervals
-from ema.numerics.intervals import Estimator, Interval
+from ema.numerics.intervals import Estimator
+from ema.types.identity import canonical_json
 from ema.types.streams import spawned
+from tests.support.fakes import FakeIntervalMethod, registered_interval_method
 
 #: The usable runs: indices in the design's order, not contiguous (runs 1, 4, 7, ... failed).
 USABLE = np.array([i for i in range(45) if i % 3 != 1])
@@ -112,6 +114,7 @@ def check_interval_or_none_with_reason(method: Any) -> None:
     """C30: each estimate gets an interval or "none" with its reason; the method has a name and settings."""
     assert isinstance(method.name, str) and method.name
     assert isinstance(method.settings, Mapping) and method.settings
+    canonical_json(dict(method.settings))  # JSON values, for the result's provenance (P5; record 0068 item 15)
     never = Estimator("never", ("v",), lambda idx: np.array([math.nan]), False)
     ests = [mean_estimator(), two_labels(), never]
     result = run(method, ests)
@@ -129,54 +132,17 @@ def check_interval_or_none_with_reason(method: Any) -> None:
 
 
 # --------------------------------------------------------------------------------------------------------------
-# The toy (registered as the fake), and the broken toys
+# The broken toys: the fake (tests/support/fakes.py), each with one promise broken
 
 
-class Toy:
-    """Keeps every promise: 400 resamples with replacement, the interval the range of the defined values, "none"
-    under 10 defined."""
-
-    name = "fake_range"
-    settings: Mapping[str, Any] = MappingProxyType({"resamples": 400, "min_defined": 10})
-
-    def draws(self, stream: np.random.Generator, n: int) -> np.ndarray:
-        return stream.integers(0, n, (400, n))
-
-    def distinct(self, sample: np.ndarray) -> np.ndarray:
-        return np.unique(sample)
-
-    def summarize(self, values: np.ndarray) -> Any:
-        defined = values[np.isfinite(values)]
-        undefined = len(values) - len(defined)
-        if len(defined) < 10:
-            return Interval(None, f"{len(defined)} of 400 resamples defined, fewer than 10", undefined)
-        return Interval((float(defined.min()), float(defined.max())), None, undefined)
-
-    def intervals(
-        self,
-        usable: np.ndarray,
-        levels: np.ndarray | None,
-        estimators: Sequence[Estimator],
-        stream: np.random.Generator,
-        on_step: Callable[[int, int], None] | None = None,
-    ) -> dict[str, tuple[Any, ...]]:
-        draws = self.draws(stream, len(usable))
-        values = {e.name: np.empty((len(draws), len(e.labels))) for e in estimators}
-        for b, positions in enumerate(draws):
-            for e in estimators:
-                idx = usable[self.distinct(positions)] if e.distinct else usable[positions]
-                values[e.name][b] = e.fn(idx)
-        return {e.name: tuple(self.summarize(values[e.name][:, j]) for j in range(len(e.labels))) for e in estimators}
-
-
-class BrokenFixedSeed(Toy):
+class BrokenFixedSeed(FakeIntervalMethod):
     """Ignores the stream it is given, and draws from a fixed seed."""
 
     def draws(self, stream: np.random.Generator, n: int) -> np.ndarray:
         return spawned(0).integers(0, n, (400, n))
 
 
-class BrokenDuplicates(Toy):
+class BrokenDuplicates(FakeIntervalMethod):
     """Passes duplicates to a "distinct runs" estimator."""
 
     def distinct(self, sample: np.ndarray) -> np.ndarray:
@@ -190,14 +156,14 @@ class LooseInterval:
     undefined: int
 
 
-class BrokenKeepsNaN(Toy):
+class BrokenKeepsNaN(FakeIntervalMethod):
     """Keeps NaN values: its range is NaN wherever any resample was undefined, and it counts none."""
 
     def summarize(self, values: np.ndarray) -> Any:
         return LooseInterval((float(np.min(values)), float(np.max(values))), None, 0)
 
 
-class BrokenNoReason(Toy):
+class BrokenNoReason(FakeIntervalMethod):
     """Gives "none" with no reason."""
 
     def summarize(self, values: np.ndarray) -> Any:
@@ -220,11 +186,8 @@ CHECKS = {
 @pytest.fixture(params=["bootstrap", "fake_range"])
 def method(request: pytest.FixtureRequest) -> Iterator[Any]:
     if request.param == "fake_range":
-        intervals.register(Toy())
-        try:
-            yield intervals.get("fake_range")
-        finally:
-            intervals.unregister("fake_range")
+        with registered_interval_method() as fake:
+            yield fake
     else:
         yield intervals.get(request.param)
 
@@ -240,7 +203,7 @@ def test_every_check_fails_on_its_broken_toy(check: str) -> None:
 
 def test_the_toy_keeps_every_promise() -> None:
     for check in CHECKS.values():
-        check(Toy())
+        check(FakeIntervalMethod())
 
 
 def test_the_fake_is_unregistered_afterwards() -> None:

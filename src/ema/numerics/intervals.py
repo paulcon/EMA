@@ -9,7 +9,6 @@ the diagnostic's spawned stream; it doesn't read the store, make runs, or know w
 import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from types import MappingProxyType
 from typing import Any, Protocol
 
 import numpy as np
@@ -85,12 +84,17 @@ class IntervalMethod(Protocol):
     ----------
     name : str
         Named under each table and in the result.
-    settings : Mapping
-        Its settings, named under each table and in the result.
     """
 
     name: str
-    settings: Mapping[str, Any]
+
+    @property
+    def settings(self) -> Mapping[str, Any]:
+        """Return its settings, named under each table and in the result.
+
+        JSON values, so that ``canonical_json(dict(method.settings))`` writes them (P5; record 0068 item 15).
+        """
+        ...
 
     def intervals(
         self,
@@ -167,10 +171,25 @@ class Bootstrap:
     """
 
     name: str = "bootstrap"
-    #: The constants named under each table: resamples, percentiles, and the fewest defined.
-    settings: Mapping[str, Any] = MappingProxyType(
-        {"resamples": BOOTSTRAP_RESAMPLES, "percentiles": BOOTSTRAP_PERCENTILES, "min_defined": BOOTSTRAP_MIN_DEFINED}
-    )
+
+    @property
+    def settings(self) -> dict[str, Any]:
+        """Return the constants named under each table: resamples, percentiles, and the fewest defined.
+
+        A fresh plain dict of JSON values on each call (the percentiles a list), so a caller can't change the
+        method's, ``ema.types.identity.canonical_json`` writes it as it is, and a stored copy reads back equal
+        (record 0068 item 15).
+
+        Examples
+        --------
+        >>> Bootstrap().settings
+        {'resamples': 1000, 'percentiles': [0.5, 99.5], 'min_defined': 201}
+        """
+        return {
+            "resamples": BOOTSTRAP_RESAMPLES,
+            "percentiles": list(BOOTSTRAP_PERCENTILES),
+            "min_defined": BOOTSTRAP_MIN_DEFINED,
+        }
 
     def intervals(
         self,

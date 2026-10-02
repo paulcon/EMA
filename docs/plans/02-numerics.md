@@ -79,28 +79,34 @@ The checks pass; the report goes to the coordinator (0066), who has the step rev
 
 Each is in record 0068, numbered as there, with its reason.
 
-1. No vector-vector BLAS: `dot`/`norm` through `np.sum` (`ema/numerics/_vector.py`); TID251 on
-   `numpy.linalg.norm`, `numpy.dot`, `numpy.inner`, `numpy.vdot`, `numpy.vecdot`; an 8-offset byte-identity test
-   (the BLAS note's recommendation).
+1. No vector-vector BLAS: `dot`/`norm` through `np.sum`, matrix-vector products through `matvec` (a one-row
+   matrix through `dot`) (`ema/numerics/_vector.py`); TID251 on `numpy.linalg.norm`, `numpy.dot`, `numpy.inner`,
+   `numpy.vdot`, `numpy.vecdot`, `numpy.linalg.vecdot`, `numpy.tensordot`, `numpy.linalg.tensordot`,
+   `numpy.linalg.multi_dot`, `numpy.einsum`, `numpy.matmul`, `numpy.linalg.matmul`; an AST test of `.dot(` and
+   `@` (only in `matvec`); an 8-offset byte-identity test with the heap scrambled, and negative controls.
 2. A constant vector gets exact zeros where rounding would decide a 0/0: a constant line's Gram coefficients are
    (y₀, 0, …, 0) (else k* = K on a floor of 0); the fits and the binned index center a constant y to zeros.
 3. `tail(c)` is indexed by degree, k = 0 … n − 1.
 4. The window and floor are the caller's: `degrees_above_floor(tail(c)[: K + 1], tolerance(y, LINE_RATE_FLOOR))`.
 5. `decay_rate` in closed form with `np.sum`; returns the rate and the line's intercept at k = 0.
 6. The Lanczos basis is cached per n, read-only.
-7. `least_squares`' rank from R's singular values with 0051's tolerance; `rank(A)` from A's.
+7. `least_squares`' rank from R's singular values with 0051's tolerance (about 20% of a fit's time); `rank(A)`
+   from A's; they can differ only within rounding of the tolerance.
 8. A fit of rank below P has NaN coefficients, residuals, and leverages.
-9. `relative_residual(y, fit)`, `r2(y, fit)`, `press(A, y, fit)`: NaN when undefined; `press` is the LOO error.
-10. `sobol_indices` NaN when V = 0; a constant y is the caller's to treat as undefined; `degree_energy` for
-    k = 1 … p.
+9. `relative_residual(y, fit)`, `r2(y, fit)`, `press(A, y, fit)`: NaN when undefined (for `press`, also a run of
+   leverage 1); `press` is the LOO error.
+10. `sobol_indices(coef, terms, *, y)` NaN when y is constant (`tolerance.is_constant`, 0035) or V = 0;
+    `degree_energy` for k = 1 … p.
 11. `binned_index` returns the adjusted S; `rank_correlation` by `rankdata` and Pearson on the ranks.
 12. `tolerance` refuses no values, non-finite values, and a negative or non-finite `rel`.
 13. The bootstrap: every non-finite value undefined; estimators once per resample, in order; `on_step(b, 1000)`
     after each; the spec's draws taken a row at a time (the same numbers, tested; 160 KB instead of 160 MB).
 14. The "none" reason "k of 1000 resamples defined, fewer than 201"; `Interval` checks its fields.
-15. `Bootstrap.settings` read-only; the levels unused.
+15. `Bootstrap.settings` a fresh plain dict of JSON values per call (`canonical_json` writes it); the levels
+    unused.
 16. Registry errors as step 01's (0067 item 19).
-17. C29 over `total_degree` and a fake tensor basis; C30 over the bootstrap and a toy registered as `fake_range`.
+17. C29 over `total_degree` and a fake tensor basis; C30 over the bootstrap and a fake registered as `fake_range`
+    (`tests/support/fakes.py`, for V7 in steps 10, 12, 13).
 18. The scatter mock report's intervals reproduced through the numerics (an end-to-end known answer for V1–V3).
 
 ## Notes
@@ -112,13 +118,21 @@ Each is in record 0068, numbered as there, with its reason.
   `diagnostics/_uncertainty.py` read only (v2's bootstrap differs: a spawned stream, percentiles 0.5/99.5, distinct
   runs, "none").
 - **The BLAS rule probed** (2026-10-02): with `np.linalg.norm` back in the Lanczos process, the 8-offset test fails
-  at n = 17; with `np.dot` in `_vector.dot`, the helpers' and Lanczos tests fail. The fits' and bootstrap's tests
-  pass either way (their reductions are on numpy's own 16-byte-aligned temporaries, where `ddot` repeats; and
-  macOS aligns blocks over 1,008 bytes to 512): they guard their inputs' placement only.
+  at n = 17; with `np.dot` in `_vector.dot`, the helpers' and Lanczos tests fail. The first version's fits' and
+  bootstrap's tests passed either way; the reason first given (16-byte-aligned temporaries, where `ddot` repeats)
+  was wrong, since `ddot` varies among those too: numpy's small-block cache kept the temporaries in place, and the
+  fixture happened not to show it. Review round 1 fixed both (record 0068, Review round 1).
+- **Review round 1** (2026-10-02; record 0068, Review round 1): the banned list grown, `matvec`, and the AST test
+  of `.dot(` and `@`; `scramble_heap` and three negative controls (Lanczos, fits, bootstrap) that put BLAS back
+  and fail; `Bootstrap.settings` a fresh JSON dict, checked by C30 through `canonical_json`; `is_constant` and
+  `sobol_indices(..., y=)`; `least_squares`' rank against `matrix_rank`, with p distinct values along one model
+  parameter; R4b's wiggle in the fits, scatter, Sobol, and lines tests; CL2 against exact arithmetic at every
+  degree; the C30 fake in `tests/support/fakes.py`.
 - **Found while testing:** Lanczos's rounding on a constant line (c_k about 10⁻¹⁷ above a floor of 0) and a mean
   that rounds on a constant y (20 copies of 0.1) would each turn a 0/0 into a number; item 2 fixes both, with tests.
-- **Tests:** 148 new in `tests/unit/numerics/`, `tests/contracts/basis.py`, `tests/contracts/interval.py` (and 16
-  doctests in `ema.numerics`); the fast tier's whole run, the times, and the lines are in the report.
+- **Tests:** 164 new (148, and 16 in review round 1) in `tests/unit/numerics/`, `tests/contracts/basis.py`,
+  `tests/contracts/interval.py` (and 19 doctests in `ema.numerics`); the fast tier's whole run, the times, and the
+  lines are in the report.
 - **Deferred** (record 0068): C29's identity clause (step 13); V4's and V7's diagnostic fixtures (steps 10, 12,
-  13).
-- **Source lines:** `ema.numerics` 341 code lines (940 physical) against §11's 553.
+  13). Step 13 passes each resample's y to `sobol_indices` (record 0068 item 10).
+- **Source lines:** `ema.numerics` 357 code lines (1,009 physical) against §11's 553 (341 before review round 1).

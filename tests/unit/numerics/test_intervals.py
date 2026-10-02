@@ -1,7 +1,7 @@
 """The bootstrap (uncertainty.md, The bootstrap and Rules; V1-V6) and the interval-method registry."""
 
+import json
 import math
-from types import MappingProxyType
 
 import numpy as np
 import pytest
@@ -17,6 +17,7 @@ from ema.numerics.intervals import (
 )
 from ema.numerics.stats import binned_index, rank_correlation
 from ema.types.errors import RequestError
+from ema.types.identity import canonical_json
 from ema.types.streams import spawned
 from tests.support.numerics import r2_unit
 
@@ -38,8 +39,19 @@ def test_constants() -> None:
     assert (BOOTSTRAP_RESAMPLES, BOOTSTRAP_PERCENTILES, BOOTSTRAP_MIN_DEFINED) == (1000, (0.5, 99.5), 201)
     b = Bootstrap()
     assert b.name == "bootstrap"
-    assert dict(b.settings) == {"resamples": 1000, "percentiles": (0.5, 99.5), "min_defined": 201}
-    assert isinstance(b.settings, MappingProxyType)
+    assert b.settings == {"resamples": 1000, "percentiles": [0.5, 99.5], "min_defined": 201}
+
+
+def test_settings_are_json_and_fresh() -> None:
+    """P5; record 0068 item 15: the settings are written by canonical_json as they are, read back equal, and a
+    caller's change to them doesn't reach the method."""
+    b = Bootstrap()
+    text = canonical_json(b.settings)
+    assert text == '{"min_defined":201,"percentiles":[0.5,99.5],"resamples":1000}'
+    assert json.loads(text) == b.settings
+    b.settings["resamples"] = 5
+    b.settings["percentiles"].append(1.0)
+    assert b.settings == json.loads(text)
 
 
 @pytest.mark.parametrize("n", [7, 10, 201])

@@ -13,14 +13,14 @@ from dataclasses import dataclass
 import numpy as np
 import scipy.linalg
 
-from ema.numerics._vector import centered, dot, norm
+from ema.numerics._vector import centered, dot, matvec, norm
 
 
 @dataclass(frozen=True, eq=False)
 class Fit:
     """A least-squares fit of y on the columns of A ``(n, P)``.
 
-    When its rank is below P, the fit is undefined, and its arrays are NaN (record 0068 item 5).
+    When its rank is below P, the fit is undefined, and its arrays are NaN (record 0068 item 8).
 
     Attributes
     ----------
@@ -71,7 +71,7 @@ def least_squares(A: np.ndarray, y: np.ndarray) -> Fit:
 
     The rank is computed from R's singular values, which are A's in exact arithmetic, by the matrix_rank rule with
     A's shape; below P (fewer than P runs, or runs that don't determine every term), the fit is undefined, with
-    NaN arrays and its rank (record 0068 item 5).
+    NaN arrays and its rank (record 0068 item 8).
 
     Parameters
     ----------
@@ -100,8 +100,8 @@ def least_squares(A: np.ndarray, y: np.ndarray) -> Fit:
     r = _rank_of(np.linalg.svd(R, compute_uv=False), (n, P))
     if r < P:
         return Fit(np.full(P, math.nan), np.full(n, math.nan), r, np.full(n, math.nan))
-    coefficients = scipy.linalg.solve_triangular(R, Q.T @ y)
-    residuals = y - A @ coefficients
+    coefficients = scipy.linalg.solve_triangular(R, matvec(Q.T, y))  # one term: a one-row product (0068 item 1)
+    residuals = y - matvec(A, coefficients)
     leverages = np.sum(Q * Q, axis=1)
     return Fit(coefficients, residuals, r, leverages)
 
@@ -144,7 +144,7 @@ def press(A: np.ndarray, y: np.ndarray, fit: Fit) -> float:
     """Return the LOO error by PRESS: sqrt(sum_k (r_k / (1 - h_kk))²) / ||y - ybar|| (Allen 1974; PM3).
 
     No refits: each run's residual when the fit leaves it out is r_k / (1 - h_kk), with h_kk its leverage. NaN
-    with fewer than P + 1 runs, a constant y, an undefined fit, or a run of leverage 1 (record 0068 item 6).
+    with fewer than P + 1 runs, a constant y, an undefined fit, or a run of leverage 1 (record 0068 item 9).
     """
     n, P = np.shape(A)
     y = np.asarray(y, dtype=np.float64)
