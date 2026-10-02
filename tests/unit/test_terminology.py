@@ -69,6 +69,7 @@ def public_identifiers() -> set[str]:
                 continue
             found.add(name)
             if inspect.isclass(obj):
+                found.update(inspect.get_annotations(obj))  # a Protocol's attributes are annotations only
                 if dataclasses.is_dataclass(obj):
                     found.update(f.name for f in dataclasses.fields(obj))
                 for member, value in vars(obj).items():
@@ -108,6 +109,9 @@ def generated_text() -> list[tuple[str, str]]:
 def test_public_identifiers():
     found = public_identifiers()
     assert {"ModelParameterSpace", "DesignIdentity", "unregister", "anchor"} <= found, "the scan found too little"
+    from ema.designs.samplers import Sampler
+
+    assert set(inspect.get_annotations(Sampler)) <= found, "a Protocol's attributes weren't scanned"
     bad = sorted(f for f in found if bad_identifier(f))
     assert not bad, f"identifiers using a retired word: {bad}"
 

@@ -114,7 +114,10 @@ class Line:
 class Design:
     """A design's points, as a generator builds them, or a block of its rows (G6).
 
-    Its arrays are read-only. Compare two designs with ``np.array_equal``, field by field (C14, C20).
+    Its arrays are read-only views of the arrays it is given, not copies: a design's 10,000,000 rows are not held
+    twice. Whoever builds one (a generator, the replay) gives it arrays it keeps no other reference to; a writable
+    reference kept elsewhere could still change them. Compare two designs with ``np.array_equal``, field by field
+    (C14, C20).
 
     Attributes
     ----------

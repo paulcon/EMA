@@ -265,4 +265,12 @@ Not in a spec, and small; listed so the review can object.
   `given_line`.
 - **Deferred** (0066, 0067): the 3.13 lowest-versions run in a scratch copy (task 7); the workflow's third job is
   written. About 15 minutes later.
+- **Review round 1** (2026-10-02; 0067 items 31–38, and two deferrals): convergent's sizes are exact and cheap
+  for any level (M1: n_min + L over the cap refused at once; a guarded float estimate per level, exact bounds
+  where it is unsure; 0067 item 24 corrected); the seed normalized before drawing (m1); alpha text must be a
+  decimal (m2), and identity canonicalization handed to step 09; the meta-tests expect each broken toy's own
+  failure (m4); C21 checks each end's bounding coordinates exactly (m3); C28 checks what EMA hashes (m5);
+  lines' `size` makes `build`'s checks, and 0051's check makes a few points a line (m6, m8); the nits. A block of
+  a lines design still makes every line's segment: deferred (0067). Tests: 472 in the fast tier (4.1 s
+  serially). `ema.designs` 556 code lines, from 496.
 

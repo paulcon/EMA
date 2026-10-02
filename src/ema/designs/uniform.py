@@ -30,7 +30,8 @@ class Uniform:
         n = self.size(identity, spec)
         start, stop = rows(n, start, stop)
         space = space_of(self.name, identity, spec)
-        unit = sampler_of(self.name, identity).unit_rows(identity.seed, len(space.varied(spec)), start, stop)
+        seed = check_identity(self.name, self.version, identity, uses_sampler=True)
+        unit = sampler_of(self.name, identity).unit_rows(seed, len(space.varied(spec)), start, stop)
         return Design(
             identity=identity,
             points=space.from_cube(spec, unit),

@@ -29,9 +29,11 @@ We will, provisionally:
    `test_*` functions and `Test*` classes. Each contract module parametrizes its checks with a fixture named for
    the implementation (`generator`, `sampler`); later contracts (model adapter, store, diagnostic, interval
    method, basis) add a module and nothing else.
-5. **The meta-test counts any exception as a check failing on its broken toy:** an `AssertionError`, pytest's
-   "did not raise", or an error the check lets through (C27's broken toy builds from the raw space and raises
-   its own error before validating). Each broken toy's failure was inspected once and is for the intended reason.
+5. **The meta-test counts only an `AssertionError` with the broken toy's expected message** (changed in review
+   round 1, item 34; first, any exception counted): each broken toy is listed with the failure it must give,
+   and a check's refusal helper turns any error other than `RequestError` into
+   `AssertionError("built before validating")`, so C27's broken toy, which raises its own error before
+   validating, fails for the intended reason and no other error passes the meta-test.
 6. **pytest's `xfail_strict = true`;** the GitHub workflow uses `actions/checkout@v4`, `astral-sh/setup-uv@v6`,
    and `actions/upload-artifact@v4`; its lowest-versions job runs `uv sync` without `--locked`, since the lowest
    resolution rewrites the lockfile; `uv_build` is bounded `>=0.12.21,<0.13`.
@@ -84,10 +86,10 @@ We will, provisionally:
     `anchor` (nominal), a given line's `anchor` (the center); every other parameter is required.
 23. **The point design** compares its identity's space with `at_point(spec, x)` by their parsed canonical forms,
     so 50 and 50.0 agree.
-24. **Convergent:** alpha is read from its decimal string or a float (both through `decimal_fraction`); a size
-    whose estimate, from the logarithms of the exact integers, is over 2^62 is refused with `DesignTooLarge` at
-    once; the exact sizes stop at the first one over the cap, with n_L computed exactly for the message, so a
-    huge level costs nothing. Sizes not strictly increasing are refused naming alpha and n_min.
+24. **Convergent:** alpha is read from its decimal string or a float (both through `decimal_fraction`); the
+    sizes stop at the first one over the cap. Sizes not strictly increasing are refused naming alpha and n_min.
+    (Corrected in review round 1, item 31: the first version's claim that "a huge level costs nothing" was
+    false; near alpha = 1 its exact fractions grew with each level, and n_L was computed as a full power.)
 25. **Lines:** a line that meets the space at one point only (an anchor in a corner, pointing out) is refused;
     every coordinate whose clipping bound is the segment's end is set exactly to its face (a corner when
     several are); a given line's keys are `anchor` (optional) and `direction` (required), any other refused,
@@ -95,8 +97,8 @@ We will, provisionally:
 26. **A random line's recorded anchor** is `from_cube(u)`, the `random` sampler's conversion, and its segment is
     built from z = 2u − 1 (as step 11's `random_line`); the norm is computed elementwise (plan).
 27. **Blocks of a lines design** build only the lines that overlap the block; each line's ends come from its
-    segment, so every line is recorded whole. Coordinate lines compute each line's own column to apply 0051's
-    refusal.
+    segment, so every line is recorded whole. Coordinate lines apply 0051's refusal from the few points near
+    the anchor (review round 1, item 37).
 
 **Tests**
 
@@ -109,12 +111,69 @@ We will, provisionally:
     split into words on underscores and camel case.
 30. **The golden points** are recorded as literal doubles, the log line's included to its last bits.
 
+**Review round 1** (2026-10-02; the independent review's M1, m1–m6, m8, and nits)
+
+31. **Convergent's sizes, exact and cheap** (M1; G3, G5, G7, C24). A request whose n_min + L is over the cap is
+    refused with `DesignTooLarge` before any size is computed, naming n_min + L: strictly increasing sizes give
+    n_L >= n_min + L. Each n_l is then the exact rule's, computed in one of two ways. A float estimate,
+    n_min·exp(l·ln f) with ln f from `log1p` near 1 (f = alpha^(−1/r)), is used when it is at most 2^52 and the
+    interval of relative half-width 10^−12 around it holds no integer: its error is below about 200 ulps
+    (4.4·10^−14), so its ceiling is the exact one. Otherwise n_l is exact: from the integers n_min·num^l and
+    den^l for a small power, else from fixed-point bounds on f^l by repeated squaring, rounded down and up,
+    refined (from 128 bits, doubling) until both round up to the same integer; that ends, since for l >= 64,
+    den^l > n_min and n_min·f^l isn't an integer. A long run of levels costs a float each; the exact powers are
+    O(log l) operations. Over the cap, n_L is computed the same way, unless its logarithm puts it over 2^62:
+    then it is refused naming the first size over the cap and its level (n2). The refusal of sizes not strictly
+    increasing shows the last five. The sizes equal the plain rational rule's over 17 alphas, 9 values of
+    n_min, and up to 3,000 levels (`test_g7_the_sizes_equal_the_exact_rule_for_many_alphas_and_levels`), and a
+    timed test answers the review's cases at once. `designs.md`'s rule ("computed in exact rational arithmetic
+    … with no tolerance") is kept in its results; the float is only a path to them that is proved to agree.
+32. **`check_identity` returns the seed as an `int`** (an integral float, 3.0, as 3), and every seeded generator
+    draws from it (m1): random lines crashed on 3.0 (`spawned` refuses a float).
+33. **Convergent refuses alpha text that isn't a decimal number** (digits, an optional point, an optional
+    exponent: "1/3", " 0.5 ", "0x0.8" refused), and reads a numpy float as its double (m2, 0047).
+    `decimal_fraction` itself is unchanged (`identity.py` is left for the merge with step T; Deferrals).
+34. **The meta-test** (item 5's new form; m4): every broken toy has its expected failure, the design contract's
+    as messages (C27's: "built before validating"), the sampler contract's likewise.
+35. **C21's check of a line's ends** (m3; G10): for each end, every coordinate whose clipping bound is that
+    end's t, found from the recorded anchor and direction, is exactly its face (lo or hi), and the ends are the
+    first and last rows. Run over the contract's examples, random lines (m = 50, five seeds, two spaces), and
+    the review's given line in [−1, 1]²; removing the near-end rule, the far-end rule, or the t = 1 override
+    now fails a test.
+36. **C28's hash check** (m5): the design's identity, built from the registry as the workspace will, holds the
+    sampler's name and version, and the uniform generator refuses an identity of another sampler version,
+    naming it. The meta-test registers each broken toy for the check.
+37. **Lines' `size` makes `build`'s checks** (m8): given lines make each line's segment (O(d) a line, no
+    points), coordinate lines apply 0051. **Coordinate lines' 0051 check** makes only the points within two
+    steps of the anchor's place, round((z + 1)/2·(n − 1)) (m6): a line's points are nondecreasing from lo to
+    hi, so a point equal to the anchor is there. Tested against every point of every line as an anchor, n up
+    to 41, and the doubles beside each.
+38. **Nits:** a line meeting the space at one point is named in the refusal (n1); `read_params` says
+    "diagnostic parameter" (n3, the glossary); a linear range whose width hi − lo overflows is refused (n4);
+    `Design` documents that its arrays are read-only views of those it is given, not copies (n6: a design's
+    10,000,000 rows aren't held twice); a block's bounds are integers, numpy's included, never bools (n7); the
+    terminology test scans a Protocol's attributes (n5); the map back's clamp at x <= 0 on a log range is
+    tested (n10).
+
 ## Deferrals
 
 - **The 3.13 lowest-versions measurement** (task 7's scratch copy): deferred, as 0066 allows. The workflow's
   third job (`UV_PYTHON=3.13`, `UV_RESOLUTION=lowest-direct`) is written. Effort later: about 15 minutes, in a
   scratch copy of the repository (`UV_PYTHON=3.13 UV_RESOLUTION=lowest-direct uv sync`, then both tiers).
 - **`STATUS.md`**: the coordinator's (0066).
+- **A block of a lines design still makes every line** (review round 1, m6): a block's `Design` records the
+  whole design's lines (the plan's Choices), so each block makes all m lines' segments and records (for random
+  lines, m spawned streams: O(m·d)); only the lines that overlap the block have their points made. Effort later:
+  about 1–2 hours, to make the lines once per design (the runner keeps the `DesignStructure` and asks the
+  generator for points only); the seam is `_lines`, which takes the segments and records apart from the block.
+- **Hand-off to roadmap step 09 (parsing the diagnostic parameters):** the same design must never have two
+  identity hashes (`data_model.md` §3.4). The generators read n = 3.0 as 3, a float alpha as its decimal, and
+  integers in `x`, an anchor, a direction, or the space as doubles, so `DesignIdentity`s that differ only so
+  build the same design and hash differently. Step 09 canonicalizes the identity before hashing (integers as
+  integers, alpha as its decimal string, model parameter values and directions as doubles), with a test there
+  that such pairs get one hash. Also for step 09 (or step T, which owns `identity.py`): `decimal_fraction`
+  accepts "1/3" and padded text, and refuses a numpy float; convergent now refuses the first two and accepts
+  the third itself (item 33), and whether `decimal_fraction` should is that step's choice.
 
 ## Spec edits on acceptance
 
@@ -126,12 +185,16 @@ None is required. Two clarifications would help later readers: `architecture.md`
 - **Ruff's narrower rule set of earlier versions** (E4, E7, E9, F): selectable, but 0059 says "Ruff's defaults".
 - **Collecting `check_*` everywhere** (`python_functions`): collects a later `ema.models.files.check_files`
   imported by a test (the consistency review's BUILD-7).
-- **A meta-test that counts only `AssertionError`:** C27's negative control, "builds before validating",
-  fails by raising its own error, which is the failure the check exists to catch.
+- **A meta-test that counts any exception** (round 0's item 5): it let a check pass the meta-test by crashing
+  for any reason; review round 1 replaced it (item 34).
+- **Copying a design's arrays** (n6): safe against a caller's later writes, but holds 10,000,000 rows twice.
+- **Bounding L by a constant** instead of item 31's estimate (M1): simpler, but refuses designs inside the cap.
 - **`RequestError` for `register` and `unregister`:** they aren't requests, and no user reaches them.
 
 ## Consequences
 
+- **Size after review round 1:** `ema.designs` 556 code lines (convergent 131, lines 226), from 496: item 31's
+  exact-and-cheap sizes are about 60 lines. The budget record is the coordinator's (m7).
 - **Size:** `ema.types` (this step's modules) 494 code lines, without docstrings, comments, blank lines, or the
   92 lines of re-exports in its `__init__.py`, near the plan's 505; `ema.designs` 496 against §11's 388 (lines
   230 against "about 150"). The projection for the whole of `v2.0` stays near the plan's 8,840, plus about 110

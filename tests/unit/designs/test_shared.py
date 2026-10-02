@@ -170,3 +170,35 @@ def test_a_log_range_over_twelve_decades(kind):
         line = design.lines[2]
         assert line.ends[0][2] == 1e-6 and line.ends[1][2] == 1e6
         assert design.points[line.rows[0] + 2, 2] == 1.0, "the shared anchor: the nominal value, exactly"
+
+
+@pytest.mark.parametrize("kind", ["uniform", "convergent", "random_lines"])
+def test_an_integral_float_seed_is_read_as_the_integer(kind):
+    """m1 (review round 1): seed 3.0 is accepted as 3 (0067 item 8), and gives seed 3's points."""
+    ident = with_identity(CASES[kind].example(CONTRACT, CONTRACT_SPACE), seed=3)
+    gen = generators.get(kind)
+    assert np.array_equal(gen.build(with_identity(ident, seed=3.0), CONTRACT).points, gen.build(ident, CONTRACT).points)
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_block_bounds_are_integers_numpy_ones_included_never_bools(kind):
+    """n7 (review round 1)."""
+    ident = CASES[kind].example(CONTRACT, CONTRACT_SPACE)
+    gen = generators.get(kind)
+    whole = gen.build(ident, CONTRACT)
+    block = gen.build(ident, CONTRACT, np.int64(1), np.int32(2))
+    assert np.array_equal(block.points, whole.points[1:2])
+    for start, stop in ((False, 1), (0, True), (0.0, 1), (0, np.float64(1.0))):
+        with pytest.raises(RequestError, match="rows"):
+            gen.build(ident, CONTRACT, start, stop)
+
+
+def test_read_params_says_diagnostic_parameter():
+    """n3 (review round 1): the glossary's term, not "parameter" alone."""
+    ident = CASES["uniform"].example(CONTRACT, CONTRACT_SPACE)
+    for params, message in (
+        ({"n": 3, "bogus": 1}, "unknown diagnostic parameter bogus"),
+        ({}, "diagnostic parameter n"),
+    ):
+        with pytest.raises(RequestError, match=message):
+            generators.get("uniform").build(with_identity(ident, params=params), CONTRACT)

@@ -301,7 +301,7 @@ class Toy:
             )
         unknown = set(identity.params) - {"n"}
         if unknown:
-            raise RequestError(f"toy: unknown parameter {min(unknown)}")
+            raise RequestError(f"toy: unknown diagnostic parameter {min(unknown)}")
         for key, value, low in (("n", identity.params.get("n"), 1), ("seed", identity.seed, 0)):
             if not isinstance(value, int) or isinstance(value, bool) or value < low:
                 raise RequestError(f"toy: {key} must be an integer >= {low}")
@@ -425,15 +425,16 @@ class BrokenBuildsFirst(Toy):
         return super().build(identity, spec, start, stop)
 
 
-BROKEN: dict[str, list[Toy]] = {
-    "check_deterministic": [BrokenGlobalDraws()],
-    "check_inside": [BrokenUnclamped()],
-    "check_size": [BrokenSizeOffByOne()],
-    "check_nesting": [BrokenReseedsWithN()],
-    "check_too_large": [BrokenAllocatesFirst()],
-    "check_blocks": [BrokenReseedsBlocks()],
-    "check_column_order": [BrokenSpaceOrder()],
-    "check_bad_space": [BrokenBuildsFirst()],
+#: Each check's broken toys, each with the failure it must give (a regular expression on the AssertionError).
+BROKEN: dict[str, list[tuple[Toy, str]]] = {
+    "check_deterministic": [(BrokenGlobalDraws(), "the same request gave other points")],
+    "check_inside": [(BrokenUnclamped(), r"c outside \[0\.01, 100\.0\]")],
+    "check_size": [(BrokenSizeOffByOne(), r"\(2, 1\)")],
+    "check_nesting": [(BrokenReseedsWithN(), "not the first rows")],
+    "check_too_large": [(BrokenAllocatesFirst(), "bytes allocated before the refusal")],
+    "check_blocks": [(BrokenReseedsBlocks(), r"rows \[\d+, \d+\) differ")],
+    "check_column_order": [(BrokenSpaceOrder(), "the space's order changed the points")],
+    "check_bad_space": [(BrokenBuildsFirst(), "built before validating")],
 }
 
 CASES["toy"] = Case(
@@ -463,12 +464,47 @@ def same(d1: Design, d2: Design) -> bool:
 
 
 def refused(fn: Callable[[], Any], *names: str) -> None:
-    """``fn`` raises RequestError whose message names each of ``names`` (as a word)."""
-    with pytest.raises(RequestError) as info:
+    """``fn`` raises RequestError whose message names each of ``names`` (as a word).
+
+    Any other error means the request reached the building before it was validated: an AssertionError.
+    """
+    try:
         fn()
-    message = str(info.value)
+    except RequestError as error:
+        message = str(error)
+    except Exception as error:
+        raise AssertionError(f"built before validating: {type(error).__name__}: {error}") from error
+    else:
+        raise AssertionError("not refused")
     for name in names:
         assert re.search(rf"(?<![\w]){re.escape(name)}(?![\w])", message), f"{name!r} not named in {message!r}"
+
+
+def assert_ends_on_faces(design: Design, spec: ModelSpec, space: ModelParameterSpace) -> None:
+    """Each end of each line is on the face that bounds its segment, exactly: every coordinate whose clipping
+    bound is that end's t is lo or hi itself (G10, 0047); and the ends are the line's first and last rows.
+
+    The bounds are found from the recorded anchor and direction, in unit coordinates by the map back.
+    """
+    names = [p.name for p in spec.parameters]
+    varied = space.varied(spec)
+    for line in design.lines or ():
+        first, last = line.rows
+        assert tuple(design.points[first]) == line.ends[0] and tuple(design.points[last - 1]) == line.ends[1]
+        a = space.to_unit(spec, np.array([line.anchor]))[0]
+        d = np.array(line.direction)
+        moving = np.flatnonzero(d != 0.0)
+        t_minus, t_plus = (-1.0 - a[moving]) / d[moving], (1.0 - a[moving]) / d[moving]
+        starts, stops = np.minimum(t_minus, t_plus), np.maximum(t_minus, t_plus)
+        for end, bounds, t, sign in (
+            (line.ends[0], starts, starts.max(), -1.0),
+            (line.ends[1], stops, stops.min(), 1.0),
+        ):
+            for i in moving[bounds == t].tolist():
+                r = space.ranges[varied[i]]
+                face = r.hi if sign * d[i] > 0 else r.lo
+                value = end[names.index(varied[i])]
+                assert value == face, f"a line's end has {varied[i]} = {value!r}, not its face {face!r} exactly"
 
 
 # --------------------------------------------------------------------------------------------------------------
@@ -508,7 +544,6 @@ def check_inside(generator: Any) -> None:
     """C21: every point inside the space's closed ranges and every limit; held values exact; a line's ends on a
     face exactly, log ranges included (G2, G10, 0047)."""
     case = CASES[generator.name]
-    names = [p.name for p in SPEC.parameters]
     for form in (SPACE, WIDE_SPACE, HELD_SPACE):
         ident = case.example(SPEC, form)
         design = generator.build(ident, SPEC)
@@ -522,12 +557,7 @@ def check_inside(generator: Any) -> None:
             else:
                 held = space.held.get(p.name, p.nominal)
                 assert np.all(X[:, j] == held), f"{p.name} not held exactly at {held}"
-        for line in design.lines or ():
-            for end in line.ends:
-                on_face = [end[names.index(k)] in (r.lo, r.hi) for k, r in space.ranges.items()]
-                assert any(on_face), f"a line's end {end} is on no face exactly"
-            first, last = line.rows
-            assert tuple(X[first]) == line.ends[0] and tuple(X[last - 1]) == line.ends[1]
+        assert_ends_on_faces(design, SPEC, space)
 
 
 def check_size(generator: Any) -> None:
@@ -638,7 +668,6 @@ def test_the_toy_is_not_registered() -> None:
 def test_every_check_fails_on_its_broken_toy(check: str) -> None:
     """The meta-test (contracts.md, Negative controls): every check has a broken toy, and fails on each."""
     assert BROKEN.get(check), f"{check} has no broken toy"
-    for broken in BROKEN[check]:
-        # A failed assertion, pytest.raises' "did not raise", or an error the check lets through all fail it.
-        with pytest.raises((AssertionError, pytest.fail.Exception, Exception)):  # type: ignore[arg-type]
+    for broken, failure in BROKEN[check]:
+        with pytest.raises(AssertionError, match=failure):
             CHECKS[check](broken)

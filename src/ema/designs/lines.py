@@ -36,11 +36,12 @@ class _Segment:
         anchor_z: np.ndarray,
         direction: np.ndarray,
         n: int,
+        what: str,
     ) -> None:
         self.space, self.spec, self.anchor_x, self.direction, self.n = space, spec, anchor_x, direction, n
         t0, t1 = space.clip_line(spec, anchor_z, direction)
         if not t0 < t1:
-            raise RequestError("the line meets the space at one point only")
+            raise RequestError(f"{what} meets the space at one point only")
         moving = direction != 0.0
         z0 = np.clip(anchor_z + t0 * direction, -1.0, 1.0)
         z1 = np.clip(anchor_z + t1 * direction, -1.0, 1.0)
@@ -168,7 +169,7 @@ class GivenLines:
             anchor_x = _anchor(space, spec, line.get("anchor", {}), center, what)
             direction = self._direction(space, spec, line["direction"], what)
             anchor_z = space.to_unit(spec, anchor_x[None, :])[0]
-            segments.append(_Segment(space, spec, anchor_x, anchor_z, direction, n))
+            segments.append(_Segment(space, spec, anchor_x, anchor_z, direction, n, f"{what}, the line,"))
             records.append((anchor_x, direction))
         return segments, records, n, len(spec.parameters)
 
@@ -188,18 +189,12 @@ class GivenLines:
         return vector
 
     def size(self, identity: DesignIdentity, spec: ModelSpec) -> int:
-        """Return (number of lines)·n (G3)."""
-        check_identity(self.name, self.version, identity, uses_sampler=False)
-        space_of(self.name, identity, spec)
-        params = read_params(self.name, identity.canonical()["params"], ("lines", "n"))
-        n = as_int(params["n"], "n", 2)
-        if not isinstance(params["lines"], list) or not params["lines"]:
-            raise RequestError('lines: at least one line, each {"anchor": {...}, "direction": {...}}')
-        return len(params["lines"]) * n
+        """Return (number of lines)·n (G3), after the checks ``build`` makes (each line's segment: O(d) each)."""
+        segments, _, n, _ = self._read(identity, spec)
+        return len(segments) * n
 
     def build(self, identity: DesignIdentity, spec: ModelSpec, start: int = 0, stop: int | None = None) -> Design:
         """Rows [start, stop): each line's n points in turn, lines in the order given."""
-        rows(self.size(identity, spec), start, stop)
         segments, records, n, d = self._read(identity, spec)
         return _lines(segments, records, n, identity, start, stop, d)
 
@@ -220,33 +215,26 @@ class CoordinateLines:
     name: str = "coordinate_lines"
     version: str = "1"
 
-    def _read(self, identity: DesignIdentity, spec: ModelSpec) -> tuple[ModelParameterSpace, np.ndarray, int]:
+    def _read(self, identity: DesignIdentity, spec: ModelSpec) -> tuple[list[_Segment], list[Any], int, int]:
         check_identity(self.name, self.version, identity, uses_sampler=False)
         space = space_of(self.name, identity, spec)
         params = read_params(self.name, identity.canonical()["params"], ("n",), {"anchor": {}})
         n = as_int(params["n"], "n", 2)
         base = np.array([space.held.get(p.name, p.nominal) for p in spec.parameters])
-        return space, _anchor(space, spec, params["anchor"], base, "coordinate_lines"), n
-
-    def size(self, identity: DesignIdentity, spec: ModelSpec) -> int:
-        """Return d·n (G3)."""
-        space, _, n = self._read(identity, spec)
-        return len(space.varied(spec)) * n
-
-    def build(self, identity: DesignIdentity, spec: ModelSpec, start: int = 0, stop: int | None = None) -> Design:
-        """Rows [start, stop): each varied model parameter's line in turn, in the model spec's order."""
-        space, anchor_x, n = self._read(identity, spec)
+        anchor_x = _anchor(space, spec, params["anchor"], base, "coordinate_lines")
         varied = space.varied(spec)
-        rows(len(varied) * n, start, stop)
         names = [p.name for p in spec.parameters]
         anchor_z = space.to_unit(spec, anchor_x[None, :])[0]
         segments, records = [], []
         for i, name in enumerate(varied):
             direction = np.zeros(len(varied))
             direction[i] = 1.0
-            segment = _Segment(space, spec, anchor_x, anchor_z, direction, n)
-            column = segment.points(0, n)[:, names.index(name)]
+            segment = _Segment(space, spec, anchor_x, anchor_z, direction, n, f"coordinate_lines: the line of {name}")
             value = anchor_x[names.index(name)]
+            # The line's points run from lo to hi, nondecreasing; one equal to the anchor's value is within a step
+            # or two of the anchor's place, (z + 1)/2·(n - 1), so only those are made (0051).
+            near = round((float(anchor_z[i]) + 1.0) / 2.0 * (n - 1))
+            column = segment.points(max(0, near - 2), min(n, near + 3))[:, names.index(name)]
             if n % 2 == 1 and abs(anchor_z[i]) <= SHARED_ANCHOR_TOL:
                 segment = _SharedAnchor(segment, names.index(name), value)
             elif np.any(column == value):
@@ -256,7 +244,17 @@ class CoordinateLines:
                 )
             segments.append(segment)
             records.append((anchor_x, direction))
-        return _lines(segments, records, n, identity, start, stop, len(names))
+        return segments, records, n, len(names)
+
+    def size(self, identity: DesignIdentity, spec: ModelSpec) -> int:
+        """Return d·n (G3), after the checks ``build`` makes (0051's included: a few points per line)."""
+        segments, _, n, _ = self._read(identity, spec)
+        return len(segments) * n
+
+    def build(self, identity: DesignIdentity, spec: ModelSpec, start: int = 0, stop: int | None = None) -> Design:
+        """Rows [start, stop): each varied model parameter's line in turn, in the model spec's order."""
+        segments, records, n, d = self._read(identity, spec)
+        return _lines(segments, records, n, identity, start, stop, d)
 
 
 class _SharedAnchor(_Segment):
@@ -286,30 +284,30 @@ class RandomLines:
     name: str = "random_lines"
     version: str = "1"
 
-    def _read(self, identity: DesignIdentity, spec: ModelSpec) -> tuple[ModelParameterSpace, int, int]:
-        check_identity(self.name, self.version, identity, uses_sampler=False)
+    def _read(self, identity: DesignIdentity, spec: ModelSpec) -> tuple[ModelParameterSpace, int, int, int]:
+        seed = check_identity(self.name, self.version, identity, uses_sampler=False)
         space = space_of(self.name, identity, spec)
         params = read_params(self.name, identity.params, ("m", "n"))
-        return space, as_int(params["m"], "m", 1), as_int(params["n"], "n", 2)
+        return space, as_int(params["m"], "m", 1), as_int(params["n"], "n", 2), seed
 
     def size(self, identity: DesignIdentity, spec: ModelSpec) -> int:
         """Return m·n (G3)."""
-        _, m, n = self._read(identity, spec)
+        _, m, n, _ = self._read(identity, spec)
         return m * n
 
     def build(self, identity: DesignIdentity, spec: ModelSpec, start: int = 0, stop: int | None = None) -> Design:
         """Rows [start, stop): each line's n points in turn, lines j = 0 ... m - 1."""
-        space, m, n = self._read(identity, spec)
+        space, m, n, seed = self._read(identity, spec)
         rows(m * n, start, stop)
         d = len(space.varied(spec))
         segments, records = [], []
         for j in range(m):
-            stream = spawned(identity.seed, j)
+            stream = spawned(seed, j)
             u = stream.random(d)
             v = stream.standard_normal(d)
             direction = v / np.sqrt(np.sum(v * v))
             anchor_x = space.from_cube(spec, u[None, :])[0]
-            segments.append(_Segment(space, spec, anchor_x, 2.0 * u - 1.0, direction, n))
+            segments.append(_Segment(space, spec, anchor_x, 2.0 * u - 1.0, direction, n, f"random_lines: line {j}"))
             records.append((anchor_x, direction))
         return _lines(segments, records, n, identity, start, stop, len(spec.parameters))
 

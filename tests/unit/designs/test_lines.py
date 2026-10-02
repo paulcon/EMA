@@ -199,7 +199,7 @@ class TestG14Refusals:
             COORD.build(ident(CONTRACT, "coordinate_lines", self.space, n=5, anchor={"nope": 1.0}), CONTRACT)
 
     def test_a_line_meeting_the_space_at_one_point(self):
-        with pytest.raises(RequestError, match="one point"):
+        with pytest.raises(RequestError, match=r"lines\[0\], the line, meets the space at one point only"):
             GIVEN.build(
                 ident(
                     CONTRACT,
@@ -230,3 +230,82 @@ def test_limits_hold_on_every_line():
     for gen, extra in ((COORD, {}), (RANDOM, {"m": 3})):
         design = gen.build(ident(spec, gen.name, {"a": [1e-6, 2], "b": [-1, 1]}, n=9, **extra), spec)
         assert np.all(design.points[:, 0] > 0)
+
+
+class TestG10EndsOnTheirFaces:
+    """m3 (review round 1): each end's bounding coordinates are exactly lo or hi, by the far-end face rule and the
+    t = 1 point set to the segment's far end (C21)."""
+
+    @pytest.mark.parametrize("form", [CONTRACT_SPACE, {**CONTRACT_SPACE, "c": {"range": [1e-6, 1e6], "scale": "log"}}])
+    @pytest.mark.parametrize("seed", [0, 1, 2, 3, 7])
+    def test_random_lines(self, form, seed):
+        from tests.contracts.design import assert_ends_on_faces
+
+        design = RANDOM.build(ident(CONTRACT, "random_lines", form, m=50, n=5, seed=seed), CONTRACT)
+        assert_ends_on_faces(design, CONTRACT, ModelParameterSpace.parse(form))
+
+    def test_random_lines_seed_0_line_8_far_end(self):
+        design = RANDOM.build(ident(CONTRACT, "random_lines", CONTRACT_SPACE, m=10, n=5, seed=0), CONTRACT)
+        assert design.lines[8].ends[1][2] == 0.01
+
+    def test_a_given_line_whose_far_end_by_steps_misses_its_face(self):
+        """The far end, computed as anchor + t1·direction, has a = -0.9999999999999998; the face rule sets it to
+        -1 exactly."""
+        from tests.contracts.design import assert_ends_on_faces
+
+        form = {"a": [-1, 1], "b": [-1, 1]}
+        a, b = 0.6120714150542472, 0.26063551088695647
+        line = {"anchor": {"a": a, "b": b}, "direction": {"a": -1.5547311319959862, "b": 0.16863040701051427}}
+        design = GIVEN.build(ident(CONTRACT, "lines", form, n=9, lines=[line]), CONTRACT)
+        assert_ends_on_faces(design, CONTRACT, ModelParameterSpace.parse(form))
+        assert design.points[0, 0] == 1.0 and design.points[-1, 0] == -1.0
+
+
+class TestSizeRefusesWhatBuildRefuses:
+    """m8 (review round 1): size() makes build()'s cheap checks, so it never sizes a design build() refuses."""
+
+    @pytest.mark.parametrize(
+        "lines",
+        [
+            [{"anchor": {"a": 3.0}, "direction": {"a": 1}}],
+            [{"anchor": {}, "direction": {"a": 0}}],
+            [{"anchor": {}}],
+            [{"anchor": {"a": 2.0, "b": 1.0}, "direction": {"a": 1, "b": -1}}],
+        ],
+    )
+    def test_given_lines(self, lines):
+        identity = ident(CONTRACT, "lines", {"a": [0, 2], "b": [-1, 1]}, n=5, lines=lines)
+        for call in (GIVEN.size, GIVEN.build):
+            with pytest.raises(RequestError):
+                call(identity, CONTRACT)
+
+    def test_coordinate_lines_anchor_on_its_line(self):
+        identity = ident(SIX, "coordinate_lines", SIX_SPACE, n=17, anchor={"a": 0.5})
+        for call in (COORD.size, COORD.build):
+            with pytest.raises(RequestError, match="model parameter a"):
+                call(identity, SIX)
+
+
+@pytest.mark.parametrize("n", [2, 3, 16, 17, 41])
+def test_0051_from_the_points_near_the_anchor_equals_from_the_whole_line(n):
+    """m6 (review round 1): coordinate lines check 0051 on the few points near the anchor's place; every point
+    of every line, as an anchor, is refused unless it is the shared middle, and the doubles beside it are not."""
+    whole = COORD.build(ident(SIX, "coordinate_lines", SIX_SPACE, n=n), SIX)
+    names = [p.name for p in SIX.parameters]
+    for k, line in enumerate(whole.lines):
+        name = names[k]
+        column = whole.points[line.rows[0] : line.rows[1], k]
+        for j, value in enumerate(column.tolist()):
+            middle = n % 2 == 1 and j == (n - 1) // 2
+            identity = ident(SIX, "coordinate_lines", SIX_SPACE, n=n, anchor={name: value})
+            if middle:
+                assert COORD.size(identity, SIX) == 6 * n
+            else:
+                with pytest.raises(RequestError, match=f"model parameter {name}"):
+                    COORD.size(identity, SIX)
+            for beside in (np.nextafter(value, -np.inf), np.nextafter(value, np.inf)):
+                r = ModelParameterSpace.parse(SIX_SPACE).ranges[name]
+                if r.lo <= beside <= r.hi and beside not in column:
+                    assert (
+                        COORD.size(ident(SIX, "coordinate_lines", SIX_SPACE, n=n, anchor={name: beside}), SIX) == 6 * n
+                    )

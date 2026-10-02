@@ -97,6 +97,7 @@ class TestValidate:
             ({"k": [-10, 10]}, "model parameter k"),
             ({"k": -1}, "gt 0"),
             ({"k": 0}, "model parameter k"),
+            ({"q": [-1.5e308, 1.5e308]}, "model parameter q"),
         ],
     )
     def test_refused_naming_it(self, form, named):
@@ -202,6 +203,13 @@ class TestMaps:
             [1.0],
             [-1.0],
         ]
+
+    def test_map_back_clips_at_or_below_zero_on_a_log_range(self):
+        """0067 item 12: x is clamped to [lo, hi] before its logarithm, so 0 and -1 map to -1, with no warning."""
+        spec = make_spec([("p", 1.0)])
+        space = ModelParameterSpace.parse({"p": {"range": [1e-2, 1e2], "scale": "log"}})
+        with np.errstate(all="raise"):
+            assert space.to_unit(spec, np.array([[0.0], [-1.0], [-0.0], [1e-300]])).tolist() == [[-1.0]] * 4
 
     def test_log_geometric_center_is_zero(self):
         spec = make_spec([("p", 1.0)])

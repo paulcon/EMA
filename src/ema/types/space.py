@@ -10,6 +10,7 @@ map back is z = (2x - (lo + hi)) / (hi - lo), the same in ln x on a log range, c
 hi mapping exactly to -1 and 1.
 """
 
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
@@ -204,8 +205,9 @@ class ModelParameterSpace:
         Raises
         ------
         RequestError
-            For a name that isn't one of the model's model parameters, lo >= hi, a log range with lo <= 0, or a
-            range end or held value outside the model parameter's limits (naming the limit).
+            For a name that isn't one of the model's model parameters, lo >= hi, a linear range whose width
+            hi - lo overflows, a log range with lo <= 0, or a range end or held value outside the model
+            parameter's limits (naming the limit).
         """
         for name in [*self.ranges, *self.held]:
             spec.parameter(name)
@@ -213,6 +215,8 @@ class ModelParameterSpace:
             what = f"model parameter {name}: the range [{r.lo!r}, {r.hi!r}]"
             if not r.lo < r.hi:
                 raise RequestError(f"{what} needs lo < hi")
+            if r.scale is Scale.LINEAR and not math.isfinite(r.hi - r.lo):
+                raise RequestError(f"{what} is linear, and its width hi - lo must be a finite number")
             if r.scale is Scale.LOG and r.lo <= 0.0:
                 raise RequestError(f"{what} is log, and needs lo > 0")
             for end in (r.lo, r.hi):

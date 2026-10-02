@@ -17,33 +17,36 @@ from typing import Any
 import numpy as np
 import pytest
 
-from ema.designs import samplers
-from ema.types.identity import canonical_json, sha256_hex
-from tests.support.designs import CONTRACT, CONTRACT_SPACE, identity
+from ema.designs import generators, samplers
+from ema.types.errors import RequestError
+from tests.support.designs import CONTRACT, CONTRACT_SPACE, identity, with_identity
 from tests.support.fakes import FAKE_NESTED, FAKE_NOT_NESTED, FakeSampler, registered
-
-
-def identity_hash(sampler: Any) -> str:
-    """The hash of a uniform design's identity that uses this sampler (0046): its name and version are in it."""
-    ident = identity(CONTRACT, "uniform", CONTRACT_SPACE, n=4, sampler=None, sampler_version=None)
-    fields = dict(ident.canonical())
-    fields["sampler"], fields["sampler_version"] = sampler.name, sampler.version
-    return sha256_hex(canonical_json(fields))
 
 
 def check_sampler(sampler: Any) -> None:
     """C28: rows in [0, 1)^d, the same for the same seed; a block made alone equals those rows of the whole; the
     declarations (name and version in the identity's hash, r, nested, balanced sizes); a nested sampler's n rows
-    are the first n of any larger request."""
+    are the first n of any larger request. The sampler is registered (the fixture, or the meta-test)."""
     assert isinstance(sampler.name, str) and sampler.name
     assert isinstance(sampler.version, str) and sampler.version, "no version to hash with the request"
     assert isinstance(sampler.rate, Fraction) and sampler.rate > 0
     assert isinstance(sampler.nested, bool)
     assert sampler.balanced_sizes in ("any", "powers_of_2")
 
-    renamed = FakeSampler(name=sampler.name + "_other", nested=sampler.nested, version=sampler.version)
-    reversioned = FakeSampler(name=sampler.name, nested=sampler.nested, version=sampler.version + ".1")
-    assert len({identity_hash(sampler), identity_hash(renamed), identity_hash(reversioned)}) == 3
+    # What EMA hashes: the design's identity, as the workspace builds it from the registry, holds the sampler's
+    # name and version (0046), and a generator refuses an identity of another version, so changing either
+    # changes the identity of every design built with it (0062).
+    ident = identity(CONTRACT, "uniform", CONTRACT_SPACE, n=4, sampler=sampler.name)
+    fields = ident.canonical()
+    assert (fields["sampler"], fields["sampler_version"]) == (sampler.name, sampler.version), "not in the hash"
+    uniform = generators.get("uniform")
+    assert len(uniform.build(ident, CONTRACT)) == 4
+    try:
+        uniform.build(with_identity(ident, sampler_version=sampler.version + ".other"), CONTRACT)
+    except RequestError as error:
+        assert sampler.version + ".other" in str(error), "the refusal doesn't name the version"
+    else:
+        raise AssertionError("an identity of another sampler version was built")
 
     for seed, d in ((0, 1), (3, 4), (20261001, 20)):
         rows = sampler.unit_rows(seed, d, 0, 64)
@@ -77,10 +80,11 @@ class BrokenNoVersion(FakeSampler):
     version: str = ""
 
 
-BROKEN: dict[str, list[Any]] = {
+#: Each check's broken toys, each with the failure it must give (a regular expression).
+BROKEN: dict[str, list[tuple[Any, str]]] = {
     "check_sampler": [
-        BrokenNotNested(name="broken_not_nested", nested=True),
-        BrokenNoVersion(name="broken_no_version", nested=True),
+        (BrokenNotNested(name="broken_not_nested", nested=True), "declares nested"),
+        (BrokenNoVersion(name="broken_no_version", nested=True), "no version to hash"),
     ],
 }
 
@@ -103,8 +107,8 @@ def sampler(request: pytest.FixtureRequest) -> Iterator[Any]:
 def test_every_check_fails_on_its_broken_toy(check: str) -> None:
     """The meta-test (contracts.md, Negative controls)."""
     assert BROKEN.get(check), f"{check} has no broken toy"
-    for broken in BROKEN[check]:
-        with pytest.raises(AssertionError):
+    for broken, failure in BROKEN[check]:
+        with registered(broken), pytest.raises(AssertionError, match=failure):
             CHECKS[check](broken)
 
 
