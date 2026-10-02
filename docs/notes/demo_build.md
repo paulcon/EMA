@@ -163,3 +163,9 @@ State lives in git and on disk; nothing is only in the conversation.
   `docs/index.md`; AR1's layers set to 3b over 3a over 2 over 1 over 0). 1,635 tests pass; every check green.
   The fast tier takes 40–46 s serially, 19 s with `-n auto`: record 0084 (proposed) runs it in parallel and
   measures the size budget at the end (7,560 lines so far).
+
+### Wave 5 (with step 14 alongside)
+
+- Started from `demo` (a2e8226): 10 scatter, 11 coordinate lines and lines, 12 linear model, 13 polynomial model,
+  and 14 the workspace (diagnostic-agnostic; it needs only the base), each in its own worktree. Reviews started
+  on `demo`: step 07 (round 1), step 09 (round 1), and round 2 of 04+05, 06, 08, with an end-to-end probe.
