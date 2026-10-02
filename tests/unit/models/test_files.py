@@ -310,6 +310,29 @@ class TestRemoveTree:
         files_module.remove_tree(str(run_dir))
         assert not run_dir.exists()
 
+    def test_nested_directories_without_read_or_search_permission(self, tmp_path):
+        """Review round 1 (record 0071): emptied at any depth; nothing above the path is changed."""
+        run_dir = tmp_path / "run"
+        (run_dir / "a" / "b" / "c").mkdir(parents=True)
+        (run_dir / "a" / "b" / "c" / "f").write_text("x")
+        (run_dir / "a" / "g").write_text("y")
+        for directory, mode in (("a/b/c", 0o000), ("a/b", 0o000), ("a", 0o100), (".", 0o500)):
+            (run_dir / directory).chmod(mode)
+        tmp_path.chmod(0o755)
+        files_module.remove_tree(run_dir)
+        assert not run_dir.exists() and (tmp_path.stat().st_mode & 0o777) == 0o755
+
+    def test_a_directory_above_the_path_is_never_made_writable(self, tmp_path):
+        parent = tmp_path / "parent"
+        (parent / "run").mkdir(parents=True)
+        parent.chmod(0o555)
+        try:
+            with pytest.raises(PermissionError):
+                files_module.remove_tree(parent / "run")
+            assert (parent.stat().st_mode & 0o777) == 0o555
+        finally:
+            parent.chmod(0o755)
+
     def test_a_link_or_nothing_at_the_path(self, tmp_path):
         target = tmp_path / "target"
         target.mkdir()

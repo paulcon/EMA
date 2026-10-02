@@ -118,6 +118,27 @@ Each is in record 0071, with why; the numbers match.
 34. The toys' `mode`; the bench runs the command toy with the project's interpreter first on its `PATH`.
 35. The slow tier holds C31's, C38's, and C41's batch variants and C41 over the command-line model.
 
+Review round 1 (record 0071, items 36–50):
+
+36. Ctrl-C is held while a process starts (`InterruptHeld`) and delivered inside the `try` that kills it.
+37. A process's exit is seen without reaping it (`waitid` `WNOWAIT`); its group is killed, then it is reaped; a
+    refused pidfd falls back to a 5 ms check; waits use `poll`.
+38. The child is checked every 0.5 s while a reply is awaited, so a crash is seen at once.
+39. A reply line is at most 64 MiB; a reply EMA can't parse, or out of step, is the child's death.
+40. `execute` checks the reply again: only finite numbers and text reasons reach `predictions.json`.
+41. JSON integers are read as doubles (the JSON parser, `predictions.json`): one too large is not finite.
+42. Text is a number in ASCII decimal syntax only (sign, point, exponent; `inf` and `nan` read and refused).
+43. A call's time is its request's to its reply; a new child's start is never in it.
+44. The stderr tail reads the last 64 KiB, once per call, for a failed run only.
+45. `remove_tree` empties unreadable directories at any depth, changing nothing above its path.
+46. The worker restores file descriptors 1 and 2 and `sys.stdout` and `sys.stderr` after every call.
+47. Only the model's own modules are compiled from source: not EMA's `sys.path` entries in its directory, nor a
+    `site-packages` below it.
+48. M7: `np.bool_` and complex aren't numbers; an integer beyond a double is missing; a batch's values are read as
+    a mapping's.
+49. A stream file `execute` can't create fails the run, kind `error`; a worker that can't start fails the call.
+50. AR4 lists `ema.models.collect`, with `exclude_type_checking_imports = true`.
+
 ## Notes
 
 - **Built:** `src/ema/models/{sandbox,_worker,processes,prepare,execute,collect,parsers}.py`; `files.py`
@@ -146,6 +167,20 @@ Each is in record 0071, with why; the numbers match.
   - C34's refusal of the next call, and C41's stopped run, through `run_new`: step 07 (this step checks
     `check_files` raising and `discard`).
   - T9's protocol stream under a scripted MCP client: step 15 (this step checks that EMA's stdout stays empty).
+- **Review round 1** (fixed on this branch; record 0071, items 36–50): Ctrl-C while a program or the child
+  starts no longer leaks it (21 of 40 probe calls did); a refused pidfd no longer fails every command; the four M1
+  gaps (an over-long JSON integer, a deeply nested reply, a reply whose model predictions aren't a mapping, a
+  400-digit integer in `predictions.json`) fail or miss a run, never raise; a crash with a descendant holding the
+  pipe is seen in 0.5 s, not at the timeout; a first call's time leaves out the child's start; the stderr tail
+  reads 64 KiB; `remove_tree` handles nested unreadable directories; AR4 covers `collect`. Nits: the reply is
+  read in linear time and capped at 64 MiB; the wait's deadline is computed once; a finished program's group is
+  killed before it is reaped; the worker's stream restore and two descriptor leaks; the source-only hook's reach;
+  M7's consistency; `finite`'s syntax; `poll` for `select`. Tests: `tests/unit/models/test_{execute,sandbox,
+  parsers,files}.py` (one or more per finding, each failing before the fix). Signatures step 07 uses are
+  unchanged; `Outcome` gained `time_s` (with a default), `read_inside` a `last` keyword, and `sandbox.py` the
+  public `InterruptHeld`, `has_exited`, `kill_group`, `readable`, `MAX_REPLY_BYTES`.
+- **Size after review round 1:** `ema.models` about 1,341 code lines, over §11's 1,323 by about 18; proposed in
+  record 0071 (Questions), not settled here. Fast tier about 26.5 s on this machine (shared).
 - **Reviewer, look hardest at:** the child's lifecycle under Ctrl-C and timeouts (`sandbox.Child._exchange`,
   `close`); `_worker.py`'s file-descriptor juggling around a call; choice 3 (killing a finished program's process
   group), which goes beyond M20's wording; and that `collect` can't raise for a point.

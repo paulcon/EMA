@@ -95,6 +95,8 @@ xfail_strict = true
 [tool.importlinter]
 root_package = "ema"
 include_external_packages = true
+# An import under TYPE_CHECKING never runs (collect names ExecutedCall in its annotations only; record 0071).
+exclude_type_checking_imports = true
 
 [[tool.importlinter.contracts]]
 name = "AR1 One-way layers"
@@ -136,8 +138,9 @@ source_modules = [
     "ema.designs",
     "ema.models.spec",
     "ema.models.files",
-    # Steps 04 and 05 (record 0071): every module of ema.models but execute itself, and collect, which names
-    # ExecutedCall in its annotations only (under TYPE_CHECKING; it never imports execute at run time).
+    # Steps 04 and 05 (record 0071): every module of ema.models but execute itself; collect names ExecutedCall
+    # under TYPE_CHECKING only, which exclude_type_checking_imports leaves out.
+    "ema.models.collect",
     "ema.models.prepare",
     "ema.models.parsers",
     "ema.models.processes",

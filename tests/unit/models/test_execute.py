@@ -174,3 +174,153 @@ def test_a_batch_directory_goes_with_the_last_of_its_runs(tmp_path):
     assert [Path(d).exists() for d in call.run_dirs] == [False, True] and Path(call.call_dir).exists()
     discard(call)
     assert not any(Path(d).exists() for d in (*call.run_dirs, call.call_dir))
+
+
+@pytest.fixture
+def python_sigint():
+    """Python's own SIGINT handler (Ctrl-C raises KeyboardInterrupt), restored afterwards."""
+    import signal
+
+    previous = signal.signal(signal.SIGINT, signal.default_int_handler)
+    yield
+    signal.signal(signal.SIGINT, previous)
+
+
+def test_m20_c39_ctrl_c_inside_popen_kills_the_program(tmp_path, monkeypatch, python_sigint):
+    """Review round 1 (record 0071): a SIGINT inside Popen, after the fork, is held and delivered once the program
+    can be killed; the program is gone and KeyboardInterrupt is raised."""
+    import signal
+    import subprocess
+
+    started = []
+    real = subprocess.Popen
+
+    class Interrupted(real):  # type: ignore[misc, valid-type]
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            started.append(self.pid)
+            os.kill(os.getpid(), signal.SIGINT)  # Ctrl-C before Popen returns
+
+    model = command_model(tmp_path, ["sh", "-c", "sleep 30"], env={"PATH": "/bin"})
+    key = RunKey.make(model.model_version_id, (1.0,), 0, 0)
+    call = prepare(model, [key], str(tmp_path / "runs"), str(tmp_path / "files"), approval_id=APPROVAL)
+    monkeypatch.setattr(subprocess, "Popen", Interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        execute(model, call, ModelProcesses())
+    assert started and gone(started)
+    assert signal.getsignal(signal.SIGINT) is signal.default_int_handler
+
+
+def test_m20_a_sigint_ignored_before_the_start_stays_ignored(tmp_path, monkeypatch):
+    """The held SIGINT goes to the handler that was there: one that ignores it lets the run finish."""
+    import signal
+    import subprocess
+
+    real = subprocess.Popen
+
+    class Interrupted(real):  # type: ignore[misc, valid-type]
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            os.kill(os.getpid(), signal.SIGINT)
+
+    previous = signal.signal(signal.SIGINT, signal.SIG_IGN)
+    try:
+        model = command_model(tmp_path, ["sh", "-c", "echo y = 2"], env={"PATH": "/bin"})
+        monkeypatch.setattr(subprocess, "Popen", Interrupted)
+        result, _ = run(model, tmp_path)
+    finally:
+        signal.signal(signal.SIGINT, previous)
+    assert result.status is RunStatus.OK and result.predictions["y"] == 2.0
+
+
+@pytest.mark.parametrize(
+    "error", [OSError(38, "Function not implemented"), PermissionError(1, "Operation not permitted")]
+)
+def test_a_refused_pidfd_falls_back_to_polling(tmp_path, monkeypatch, error):
+    """Review round 1: ENOSYS (an old kernel) or EPERM (a seccomp filter) from pidfd_open fails no run."""
+
+    def refused(pid, flags=0):
+        raise error
+
+    monkeypatch.setattr(os, "pidfd_open", refused, raising=False)
+    (tmp_path / "ok").mkdir()
+    model = command_model(tmp_path / "ok", ["sh", "-c", "echo y = 2"], env={"PATH": "/bin"})
+    result, _ = run(model, tmp_path / "ok")
+    assert result.status is RunStatus.OK and result.predictions["y"] == 2.0 and result.exit_code == 0
+    (tmp_path / "slow").mkdir()
+    model = command_model(tmp_path / "slow", ["sh", "-c", "sleep 30"], env={"PATH": "/bin"})
+    text = json.loads(Path(model.spec_path).read_text())
+    text["timeout_s"] = 0.2
+    Path(model.spec_path).write_text(json.dumps(text))
+    result, _ = run(load_spec(model.spec_path), tmp_path / "slow")
+    assert result.kind is FailureKind.TIMEOUT and result.time_s < 2
+
+
+def test_m1_a_number_beyond_a_double_in_predictions_json_is_missing(tmp_path):
+    """Review round 1: collect never raises (an integer of 400 digits isn't a finite double)."""
+    model = load_spec(str(copy_model("python", tmp_path)))
+    huge = "1" + "0" * 400
+
+    def rewrite(directory):
+        Path(directory, "predictions.json").unlink()
+        Path(directory, "predictions.json").write_text(f'{{"predictions": {{"y": {huge}, "z": 2}}, "missing": {{}}}}')
+
+    processes = ModelProcesses()
+    try:
+        result, _ = run(model, tmp_path, 0.0, processes, between=rewrite)
+    finally:
+        processes.close()
+    assert result.status is RunStatus.OK and result.predictions == {"y": None, "z": 2.0}
+    assert result.missing == {"y": "predictions.json: not a finite number"}
+
+
+@pytest.mark.parametrize("content", ['{"predictions": [["y", 1]], "missing": {}}', "[" * 100_000, "5"])
+def test_m1_predictions_json_that_isnt_emas_fails_the_run(tmp_path, content):
+    model = load_spec(str(copy_model("python", tmp_path)))
+
+    def rewrite(directory):
+        Path(directory, "predictions.json").unlink()
+        Path(directory, "predictions.json").write_text(content)
+
+    processes = ModelProcesses()
+    try:
+        result, _ = run(model, tmp_path, 0.0, processes, between=rewrite)
+    finally:
+        processes.close()
+    assert result.kind is FailureKind.ERROR and result.reason == "predictions.json: not EMA's model predictions"
+
+
+def test_the_stderr_tail_reads_only_the_end_and_only_for_a_failed_run(tmp_path, monkeypatch):
+    """Review round 1: the last 64 KiB of a large stderr.txt; a run that is ok reads none."""
+    from ema.models import collect as collect_module
+
+    lines = "head\n" * 400_000 + "".join(f"line{i}\n" for i in range(20))
+    model = command_model(tmp_path, ["sh", "-c", "cat big >&2; exit 3"], env={"PATH": "/bin"})
+    key = RunKey.make(model.model_version_id, (1.0,), 0, 0)
+    call = prepare(model, [key], str(tmp_path / "runs"), str(tmp_path / "files"), approval_id=APPROVAL)
+    Path(call.call_dir, "big").write_text(lines)
+    (result,) = collect(model, execute(model, call, ModelProcesses()))
+    assert result.stderr_tail == "\n".join(f"line{i}" for i in range(5, 20))
+    from ema.models.parsers import read_inside
+
+    data, _ = read_inside(call.call_dir, "stderr.txt", 1 << 16)
+    assert data is not None and len(data) == 1 << 16 and data.endswith(b"line19\n")
+
+    def never(call_dir):
+        raise AssertionError("an ok run's stderr was read")
+
+    monkeypatch.setattr(collect_module, "stderr_tail", never)
+    (tmp_path / "ok").mkdir()
+    ok = command_model(tmp_path / "ok", ["sh", "-c", "echo y = 1"], env={"PATH": "/bin"})
+    result, _ = run(ok, tmp_path / "ok")
+    assert result.status is RunStatus.OK and result.stderr_tail is None
+
+
+def test_m1_a_stream_file_the_call_cant_create_fails_the_run(tmp_path):
+    """Review round 1: stdout.txt already in the run directory fails the run, kind error; nothing raises."""
+    model = command_model(tmp_path, ["sh", "-c", "echo y = 1"], env={"PATH": "/bin"})
+    key = RunKey.make(model.model_version_id, (1.0,), 0, 0)
+    call = prepare(model, [key], str(tmp_path / "runs"), str(tmp_path / "files"), approval_id=APPROVAL)
+    Path(call.call_dir, "stderr.txt").write_text("left")
+    (result,) = collect(model, execute(model, call, ModelProcesses()))
+    assert result.kind is FailureKind.ERROR and result.reason.startswith("couldn't start sh: stderr.txt:")

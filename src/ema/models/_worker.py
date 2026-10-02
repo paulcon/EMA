@@ -38,8 +38,13 @@ def _receive_path(fd: int) -> list[str]:
     return [os.fsdecode(p) for p in blob.split(b"\0") if p]
 
 
-def _source_only_hook(model_dir: str):  # type: ignore[no-untyped-def]
-    """Make a path hook that loads the model's own modules from their source, never from a cached ``.pyc``."""
+def _source_only_hook(model_dir: str, others: list[str]):  # type: ignore[no-untyped-def]
+    """Make a path hook that loads the model's own modules from their source, never from a cached ``.pyc``.
+
+    The model's own modules are those in its directory, but not in an entry of EMA's ``sys.path`` (``others``) inside
+    it, nor below it in a ``site-packages`` or ``dist-packages`` directory: a project's ``.venv`` in the model's
+    directory, or a library EMA imports from there, is loaded as EMA loads it (record 0071).
+    """
     from importlib.machinery import (
         EXTENSION_SUFFIXES,
         SOURCE_SUFFIXES,
@@ -54,11 +59,15 @@ def _source_only_hook(model_dir: str):  # type: ignore[no-untyped-def]
             return compile(self.get_data(path), path, "exec", dont_inherit=True)
 
     inside = os.path.join(model_dir, "")
+    reals = (os.path.join(os.path.realpath(p), "") for p in others)
+    foreign = tuple(p for p in reals if p != inside and p.startswith(inside))
+    libraries = {"site-packages", "dist-packages"}
 
     def hook(path: str) -> FileFinder:
-        real = os.path.realpath(path or ".")
-        if real != model_dir and not real.startswith(inside):
-            raise ImportError("not in the model's directory")
+        real = os.path.join(os.path.realpath(path or "."), "")
+        below = real[len(inside) :].split(os.sep) if real.startswith(inside) else None
+        if below is None or real.startswith(foreign) or libraries & set(below):
+            raise ImportError("not one of the model's own directories")
         return FileFinder(path, (SourceOnly, SOURCE_SUFFIXES), (ExtensionFileLoader, EXTENSION_SUFFIXES))
 
     return hook
@@ -76,7 +85,10 @@ def _reason(error: BaseException, model_dir: str) -> str:
         path = os.path.realpath(frame.filename)
         if path.startswith(os.path.join(model_dir, "")):
             where = f" at {os.path.relpath(path, model_dir)}:{frame.lineno}"
-    message = " ".join(str(error).split())
+    try:
+        message = " ".join(str(error).split())
+    except Exception:  # noqa: BLE001  (an exception whose message can't be made)
+        message = ""
     if len(message) > REASON_CHARS:
         message = message[: REASON_CHARS - 1] + "…"
     return f"{type(error).__name__}{': ' if message else ''}{message}{where}"
@@ -87,10 +99,22 @@ class _Wrong(Exception):
 
 
 def _number(value: object) -> float | None:
-    if isinstance(value, (bool, str, bytes)):
+    """Read a value as a float, infinite for an integer beyond a double's range; None for anything else (M7).
+
+    Bools (numpy's too), strings (numpy's too), bytes, and complex numbers are not numbers.
+    """
+    import math
+
+    numpy = sys.modules.get("numpy")
+    excluded: tuple[type, ...] = (bool, str, bytes, complex)
+    if numpy is not None:
+        excluded += (numpy.bool_, numpy.complexfloating)
+    if isinstance(value, excluded):
         return None
     try:
         return float(value)  # type: ignore[arg-type]
+    except OverflowError:
+        return math.inf
     except (TypeError, ValueError):
         return None
 
@@ -99,6 +123,7 @@ def _run(items: object, names: list[str]) -> dict[str, dict[str, object]]:
     """One run's model predictions from a mapping by name: each finite number read, any other missing (M7)."""
     import math
     from collections.abc import Mapping
+    from numbers import Integral
 
     assert isinstance(items, Mapping)
     run: dict[str, dict[str, object]] = {"predictions": {}, "missing": {}}
@@ -109,6 +134,8 @@ def _run(items: object, names: list[str]) -> dict[str, dict[str, object]]:
         value = _number(items[name])
         if value is None:
             run["missing"][name] = f"the function returned {type(items[name]).__name__}, not a number"
+        elif isinstance(items[name], Integral) and not math.isfinite(value):
+            run["missing"][name] = "the function returned an integer beyond a double's range"
         elif not math.isfinite(value):
             run["missing"][name] = f"the function returned {value!r}"
         else:
@@ -142,26 +169,51 @@ def _batch(value: object, names: list[str], n: int) -> list[dict[str, dict[str, 
     columns = {}
     for name in names:
         if name in value:
-            column = np.asarray(value[name], dtype=float)
+            raw = value[name]  # each element read as a single call's value is (M7): a string in it isn't a number
+            column = raw if isinstance(raw, np.ndarray) else np.asarray(raw, dtype=object)
             if column.shape != (n,):
                 raise _Wrong(f"the function returned shape {column.shape} for {name}; a batch of {n} needs ({n},)")
             columns[name] = column
-    return [_run({k: float(v[i]) for k, v in columns.items()}, names) for i in range(n)]
+    return [_run({k: v[i] for k, v in columns.items()}, names) for i in range(n)]
+
+
+def _flush() -> None:
+    """Flush ``sys.stdout`` and ``sys.stderr``, whatever the model made of them."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.flush()
+        except Exception:  # noqa: BLE001, S110  (a stream the model replaced or closed)
+            pass
+
+
+def _say(text: str) -> None:
+    """Write to file descriptor 2 (the call's ``stderr.txt``), after what the function wrote there."""
+    _flush()
+    data = text.encode(errors="replace")
+    while data:
+        data = data[os.write(2, data) :]
 
 
 def _call(func, init: dict, request: dict, model_dir: str) -> dict:  # type: ignore[no-untyped-def, type-arg]
-    """Run one call in its directory, with its streams in its files."""
+    """Run one call in its directory, with its streams in its files.
+
+    Afterwards the worker's file descriptors 1 and 2, and ``sys.stdout`` and ``sys.stderr``, are restored whatever
+    the function did to them.
+    """
     import traceback
 
+    out = None
     try:
         os.chdir(request["call_dir"])
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW
         out = os.open("stdout.txt", flags, 0o644)
         err = os.open("stderr.txt", flags, 0o644)
     except OSError as e:
+        if out is not None:
+            os.close(out)
         return {"error": f"{e.filename or 'the call directory'}: couldn't be written: {e.strerror}"}
-    sys.stdout.flush()
-    sys.stderr.flush()
+    _flush()
+    streams = sys.stdout, sys.stderr
     saved = os.dup(1), os.dup(2)
     os.dup2(out, 1)
     os.dup2(err, 2)
@@ -175,14 +227,14 @@ def _call(func, init: dict, request: dict, model_dir: str) -> dict:  # type: ign
             return {"runs": _batch(func(np.asarray(points, dtype=float)), names, len(points))}
         return {"runs": _single(func(**dict(zip(init["parameters"], points[0], strict=True))), names)}
     except _Wrong as e:
-        print(e, file=sys.stderr)
+        _say(f"{e}\n")
         return {"error": str(e)}
     except BaseException as e:  # noqa: BLE001  (SystemExit included: the call fails, the child stays)
-        traceback.print_exc()
+        _say(traceback.format_exc())
         return {"error": _reason(e, model_dir)}
     finally:
-        sys.stdout.flush()
-        sys.stderr.flush()
+        _flush()
+        sys.stdout, sys.stderr = streams
         os.dup2(saved[0], 1)
         os.dup2(saved[1], 2)
         os.close(saved[0])
@@ -209,7 +261,7 @@ def main(requests_fd: int, replies_fd: int) -> None:
 
     init = json.loads(requests.readline())
     sys.path.insert(0, model_dir)
-    sys.path_hooks.insert(0, _source_only_hook(model_dir))
+    sys.path_hooks.insert(0, _source_only_hook(model_dir, paths[1:]))
     sys.path_importer_cache.clear()
     try:
         func = getattr(importlib.import_module(init["module"]), init["function"])

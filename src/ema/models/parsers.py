@@ -44,7 +44,7 @@ class OutputParser(Protocol):
         ...
 
 
-def read_inside(directory: str, file: str) -> tuple[bytes | None, str | None]:
+def read_inside(directory: str, file: str, last: int | None = None) -> tuple[bytes | None, str | None]:
     """Read a file of a run or batch directory only when its resolved path lies inside it (T9; M13).
 
     Parameters
@@ -53,6 +53,8 @@ def read_inside(directory: str, file: str) -> tuple[bytes | None, str | None]:
         The run or batch directory.
     file
         Relative to it, with "/"; or ``stdout`` or ``stderr``, the call's streams.
+    last
+        Read only the file's last ``last`` bytes; the whole file when None.
 
     Returns
     -------
@@ -67,6 +69,8 @@ def read_inside(directory: str, file: str) -> tuple[bytes | None, str | None]:
         return None, f"{file}: outside the run directory"
     try:
         with open_regular(path) as f:
+            if last is not None:
+                f.seek(max(0, os.fstat(f.fileno()).st_size - last))
             return f.read(), None
     except FileNotFoundError:
         return None, f"{file}: not found"
@@ -79,20 +83,30 @@ def _text(run_dir: str, file: str) -> tuple[str | None, str | None]:
     return (None, reason) if data is None else (data.decode("utf-8", errors="replace"), None)
 
 
+#: A number as text: ASCII decimal digits, an optional sign, point, and exponent ("+1.5E+03", ".5"), or a spelling
+#: of infinity or NaN (read, then refused as not finite). No ``_`` and no other script's digits, which ``float``
+#: would accept (record 0071).
+_NUMBER = re.compile(r"[+-]?(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[+-]?(?:inf|infinity|nan)", re.IGNORECASE)
+
+
 def finite(raw: object, file: str) -> Reading:
-    """Read a value as a finite number, or say why it isn't one (M11): JSON's ``true`` isn't a number."""
+    """Read a value as a finite number, or say why it isn't one (M11): JSON's ``true`` isn't a number.
+
+    Text is a number only in ``_NUMBER``'s syntax, surrounding whitespace aside.
+    """
     value: float | None = None
     if isinstance(raw, str):
-        try:
-            value = float(raw.strip())
-        except ValueError:
-            value = None
+        text = raw.strip(" \t\r\n")
+        value = float(text) if _NUMBER.fullmatch(text) else None
     elif isinstance(raw, (int, float)) and not isinstance(raw, bool):
         try:
             value = float(raw)
         except OverflowError:
             value = math.inf
-    shown = raw if isinstance(raw, str) else json.dumps(raw)
+    try:
+        shown = raw if isinstance(raw, str) else json.dumps(raw)
+    except (ValueError, RecursionError):  # an integer too long to show, or nested too deeply
+        shown = type(raw).__name__
     if len(shown) > 40:
         shown = shown[:39] + "…"
     if value is None:
@@ -129,10 +143,12 @@ class _Json:
         text, reason = _text(run_dir, settings.file)
         if text is None:
             return None, reason
-        try:
-            node = json.loads(text)
-        except (json.JSONDecodeError, RecursionError) as e:
-            return None, f"{settings.file}: not JSON ({getattr(e, 'msg', 'nested too deeply')})"
+        try:  # an integer read as a double: one too long for Python's int is infinite, so not finite (M1)
+            node = json.loads(text, parse_int=float)
+        except RecursionError:
+            return None, f"{settings.file}: not JSON (nested too deeply)"
+        except ValueError as e:
+            return None, f"{settings.file}: not JSON ({getattr(e, 'msg', e)})"
         for part in settings.key.split("."):
             try:
                 node = node[int(part)] if isinstance(node, list) else node[part]

@@ -318,8 +318,8 @@ def remove_tree(path: str | os.PathLike[str]) -> None:
     """Delete a run or batch directory without following links (trust.md, T9; 0061).
 
     A link in it is removed, never its target, so a data directory a script linked there survives; a directory
-    the model made read-only is made writable to be emptied. A link or file at ``path`` itself is removed; nothing
-    at ``path`` is nothing to do.
+    the model made read-only, or unreadable, at any depth, is made writable to be emptied (never a directory above
+    ``path``). A link or file at ``path`` itself is removed; nothing at ``path`` is nothing to do.
 
     Parameters
     ----------
@@ -338,14 +338,23 @@ def remove_tree(path: str | os.PathLike[str]) -> None:
         os.unlink(path)
         return
 
+    root = os.path.join(os.path.abspath(path), "")
+    retried: set[str] = set()
+
     def retry(function: object, failed: str, error: BaseException) -> None:
-        if not isinstance(error, PermissionError):
+        """Make the failed entry's directory, and the entry if it is one, writable and searchable; try again.
+
+        Only directories at or below ``path`` are changed, each entry retried once (a failure again is raised).
+        """
+        if not isinstance(error, PermissionError) or failed in retried:
             raise error
+        retried.add(failed)
         for directory in (os.path.dirname(failed), failed):
-            if os.path.isdir(directory) and not os.path.islink(directory):
+            inside = os.path.join(os.path.abspath(directory), "").startswith(root)
+            if inside and os.path.isdir(directory) and not os.path.islink(directory):
                 os.chmod(directory, 0o700)
         if os.path.isdir(failed) and not os.path.islink(failed):
-            shutil.rmtree(failed)
+            shutil.rmtree(failed, onexc=retry)
         elif os.path.lexists(failed):
             os.unlink(failed)
 

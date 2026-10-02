@@ -47,3 +47,33 @@ def test_a_file_that_isnt_regular_is_missing_never_waited_on(tmp_path):
     os.mkfifo(tmp_path / "out.txt")
     value, reason = parsers.read(RegexParser("out.txt", r"v = (\S+)"), str(tmp_path))
     assert value is None and reason == "out.txt: couldn't be read: not a regular file"
+
+
+@pytest.mark.parametrize(
+    ("text", "reason"),
+    [
+        ('{"v": 1%s}' % ("0" * 5000), "out.json: 'Infinity' is not a finite number"),
+        ('{"v": 1%s}' % ("0" * 400), "out.json: 'Infinity' is not a finite number"),
+        ("[" * 100_000, "out.json: not JSON (nested too deeply)"),
+        ('{"v": [[[[1]]]]}', "out.json: '[[[[1.0]]]]' is not a number"),
+    ],
+)
+def test_m1_json_that_isnt_a_finite_double_is_missing_never_raised(tmp_path, text, reason):
+    """Review round 1 (record 0071): an integer too long for Python's int is read as a double, so it is infinite."""
+    (tmp_path / "out.json").write_text(text)
+    assert parsers.read(JsonParser("out.json", "v"), str(tmp_path)) == (None, reason)
+
+
+@pytest.mark.parametrize(
+    ("raw", "value"),
+    [("1.5", 1.5), (" +1.5E+03\n", 1500.0), (".5", 0.5), ("5.", 5.0), ("-2e-3", -0.002), ("1_000", None),
+     ("١٢٣", None), ("0x10", None), ("1.5D+03", None), ("", None), ("-", None), ("1e", None)],
+)  # fmt: skip
+def test_text_is_a_number_only_in_ascii_decimal_syntax(raw, value):
+    """Review round 1: no underscores and no other script's digits, which float() would accept."""
+    assert parsers.finite(raw, "f")[0] == value
+
+
+@pytest.mark.parametrize("raw", ["inf", "-Infinity", "nan", "1e999"])
+def test_infinities_and_nans_as_text_are_read_and_refused_as_not_finite(raw):
+    assert parsers.finite(raw, "f") == (None, f"f: {raw!r} is not a finite number")

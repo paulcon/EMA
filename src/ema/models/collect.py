@@ -10,6 +10,7 @@ Nothing here raises for a point (M1). ``keep_or_remove`` applies the spec's ``ke
 stored, and ``discard`` deletes a stopped call's directories (0020, 0028; M14).
 """
 
+import functools
 import json
 import math
 import os
@@ -44,10 +45,10 @@ def _one_line(text: str) -> str:
 def stderr_tail(call_dir: str) -> str | None:
     """Return the last 15 lines of a call's ``stderr.txt``, read only inside its directory; None when it has none."""
     path = os.path.join(call_dir, "stderr.txt")
-    data, _ = read_inside(call_dir, "stderr.txt") if os.path.lexists(path) else (None, None)
+    data, _ = read_inside(call_dir, "stderr.txt", _TAIL_BYTES) if os.path.lexists(path) else (None, None)
     if not data:
         return None
-    lines = data[-_TAIL_BYTES:].decode("utf-8", errors="replace").rstrip().splitlines()[-STDERR_TAIL_LINES:]
+    lines = data.decode("utf-8", errors="replace").rstrip().splitlines()[-STDERR_TAIL_LINES:]
     return "\n".join(lines) or None
 
 
@@ -67,19 +68,25 @@ def _from_predictions_file(run_dir: str, names: Sequence[str]) -> tuple[dict[str
     data, reason = read_inside(run_dir, "predictions.json")
     if data is None:
         return f"predictions.json: couldn't be read ({reason})"
-    try:
-        content = json.loads(data)
-        values, missing = dict(content["predictions"]), dict(content["missing"])
-    except (ValueError, KeyError, TypeError):
+    try:  # an integer read as a double, so one beyond a double's range is infinite, not an error (M1)
+        content = json.loads(data, parse_int=float)
+    except (ValueError, RecursionError):
+        content = None
+    values = content.get("predictions") if isinstance(content, dict) else None
+    missing = content.get("missing") if isinstance(content, dict) else None
+    if not isinstance(values, dict) or not isinstance(missing, dict):
         return "predictions.json: not EMA's model predictions"
     read_: dict[str, float] = {}
     why: dict[str, str] = {}
     for name in names:
         value = values.get(name)
-        if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
-            read_[name] = float(value)
+        if isinstance(value, float) and math.isfinite(value):
+            read_[name] = value
+        elif name in values:
+            why[name] = "predictions.json: not a finite number"
         else:
-            why[name] = str(missing.get(name) or "not in predictions.json")
+            reason = missing.get(name)
+            why[name] = _one_line(reason) if isinstance(reason, str) and reason else "not in predictions.json"
     return read_, why
 
 
@@ -158,7 +165,7 @@ def collect(model: LoadedModel, call: "ExecutedCall") -> tuple[Run, ...]:
     batch = isinstance(model.spec.interface, PythonFunction) and model.spec.interface.batch
     batch_id = batch_call_id([k.run_id for k in prepared.keys]) if batch else None
     failure = _failure(call, isinstance(model.spec.interface, CommandLine))
-    tail = stderr_tail(prepared.call_dir)
+    tail = functools.cache(lambda: stderr_tail(prepared.call_dir))  # read once, for a failed run only
     runs = []
     for i, (key, run_dir) in enumerate(zip(prepared.keys, prepared.run_dirs, strict=True)):
         run_failure = failure
@@ -176,12 +183,13 @@ def collect(model: LoadedModel, call: "ExecutedCall") -> tuple[Run, ...]:
                     reasons = "; ".join(f"{name}: {reason}" for name, reason in why.items())
                     run_failure = FailureKind.UNREAD, _one_line(f"no model prediction read ({reasons})")
 
-        run = _make_run(model, call, key, run_failure, read_, why, tail, batch_id)
+        run_tail = None if run_failure is None else tail()
+        run = _make_run(model, call, key, run_failure, read_, why, run_tail, batch_id)
         try:
             write_own(run_dir, "run.json", _record(run, call, model))
         except OSError as e:
             failed = FailureKind.ERROR, f"run.json: couldn't be written: {e.strerror}"
-            run = _make_run(model, call, key, failed, {}, {}, tail, batch_id)
+            run = _make_run(model, call, key, failed, {}, {}, tail(), batch_id)
         runs.append(run)
     return tuple(runs)
 

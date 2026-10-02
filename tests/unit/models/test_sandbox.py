@@ -4,6 +4,7 @@ record 0069 item 34, record 0071)."""
 import json
 import os
 import py_compile
+import time
 from pathlib import Path
 
 import pytest
@@ -17,7 +18,7 @@ from ema.models.sandbox import BASE_ENV, describe_exit, find_program, model_envi
 from ema.models.spec import load_spec
 from ema.types.model import CommandLine, ModelParameter, ModelSpec, PredictionSpec, PythonFunction
 from ema.types.runs import FailureKind, RunKey, RunStatus
-from tests.support.models import APPROVAL, copy_model, point
+from tests.support.models import APPROVAL, copy_model, gone, point
 
 
 def spec(**fields) -> ModelSpec:
@@ -260,3 +261,175 @@ def test_processes_keep_at_most_max_children(tmp_path, monkeypatch):
         assert child.pid is None, "the least recently used child wasn't stopped"
     finally:
         p.close()
+
+
+def forged(payload: bytes) -> str:
+    """A function that writes ``payload`` to the replies pipe itself (as the worker would reply), then waits."""
+    return (
+        "import os, sys, time\n"
+        "def f(a):\n"
+        f"    os.write(int(sys.argv[2]), {payload!r})\n"
+        "    time.sleep(30)\n"
+    )  # fmt: skip
+
+
+@pytest.mark.parametrize(
+    ("payload", "kind", "reason"),
+    [
+        (b"[" * 200_000 + b"\n", FailureKind.ERROR, "the child's reply to request 2 isn't JSON it can read"),
+        (
+            b'{"seq": 2, "runs": [{"predictions": {"y": 1%s}, "missing": {}}]}\n' % (b"0" * 5000),
+            FailureKind.ERROR,
+            "the child's reply to request 2 isn't JSON it can read",
+        ),
+        (
+            b'{"seq": 2, "runs": [{"predictions": {"y": 1%s}, "missing": {}}]}\n' % (b"0" * 400),
+            FailureKind.UNREAD,
+            "no model prediction read (y: the child's reply holds no finite number for it)",
+        ),
+        (
+            b'{"seq": 2, "runs": [{"predictions": 5, "missing": {}}]}\n',
+            FailureKind.ERROR,
+            "predictions.json: the child's reply holds no model predictions for this run",
+        ),
+        (b'{"seq": true, "runs": []}\n', FailureKind.ERROR, "the child answered out of step (to request 2)"),
+        (b'{"seq": 2, "error": {"x": 1}}\n', FailureKind.ERROR, "the child's error isn't text"),
+        (b"x" * (3 << 20), FailureKind.ERROR, "the child's reply to request 2 is longer than 2 MiB"),
+    ],
+    ids=["nested", "int-5000-digits", "int-400-digits", "predictions-5", "seq-true", "error-object", "too-long"],
+)
+def test_m1_a_reply_ema_cant_read_fails_the_run_and_raises_nothing(
+    tmp_path, processes, monkeypatch, payload, kind, reason
+):
+    """Review round 1 (record 0071): the child's reply is checked again in EMA; nothing raises for a point. A line
+    longer than the limit (64 MiB; 2 MiB here) is the child's death, read no further."""
+    monkeypatch.setattr(sandbox, "MAX_REPLY_BYTES", 2 << 20)
+    run, _ = run_once(write_model(tmp_path / "m", forged(payload)), tmp_path, processes)
+    assert run.kind is kind and run.reason == reason
+
+
+def test_a_child_that_crashes_with_a_descendant_holding_its_pipe_is_seen_at_once(tmp_path, processes):
+    """Review round 1: the child's death is seen within a second, not after its timeout (10 s here)."""
+    source = (
+        "import os, time\n"
+        "def f(a):\n"
+        "    pid = os.fork()\n"
+        "    if pid == 0:\n"
+        "        time.sleep(20)\n"
+        "        os._exit(0)\n"
+        "    open('descendant.pid', 'w').write(str(pid))\n"
+        "    os._exit(3)\n"
+    )  # fmt: skip
+    start = time.monotonic()
+    run, where = run_once(write_model(tmp_path / "m", source), tmp_path, processes)
+    assert run.kind is FailureKind.ERROR and run.reason == "the child exited with code 3"
+    assert time.monotonic() - start < 3
+    assert gone([int((where / "descendant.pid").read_text())])
+
+
+def test_the_first_calls_time_leaves_out_the_childs_start(tmp_path, processes):
+    """Review round 1: a module that takes 0.5 s to import doesn't make its first call take it (record 0071, 33)."""
+    spec_path = write_model(tmp_path / "m", "import time\ntime.sleep(0.5)\ndef f(a):\n    return a\n")
+    run, _ = run_once(spec_path, tmp_path, processes)
+    assert run.status is RunStatus.OK and run.time_s < 0.25
+
+
+def test_m20_c39_ctrl_c_while_the_child_starts_kills_it(tmp_path, processes, monkeypatch):
+    """Review round 1: a SIGINT inside Popen, or before the child has its sys.path, kills the child; the next call
+    starts a new one, never reusing a child that was never told its sys.path."""
+    import signal
+    import subprocess
+
+    started = []
+    real = subprocess.Popen
+
+    class Interrupted(real):  # type: ignore[misc, valid-type]
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            started.append(self.pid)
+            os.kill(os.getpid(), signal.SIGINT)
+
+    spec_path = write_model(tmp_path / "m", "def f(a):\n    return a\n")
+    previous = signal.signal(signal.SIGINT, signal.default_int_handler)
+    try:
+        monkeypatch.setattr(subprocess, "Popen", Interrupted)
+        with pytest.raises(KeyboardInterrupt):
+            run_once(spec_path, tmp_path / "w1", processes)
+        monkeypatch.setattr(subprocess, "Popen", real)
+    finally:
+        signal.signal(signal.SIGINT, previous)
+    assert started and gone(started)
+    assert processes.child(load_spec(str(spec_path))).pid is None
+    run, _ = run_once(spec_path, tmp_path / "w2", processes, x=2.0)
+    assert run.status is RunStatus.OK and run.predictions["y"] == 2.0
+
+
+def test_the_workers_streams_are_restored_whatever_the_function_made_of_them(tmp_path, processes):
+    """Review round 1: a function that replaces sys.stdout and sys.stderr keeps its child; the next call's prints go
+    to its own stdout.txt."""
+    source = (
+        "import os, sys\n"
+        "def f(a):\n"
+        "    if a < 0:\n"
+        "        sys.stdout, sys.stderr = 42, None\n"
+        "        return 1.0\n"
+        "    print('visible')\n"
+        "    return float(os.getpid())\n"
+    )  # fmt: skip
+    spec_path = write_model(tmp_path / "m", source)
+    first, _ = run_once(spec_path, tmp_path, processes, x=-1.0)
+    second, where = run_once(spec_path, tmp_path, processes, x=1.0)
+    assert first.status is RunStatus.OK and second.status is RunStatus.OK
+    assert second.predictions["y"] == processes.child(load_spec(str(spec_path))).pid
+    assert (where / "stdout.txt").read_text() == "visible\n"
+
+
+def test_m7_numpy_bools_and_integers_beyond_a_double_are_missing(tmp_path, processes):
+    """Review round 1: numpy's bool isn't a number, as Python's isn't; an integer beyond a double's range is missing,
+    not a failed call, returned alone or in a mapping."""
+    source = (
+        "import numpy as np\ndef f(a):\n    return {1: {'y': np.bool_(True)}, 2: {'y': 10**400}, 3: -10**400}[int(a)]\n"
+    )
+    spec_path = write_model(tmp_path / "m", source)
+    results = [run_once(spec_path, tmp_path, processes, x=float(i))[0] for i in (1, 2, 3)]
+    assert all(r.kind is FailureKind.UNREAD for r in results)
+    assert "returned bool, not a number" in results[0].reason
+    assert all("an integer beyond a double's range" in r.reason for r in results[1:])
+
+
+def test_m7_m8_a_batchs_values_are_read_as_a_single_calls_are(tmp_path, processes):
+    """Review round 1: a string in a batch's returned list is missing for its run, as a string a single call
+    returns in its mapping is; it isn't converted."""
+    spec_path = write_model(tmp_path / "m", "def f(X):\n    return [1.5, '2.5', True]\n")
+    text = json.loads(spec_path.read_text())
+    text["batch"] = True
+    spec_path.write_text(json.dumps(text))
+    model = load_spec(str(spec_path))
+    keys = [RunKey.make(model.model_version_id, (float(i),), 0, 0) for i in range(3)]
+    call = prepare(model, keys, str(tmp_path / "runs"), str(tmp_path / "files"), approval_id=APPROVAL)
+    runs = collect(model, execute(model, call, processes))
+    assert runs[0].predictions["y"] == 1.5
+    assert [r.kind for r in runs[1:]] == [FailureKind.UNREAD, FailureKind.UNREAD]
+    assert "returned str, not a number" in runs[1].reason and "returned bool, not a number" in runs[2].reason
+
+
+def test_p3_only_the_models_own_modules_are_compiled_from_source(tmp_path, processes, monkeypatch):
+    """Review round 1: a directory in the model's directory that is on EMA's sys.path (a project's .venv), or a
+    site-packages below it, is loaded as EMA loads it; the model's own modules are compiled from source."""
+    source = (
+        "import os, sys\n"
+        "sys.path.append(os.path.join(os.path.dirname(__file__), 'env', 'site-packages'))\n"
+        "import helper, vendmod, sitemod\n"
+        "def own(m):\n"
+        "    return type(m.__loader__).__name__ == 'SourceOnly'\n"
+        "def f(a):\n"
+        "    return 4 * own(helper) + 2 * own(vendmod) + own(sitemod)\n"
+    )  # fmt: skip
+    spec_path = write_model(tmp_path / "m", source, files=["helper.py"])
+    (tmp_path / "m" / "helper.py").write_text("VALUE = 1\n")
+    for where, name in (("vendor", "vendmod"), ("env/site-packages", "sitemod")):
+        (tmp_path / "m" / where).mkdir(parents=True)
+        (tmp_path / "m" / where / f"{name}.py").write_text("VALUE = 1\n")
+    monkeypatch.syspath_prepend(str((tmp_path / "m" / "vendor").resolve()))
+    run, _ = run_once(spec_path, tmp_path, processes)
+    assert run.status is RunStatus.OK and run.predictions["y"] == 4.0, run
