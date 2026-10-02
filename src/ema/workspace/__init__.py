@@ -94,6 +94,53 @@ def _spec_of(spec: str | Mapping[str, Any]) -> ModelSpec:
     return ModelSpec.from_json(text)
 
 
+#: The most bytes read of an existing file at a drafted spec's path: far above any model spec.
+_SPEC_FILE_LIMIT = 1 << 22
+
+
+def _same_spec_text(path: str, text: str) -> str:
+    """Return the text of the file at ``path`` when it holds the same spec as ``text`` (record 0081, Review round 1).
+
+    The same bytes, or a hand-formatted file whose ``ModelSpec.from_json(...).to_json()`` is ``text``: the file's own
+    text, which ``save_model`` asks about ("already saved, unchanged: load it?") and loads, writing nothing (T6).
+
+    Raises
+    ------
+    PathRefused
+        For a file with another spec, or other text, or something at the path that isn't a regular file EMA can read.
+    """
+    try:  # a regular file only, never blocking on a FIFO or a device (T6)
+        with open_regular(path) as f:
+            data = f.read(_SPEC_FILE_LIMIT + 1)
+    except OSError as error:
+        raise PathRefused(
+            f"{path} exists, and isn't a file EMA can read ({error.strerror}); EMA never overwrites a file"
+        ) from None
+    if data == text.encode("utf-8"):
+        return text
+    try:
+        existing = data.decode("utf-8")
+        if ModelSpec.from_json(existing).to_json() == text:
+            return existing
+    except (UnicodeDecodeError, SpecError):
+        pass
+    raise PathRefused(f"{path} exists, with another spec or other text; EMA never overwrites a file")
+
+
+def _not_too_long(path: str, what: str) -> str:
+    """Return a path, refusing one the file system can't name: a part or the whole too long (record 0080, n3)."""
+    try:
+        name_max, path_max = os.pathconf(os.sep, "PC_NAME_MAX"), os.pathconf(os.sep, "PC_PATH_MAX")
+    except (OSError, ValueError):
+        name_max, path_max = 255, 1024
+    data = os.fsencode(path)
+    if len(data) >= path_max or any(len(part) > name_max for part in data.split(os.fsencode(os.sep))):
+        raise PathRefused(
+            f"{what} is too long for the file system: at most {name_max} bytes a name, {path_max - 1} the whole path"
+        )
+    return path
+
+
 def _limits(p: Any) -> str:
     limits = p.limits
     parts = []
@@ -216,7 +263,7 @@ class Workspace:
         """
         text = os.fspath(path)
         if self._root is None:
-            return os.path.abspath(text)
+            return _not_too_long(os.path.abspath(text), what)
         ch = hidden_character(text)
         if ch is not None:
             raise PathRefused(f"{what} has a hidden character, U+{ord(ch):04X}: refused under the root {self._root}")
@@ -229,7 +276,7 @@ class Workspace:
         below = os.path.relpath(os.path.realpath(full), self._root).replace(os.sep, "/")
         if is_credentials_file(below) or (directory and is_credentials_file(f"{below}/runs.csv")):
             raise PathRefused(f"{what} {text} names a credentials file, which EMA doesn't read or write")
-        return os.path.abspath(full)
+        return _not_too_long(os.path.abspath(full), what)
 
     def _spec_files_inside(self, spec: ModelSpec, spec_path: str) -> tuple[str, ...]:
         """Under a root, refuse a spec's file resolving outside it (T5); return the files that don't exist yet.
@@ -361,8 +408,8 @@ class Workspace:
         SpecError
             For a spec that doesn't validate.
         PathRefused
-            For a path not ending in ``.json``, a parent that doesn't exist, another file at the path (or something
-            at it that isn't a regular file), or, under a root, a path refused or a spec's file resolving outside it
+            For a path not ending in ``.json``, a parent that doesn't exist, a file at the path holding another
+            spec (or something at it that isn't a regular file), or, under a root, a path refused or a spec's file resolving outside it
             (T5), its files named beside the spec's target when the path is a link.
         """
         parsed = _spec_of(spec)
@@ -374,19 +421,13 @@ class Workspace:
             raise PathRefused(f"{given}: its directory {parent} doesn't exist")
         absolute = os.path.join(os.path.realpath(parent), os.path.basename(given))
         text = parsed.to_json()
-        if os.path.lexists(absolute):
-            data = text.encode("utf-8")
-            try:  # a regular file only, never blocking on a FIFO or a device (T6)
-                with open_regular(absolute) as f:
-                    same = f.read(len(data) + 1) == data
-            except OSError as error:
-                raise PathRefused(
-                    f"{absolute} exists, and isn't a file EMA can read ({error.strerror}); EMA never overwrites a file"
-                ) from None
-            if not same:
-                raise PathRefused(f"{absolute} exists, with other text; EMA never overwrites a file")
+        saved = os.path.lexists(absolute)
+        if saved:  # the same spec, hand-formatted or not, is shown as the file holds it (0081, Review round 1)
+            text = _same_spec_text(absolute, text)
         missing = self._spec_files_inside(parsed, absolute)
-        lines = [f"Model spec {parsed.name}: {_counts(parsed)}", f"Would be saved at {absolute}; nothing saved yet."]
+        where = (f"Already saved at {absolute}, the same spec: save_model loads it after the user's yes, writing "
+                 "nothing." if saved else f"Would be saved at {absolute}; nothing saved yet.")  # fmt: skip
+        lines = [f"Model spec {parsed.name}: {_counts(parsed)}", where]
         if missing:
             lines.append(f"Files it names that don't exist yet: {', '.join(missing)}")
         lines += ["Its full text:", fenced(text)]
@@ -397,9 +438,11 @@ class Workspace:
                    ) -> LoadingSummary:  # fmt: skip
         """Save a drafted model spec after the user's yes, and load it (W2, W1; T6; 0049).
 
-        Validated as ``propose_model`` does: an invalid spec, or another file at the path, is refused before anything
-        is asked. The confirmation shows the absolute path, what the name means now, and the full text; the file
-        written has exactly those bytes, created exclusively.
+        Validated as ``propose_model`` does: an invalid spec, or a file at the path holding another spec, is refused
+        before anything is asked. The confirmation shows the absolute path, what the name means now, and the full
+        text; the file written has exactly those bytes, created exclusively. A file at the path holding the same spec
+        (the same bytes, or hand-formatted) is asked as "already saved, unchanged: load it?", with its own text, and
+        loaded after the yes, never rewritten (T6; record 0081, Review round 1).
 
         Raises
         ------
@@ -412,7 +455,10 @@ class Workspace:
         """
         proposal = self.propose_model(spec, path)
         ask_confirmation(store=self._store, spec_path=proposal.path, spec_text=proposal.spec_text, confirm=confirm)
-        save_spec(proposal.spec, proposal.path)
+        if proposal.spec_text == proposal.spec.to_json():
+            save_spec(proposal.spec, proposal.path)  # the same bytes already there are left as they are
+        elif _same_spec_text(proposal.path, proposal.spec.to_json()) != proposal.spec_text:
+            raise PathRefused(f"{proposal.path} changed after the question; nothing was loaded")
         return self.load_model(proposal.path)
 
     @_on_its_thread

@@ -237,6 +237,31 @@ def test_bad_usage_exits_2(ema_cli, session, tmp_path):
     assert ema_cli("--help").code == 0
 
 
+def test_a_param_naming_runs_own_argument_says_where_it_goes(ema_cli, session):
+    """Record 0082, Review round 1 (m2, n4): ``--param`` naming ``model``, ``diagnostic``, ``self``, or any of
+    ``run``'s own keywords is bad usage (exit 2) saying where it goes (``approve`` is ``--yes``), never a
+    ``TypeError``'s traceback."""
+    w = session["ws"]
+    for name, where in (("model", "MODEL"), ("diagnostic", "DIAGNOSTIC"), ("self", "nothing"), ("space", "--space"),
+                        ("retry_failed", "--retry-failed"), ("approve", "--yes"), ("on_progress", "stderr")):  # fmt: skip
+        for command in ("price", "run"):
+            ran = ema_cli("--workspace", w, command, "ishigami", "point_run", "--param", f"{name}=1")
+            assert ran.code == 2 and ran.out == "", (name, ran)
+            assert f"--param {name} isn't a diagnostic parameter" in ran.err and where in ran.err, ran.err
+            assert "Traceback" not in ran.err
+
+
+def test_a_workspace_that_cant_be_made_is_ema_s_error(ema_cli, tmp_path):
+    """Record 0082, Review round 1 (m2): ``--workspace`` where none can be made prints "ema: <reason>" and exits 1,
+    not a traceback."""
+    blocker = tmp_path / "file"
+    blocker.write_text("")
+    for workspace in ("/nonexistent/ema_workspace", str(blocker / "ema_workspace")):
+        ran = ema_cli("--workspace", workspace, "models")
+        assert ran.code == 1 and ran.out == "" and ran.err.startswith("ema: "), ran
+        assert "Traceback" not in ran.err
+
+
 def test_an_ema_error_exits_1(ema_cli, session):
     """An ``EMAError`` exits 1 with its message on stderr: a request refused (a bad parameter value), an unknown id."""
     w = session["ws"]

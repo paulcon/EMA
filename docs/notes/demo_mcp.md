@@ -4,7 +4,10 @@
 > with Claude Code or Claude Desktop, and gives a five-minute script of prompts. Rehearsed on 2026-10-02 with the
 > step's worktree in place of the repository: §1's shell commands as written, and the tool calls behind each of §3's
 > prompts over a real stdio subprocess, answering every form yes. Not rehearsed: the `claude` and Claude Desktop
-> steps (they change the client's configuration) and the `ema` CLI forms (step 16, merged in parallel).
+> steps (they change the client's configuration) and the `ema` CLI forms (step 16, merged in parallel). Checked
+> again after review round 1 (record 0081, Review round 1) on a scratch copy of §1's layout: `ema mcp --root`
+> answers `initialize` and lists 10 tools; a scripted client loads `ishigami/model.json` as is with `save_model`
+> (the file unchanged), prices and runs a scatter, accepting each form with its default, and reads the report.
 
 ## 1. Before the demo (10 minutes, once)
 
@@ -115,7 +118,16 @@ With the CLI merged, `"args"` may instead be `["run", "--project", "/Users/paulc
 
 Say what EMA is while the first answer comes: EMA runs diagnostics on a computational model and reports figures,
 numbers, and their intervals; every number comes from stored runs (P1), and nothing runs without the user's yes, with
-its price (P3). The prompts, in order (the tools each one calls are in brackets):
+its price (P3).
+
+**The form.** Each yes EMA needs comes as a form from the client (an elicitation), not as a chat message: its text
+is EMA's question (the model version, the price "N new runs, M reused, time …", and, on a model version's first
+approval, what each run starts; for `save_model`, the absolute path and the spec's full text), and it has one field,
+a checkbox **Approve**, already checked. **Accept** approves (record 0081 items 6 and 18); **Decline** or
+**Cancel**, unchecking Approve before Accept, or no answer within 15 minutes is a no, and nothing runs. Every
+answer is recorded with its question.
+
+The prompts, in order (the tools each one calls are in brackets):
 
 1. **"Which models does EMA have loaded?"** [`models`] Three: ishigami, borehole, r5, each with its model version.
 2. **"Describe the borehole model."** [`models(name)`] Its 8 model parameters with units, nominal values, and limits,
@@ -140,15 +152,20 @@ its price (P3). The prompts, in order (the tools each one calls are in brackets)
 
 If there is time:
 
-10. **"Set up beam/beam.py as an EMA model: f(x1, x2, x3), each nominal 0, no units, one prediction y. Then test
+10. **"Load ishigami/model.json into EMA."** [`save_model`] The agent passes the file's text and its path; the
+    form asks "…/ishigami/model.json is already saved, unchanged: load it?" with the file's text; Accept, and EMA
+    loads it, writing nothing (record 0081 item 17): "Loaded ishigami@…", or "Already loaded: nothing changed" when
+    §1 loaded it. This is how a client loads a spec that wasn't loaded in §1. A file at the path with another spec
+    is refused.
+11. **"Set up beam/beam.py as an EMA model: f(x1, x2, x3), each nominal 0, no units, one prediction y. Then test
     it."** [`propose_model`, `save_model`, `test_model`] The agent drafts the spec; the form shows the absolute path
     `/Users/paulconstantine/ema_demo/beam/beam.json` and the spec's full text; approve, and EMA writes that one file
     (never code) and loads it. The test run asks its own form: "1 new run, 0 reused, time unknown".
-11. **"Run a scatter of r5's y over a and b in [-1, 1] with n = 100, then list the failed runs."**
+12. **"Run a scatter of r5's y over a and b in [-1, 1] with n = 100, then list the failed runs."**
     [`run_diagnostic`, `failed_runs`] "100 runs: 100 new, 0 reused, 16 failed"; each failed run with its kind and
     reason ("failed (timeout): timeout after 0.2 s", "failed (error): ValueError: no convergence at r5.py:13") and
     its stderr's last lines, quoted as the model's own output. (r5 has two model predictions: name one.)
-12. **"Export the Ishigami scatter to exports/ishigami_scatter."** [`export`] `runs.csv`, `result.json`, and
+13. **"Export the Ishigami scatter to exports/ishigami_scatter."** [`export`] `runs.csv`, `result.json`, and
     `report/`, inside the root only; a path outside it is refused (E7).
 
 ## 4. If something goes wrong

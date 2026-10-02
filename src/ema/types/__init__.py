@@ -18,6 +18,7 @@ from ema.types.errors import (
     PdfFailed,
     RequestError,
     SpecError,
+    Stopped,
     WorkspaceBusy,
     WorkspaceVersion,
 )
@@ -129,6 +130,7 @@ __all__ = [
     "RequestError",
     "Scale",
     "SpecError",
+    "Stopped",
     "TrackedFile",
     "WorkspaceBusy",
     "WorkspaceVersion",

@@ -170,3 +170,51 @@ def test_an_export_never_makes_a_credentials_directory(project):
         with pytest.raises(PathRefused, match="credentials"):
             ws.export("0" * 64, bad)
     assert not (root / ".ssh").exists() and not (root / "deep").exists()
+
+
+def test_a_hand_written_spec_with_the_same_spec_is_loaded_never_rewritten(project):
+    """Record 0081, Review round 1, ruling A (T6; U9): a spec file at the path holding the same spec, hand-formatted
+    (R2's own ``model.json``), is asked as "already saved, unchanged: load it?" with the file's own text, and loaded
+    after the yes, the file unchanged byte for byte and its hash recorded; a no loads nothing; a file holding another
+    spec is still refused before asking."""
+    ws, root, _ = project
+    original = Path(ema.reference_models.path("R2")).read_bytes()
+    target = root / "r2" / "model.json"
+    target.write_bytes(original)
+    rendered = ws.propose_model(drafted(), "r2/x.json").spec_text
+    assert rendered.encode() != original  # hand-formatted: other bytes, the same spec
+    proposal = ws.propose_model(original.decode(), "r2/model.json")
+    assert proposal.spec_text.encode() == original and "Already saved at" in proposal.text
+    with pytest.raises(ApprovalDeclined):
+        ws.save_model(drafted(), "r2/model.json", confirm=Asked(answer=False))
+    assert ws.list_models() == []
+    asked = Asked()
+    loading = ws.save_model(drafted(), "r2/model.json", confirm=asked)
+    (question,) = asked.questions
+    assert "already saved, unchanged: load it?" in question.text and question.spec_text.encode() == original
+    assert target.read_bytes() == original and str(loading).startswith("Loaded ishigami@")
+    assert ws._store.confirmations()[-1].spec_sha256 == hashlib.sha256(original).hexdigest()
+    other = asked.questions[:]
+    with pytest.raises(PathRefused, match="another spec"):
+        ws.save_model(drafted(description="another"), "r2/model.json", confirm=asked)
+    assert asked.questions == other and target.read_bytes() == original
+
+    def edits_meanwhile(question: object) -> bool:  # the file changes while the question is asked
+        target.write_bytes(original + b"\n")
+        return True
+
+    with pytest.raises(PathRefused, match="changed after the question"):
+        ws.save_model(drafted(), "r2/model.json", confirm=edits_meanwhile)
+
+
+def test_a_path_too_long_for_the_file_system_is_refused(project):
+    """Record 0080, Review round 1, n3 (T5): a name or a path too long is ``PathRefused`` before anything is asked or
+    made, not an ``OSError``."""
+    ws, root, _ = project
+    asked = Asked()
+    for bad in ("x" * 300, "a/" + "y" * 300, "/".join(["z" * 200] * 6)):
+        with pytest.raises(PathRefused, match="too long"):
+            ws.export("0" * 64, bad)
+        with pytest.raises(PathRefused, match="too long"):
+            ws.save_model(drafted(), bad + ".json", confirm=asked)
+    assert asked.questions == [] and not (root / "a").exists()

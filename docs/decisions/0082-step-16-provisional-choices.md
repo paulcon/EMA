@@ -68,6 +68,20 @@ We will, provisionally:
     §8 function, and prints exactly the text that function returned. Its negative control is a CLI that rounds the
     numbers in a report.
 
+## Review round 1
+
+The independent review of steps 15 and 16 (record 0081, Review round 1); each fix is on `demo-15fix`, with a test.
+
+15. **A `--param` naming one of the request's own arguments says where it goes** (m2, n4; amends item 3): the
+    reserved names are now `model`, `diagnostic`, `space`, `prediction`, `retry_failed`, `approve`, `on_progress`,
+    and `self`, each bad usage (exit 2): "--param approve isn't a diagnostic parameter: it goes in --yes (ema run),
+    or your answer to the question"; `model` and `diagnostic` name the positional arguments. Before, `model`,
+    `diagnostic`, and `self` reached the workspace as a `TypeError` with a traceback, and `approve` named a
+    `--approve` option that doesn't exist.
+16. **An `OSError` prints "ema: <message>" and exits 1** (m2; amends item 11): a `--workspace` that can't be made or
+    opened (`/nonexistent/…`, under a file) is the system's reason, not a traceback; exit 1, as an `EMAError`, since
+    it isn't bad usage of the command line.
+
 ## Alternatives considered
 
 - **`approve=None` with no terminal** (`CannotAsk`, nothing recorded): §8 and trust.md say no answer is a no; showing
@@ -82,9 +96,9 @@ We will, provisionally:
 ## Consequences
 
 - **Size:** `ema.cli` 271 code lines (no docstrings, comments, or blanks; 404 in all), against the roadmap's 300 and
-  §11's 714 for `ema.cli` and `ema.mcp` together.
+  §11's 714 for `ema.cli` and `ema.mcp` together. After review round 1, 283.
 - **Tests:** the fast tier gains 22 CLI tests, C54's 15 checks and its meta-test, and 2 AST tests; the slow wheel test
-  checks `ema/cli.py` and the `ema` entry point.
+  checks `ema/cli.py` and the `ema` entry point. Review round 1 adds 2 CLI tests (items 15, 16).
 - **Deferred:** `ema mcp` against the real server, with the scripted client, after step 15 merges (about 20 lines;
   the seam is `serve(root=, workspace=)`); `--pdf` is tested with a stubbed `Workspace.report` (pandoc's PDFs are
   `tests/slow/test_pdf.py`'s); U2's transcript as typed, as a slow test (about 40 lines).
@@ -94,5 +108,6 @@ We will, provisionally:
 ## Spec edits on acceptance
 
 - `architecture.md` §8: items 2–12 (the streams, lists, `--yes`'s line, no terminal's line, the progress line,
-  Ctrl-C's line, `ema export`'s output, the usage errors).
+  Ctrl-C's line, `ema export`'s output, the usage errors); items 15–16 (the reserved `--param` names, and exit 1
+  for an `OSError`).
 - `use_cases.md` U2's transcript: "Stopped at 40/96 runs: every finished run is stored." (item 10).
