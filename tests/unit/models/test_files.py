@@ -286,3 +286,59 @@ class TestCheckFiles:
         os.mkfifo(Path(model.model_dir) / "mesh.dat")
         with no_hang(), pytest.raises(ModelChanged, match="mesh.dat.*not a regular file"):
             check_files(model)
+
+
+class TestRemoveTree:
+    """T9, 0061: run and batch directories are deleted without following links."""
+
+    def test_a_link_inside_is_removed_never_its_target(self, tmp_path):
+        data = tmp_path / "data"
+        data.mkdir()
+        (data / "big.h5").write_text("kept")
+        run_dir = tmp_path / "run"
+        (run_dir / "sub").mkdir(parents=True)
+        (run_dir / "sub" / "data").symlink_to(data)
+        (run_dir / "file.txt").symlink_to(data / "big.h5")
+        files_module.remove_tree(run_dir)
+        assert not run_dir.exists() and (data / "big.h5").read_text() == "kept"
+
+    def test_read_only_directories_are_emptied(self, tmp_path):
+        run_dir = tmp_path / "run"
+        (run_dir / "locked").mkdir(parents=True)
+        (run_dir / "locked" / "x").write_text("x")
+        (run_dir / "locked").chmod(0o500)
+        files_module.remove_tree(str(run_dir))
+        assert not run_dir.exists()
+
+    def test_a_link_or_nothing_at_the_path(self, tmp_path):
+        target = tmp_path / "target"
+        target.mkdir()
+        (tmp_path / "link").symlink_to(target)
+        files_module.remove_tree(tmp_path / "link")
+        assert target.is_dir() and not (tmp_path / "link").exists()
+        files_module.remove_tree(tmp_path / "nothing")
+
+
+class TestWriteOwn:
+    """T9: EMA's own files are written without following a link the model left."""
+
+    def test_a_link_left_at_the_name_is_replaced(self, tmp_path):
+        outside = tmp_path / "outside.txt"
+        outside.write_text("data")
+        run_dir = tmp_path / "run"
+        run_dir.mkdir()
+        (run_dir / "run.json").symlink_to(outside)
+        files_module.write_own(str(run_dir), "run.json", b"{}")
+        assert outside.read_text() == "data" and (run_dir / "run.json").read_text() == "{}"
+        assert not (run_dir / "run.json").is_symlink()
+
+    def test_a_directory_at_the_name_or_a_linked_directory_is_refused(self, tmp_path):
+        run_dir = tmp_path / "run"
+        (run_dir / "run.json").mkdir(parents=True)
+        with pytest.raises(OSError):
+            files_module.write_own(str(run_dir), "run.json", b"{}")
+        (tmp_path / "linked").symlink_to(tmp_path / "elsewhere", target_is_directory=True)
+        (tmp_path / "elsewhere").mkdir()
+        with pytest.raises(OSError):
+            files_module.write_own(str(tmp_path / "linked"), "run.json", b"{}")
+        assert not (tmp_path / "elsewhere" / "run.json").exists()

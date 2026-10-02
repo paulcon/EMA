@@ -136,6 +136,13 @@ source_modules = [
     "ema.designs",
     "ema.models.spec",
     "ema.models.files",
+    # Steps 04 and 05 (record 0071): every module of ema.models but execute itself, and collect, which names
+    # ExecutedCall in its annotations only (under TYPE_CHECKING; it never imports execute at run time).
+    "ema.models.prepare",
+    "ema.models.parsers",
+    "ema.models.processes",
+    "ema.models.sandbox",
+    "ema.models._worker",
 ]
 forbidden_modules = [
     "ema.models.execute",

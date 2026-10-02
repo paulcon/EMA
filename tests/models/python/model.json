@@ -8,7 +8,8 @@
   "pass_env": ["LM_LICENSE_FILE"],
   "parameters": [
     {"name": "a", "units": "m", "nominal": 1.0, "description": "the first model parameter", "limits": {"ge": 0}},
-    {"name": "b", "units": "", "nominal": 0.5, "description": "the second model parameter"}
+    {"name": "b", "units": "", "nominal": 0.5, "description": "the second model parameter"},
+    {"name": "mode", "units": "", "nominal": 0, "description": "how the toy behaves (tests/support/models.py)"}
   ],
   "predictions": [
     {"name": "y", "units": "m", "description": "a + 2 b + scale"},

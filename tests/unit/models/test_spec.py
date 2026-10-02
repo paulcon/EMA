@@ -265,3 +265,21 @@ class TestSaveSpec:
             save_spec(self.spec(), str(tmp_path / "model.txt"))
         with pytest.raises(PathRefused, match="no-such-dir"):
             save_spec(self.spec(), str(tmp_path / "no-such-dir" / "model.json"))
+
+
+def test_resolve_program(tmp_path):
+    """U2, 0029: what the first approval shows before any run (M19's resolution; C44 compares it with a run's)."""
+    import sys
+
+    from ema.models.spec import resolve_program
+
+    assert resolve_program(load_spec(str(copy_model("python", tmp_path / "p")))) == sys.executable
+    spec_path = copy_model("command_line", tmp_path / "c")
+    text = json.loads(spec_path.read_text())
+    text["env"]["PATH"] = "/bin"
+    text["command"] = ["sh", "-c", "x"]
+    spec_path.write_text(json.dumps(text))
+    assert resolve_program(load_spec(str(spec_path))) == "/bin/sh"
+    text["command"] = ["ema-no-such-program"]
+    spec_path.write_text(json.dumps(text))
+    assert resolve_program(load_spec(str(spec_path))) is None
