@@ -392,3 +392,8 @@ State lives in git and on disk; nothing is only in the conversation.
   defaults to checked (ruled; pressing Accept on the priced form is the yes).
 - **Step 13, fixing round 1** merged: C18's bound measured and set to 180 s (both refits; LAPACK's time); one
   sampler reader; `basis`'s plain "no" with C14 tightened; the exact V = 0 fixture; the docs build passes.
+- **Steps 15 and 16, fixing round 1** merged: a hand-written spec loads through `save_model` after a yes (file
+  unchanged); the form's `approve` checked by default; SIGTERM handled; reserved `params` names refused; a
+  malformed elicitation reply a no at once; cancel, disconnect, and SIGTERM tested over stdio; `tools.md`
+  reworded. Checked again on a scratch copy of the demo root by the fixing agent. Lint, 8 import contracts,
+  mypy, and the docs build pass on `demo`.
