@@ -6,6 +6,7 @@ data_model.md §3.4 (the request's canonical form, the test run's; 0061's double
 import math
 from types import MappingProxyType
 
+import numpy as np
 import pytest
 
 from ema.types.errors import RequestError
@@ -61,9 +62,25 @@ class TestRequest:
         with pytest.raises(RequestError):
             make_request(space={"a": [1.0]})
 
-    def test_not_strict_json_refused(self):
+    @pytest.mark.parametrize("value", [math.nan, np.int64(3), np.array([1.0])])
+    def test_not_strict_json_refused(self, value):
+        """Record 0070, item 9; numpy's numbers aren't JSON data (ValueError, not TypeError: review round 1)."""
         with pytest.raises(ValueError):
-            make_request(params={"x": math.nan})
+            make_request(params={"x": value})
+
+    @pytest.mark.parametrize(
+        "kw",
+        [
+            {"params": {"n": 200, "seed": 1.0, "lines": [{"anchor": {"a": 1.0}}]}},  # seed 1.0 isn't 1 (§3.4)
+            {"space": {"b": [-0.0, 1], "a": {"range": [1e-2, 1e2], "scale": "log"}, "h": 3}},  # -0.0 isn't 0.0
+        ],
+    )
+    def test_equal_exactly_when_canonical_json_is(self, kw):
+        """Review round 1: equality agrees with the request's identity (its canonical JSON, §3.4)."""
+        r, other = make_request(), make_request(**kw)
+        assert canonical_json(r.canonical()) != canonical_json(other.canonical())
+        assert r != other
+        assert make_request() == r and hash(make_request()) == hash(r)
 
 
 class TestTestRunRequest:

@@ -309,7 +309,7 @@ class TestDiagnosticResult:
         assert str(result()) == f"Diagnostic result {RID[:12]}: scatter, y"
 
     def test_measured_noisy_and_extra_round_trip(self):
-        r = result(measured_noisy=noisy(), extra=(estimates(),), observations=(), estimates=())
+        r = result(measured_noisy=noisy(result_id=RID), extra=(estimates(),), observations=(), estimates=())
         assert DiagnosticResult.from_json(r.to_json()) == r
 
     def test_never_empty_0036(self):
@@ -343,7 +343,11 @@ class TestShownText:
             prediction="T_max",
             counts=Counts(rows=3, runs=3, new=3, reused=0, failed={}, missing=0, usable=3),
             notes=(),
-            provenance=provenance(request=Request(**{**request().canonical(), "prediction": "T_max"})),
+            provenance=provenance(
+                request=Request(**{**request().canonical(), "prediction": "T_max"}),
+                measured_noisy_read=(),
+                run_ids=["0a" * 32, "0b" * 32, "0c" * 32],
+            ),
         )
         s = ResultSummary.make(
             r, short_id="3f2a", model_version="beam@91c0aaaaaaaa", made_at=datetime(2026, 10, 1, tzinfo=UTC)
@@ -364,7 +368,7 @@ class TestShownText:
     def test_reproduction_identical(self):
         """U8: "Diagnostic result 3f2a: identical (estimates, intervals, notes, figures' data cards).\""""
         r = result()
-        rep = Reproduction.make(r, short_id="3f2a", identical=True, differences=(), provenance_differences=())
+        rep = Reproduction.make(r, result_id=RID, short_id="3f2a", identical=True)
         assert rep.text == "Diagnostic result 3f2a: identical (estimates, intervals, notes, figures' data cards)."
         assert rep.result_id == RID and str(rep) == rep.text
 
@@ -372,27 +376,229 @@ class TestShownText:
         """U8: "Differs: 2 estimates. Provenance differs in numpy (2.3.1 here, 2.4.0 there).\""""
         rep = Reproduction.make(
             result(),
+            result_id=RID,
             short_id="3f2a",
             identical=False,
             differences=("2 estimates",),
-            provenance_differences=("numpy: 2.3.1 here, 2.4.0 there",),
+            versions=(("numpy", "2.3.1", "2.4.0"),),
         )
         assert rep.text == "Differs: 2 estimates. Provenance differs in numpy (2.3.1 here, 2.4.0 there)."
+        assert rep.provenance_differences == ("numpy: 2.3.1 here, 2.4.0 there",)
 
     def test_reproduction_design_check_and_no_original(self):
         rep = Reproduction.make(
             result(),
+            result_id=RID,
             short_id="3f2a",
             identical=None,
-            differences=(),
-            provenance_differences=("numpy: 2.3.1 here, 2.4.0 there", "design points differ at rows 3, 17"),
+            versions=(("numpy", "2.3.1", "2.4.0"), ("scipy", "1.16.0", "1.17.0")),
+            design_differences=("design points differ at rows 3, 17",),
         )
         assert rep.text == (
             "Diagnostic result 3f2a: replayed from its provenance, with no original to compare. "
-            "Provenance differs in numpy (2.3.1 here, 2.4.0 there). Design points differ at rows 3, 17."
+            "Provenance differs in numpy (2.3.1 here, 2.4.0 there), scipy (1.16.0 here, 1.17.0 there). "
+            "Design points differ at rows 3, 17."
         )
+        assert rep.provenance_differences[-1] == "design points differ at rows 3, 17"
+
+    @pytest.mark.parametrize(
+        "kw",
+        [
+            {"identical": True, "differences": ("2 estimates",)},  # identical, yet differs
+            {"identical": False},  # differs, in nothing
+            {"identical": None, "differences": ("report",)},  # nothing to compare, yet differs
+            {"identical": True, "result_id": "34" * 32},  # U8: the replay keeps the original's id
+        ],
+    )
+    def test_reproduction_refuses_inconsistent_inputs(self, kw):
+        """Review round 1: findings 2 and 8."""
+        with pytest.raises(ValueError):
+            Reproduction.make(result(), **{"result_id": RID, "short_id": "3f2a", **kw})
 
 
 def test_arrays_in_the_provenance_compare_by_value():
     a, b = provenance(), provenance(run_ids=np.array(provenance().run_ids))
     assert a == b
+
+
+class TestColumns:
+    """data_model.md §5.9, §5.12 (review round 1): the store's columns; the run ids are result_runs' rows."""
+
+    def test_provenance_column_holds_only_its_own_parts(self):
+        p = provenance()
+        assert set(json.loads(p.column())) == {
+            "ema",
+            "numpy",
+            "scipy",
+            "matplotlib",
+            "spawn_tags",
+            "measured_noisy_read",
+            "design_structure",
+        }
+        assert "0a" * 32 not in p.column() and "ef" * 32 not in p.column()
+
+    def test_provenance_from_columns(self):
+        p = provenance()
+        back = Provenance.from_columns(
+            p.column(),
+            model_version_id=MV,
+            request=canonical_json(p.request.canonical()),
+            design=canonical_json(p.design.canonical()),
+            approval_id=p.approval_id,
+            run_ids=p.run_ids,
+        )
+        assert back == p and canonical_json(back.canonical()) == canonical_json(p.canonical())
+
+    def test_result_column_holds_no_provenance(self):
+        r = result()
+        assert set(json.loads(r.column())) == {
+            "title",
+            "counts",
+            "header_rows",
+            "notes",
+            "estimates",
+            "observations",
+            "figures",
+            "extra",
+        }
+        assert "0a" * 32 not in r.column() and RID not in r.column()
+
+    def test_result_from_columns(self):
+        r = result(measured_noisy=noisy(result_id=RID))
+        back = DiagnosticResult.from_columns(
+            result_id=RID,
+            model_version_id=MV,
+            diagnostic="scatter",
+            prediction="y",
+            result=r.column(),
+            measured_noisy=r.measured_noisy,
+            provenance=r.provenance,
+        )
+        assert back == r and back.to_json() == r.to_json()
+
+    def test_to_json_still_holds_the_whole_provenance(self):
+        """export.md's result.json and C17: the run ids in design order, in full."""
+        data = json.loads(result().to_json())
+        assert data["provenance"]["run_ids"] == ["0a" * 32, "0b" * 32, "0a" * 32]
+
+    def test_malformed_columns_refused(self):
+        p = provenance()
+        with pytest.raises(ValueError):
+            Provenance.from_columns(
+                '{"ema": "2"}', model_version_id=MV, request="{}", design="{}", approval_id=None, run_ids=p.run_ids
+            )
+        with pytest.raises(ValueError):
+            DiagnosticResult.from_columns(
+                result_id=RID,
+                model_version_id=MV,
+                diagnostic="scatter",
+                prediction="y",
+                result=result().column().replace('"rows":3', '"rows":1e999'),
+                measured_noisy=None,
+                provenance=p,
+            )
+
+
+def _edit(path, value):
+    def edit(data):
+        *parents, last = path
+        for key in parents:
+            data = data[key]
+        data[last] = value
+
+    return edit
+
+
+class TestFromJsonRefusals:
+    """Review round 1: findings 3 and 4; every refusal is ValueError."""
+
+    @pytest.mark.parametrize(
+        "edit",
+        [
+            _edit(("shown",), None),  # an unknown key: shown is never stored
+            _edit(("estimates", 0, "extra_key"), 1),
+            _edit(("provenance", "extra_key"), 1),
+            _edit(("result_id",), "XYZ"),
+            _edit(("provenance", "approval_id"), "not an id"),
+            _edit(("diagnostic",), 3),
+            _edit(("header_rows",), [[1, 2]]),
+            _edit(("notes", 0, "text"), None),
+            _edit(("provenance", "request", "space"), {"a": [1.0]}),  # RequestError inside
+            _edit(("provenance", "design_structure", "levels"), [1.5, 3]),
+            _edit(("estimates", 0, "estimates", 0, "value"), 10**400),  # past the doubles
+        ],
+    )
+    def test_refused(self, edit):
+        data = json.loads(result().to_json())
+        edit(data)
+        with pytest.raises(ValueError):
+            DiagnosticResult.from_json(json.dumps(data))
+
+    def test_overflowing_count_refused(self):
+        """1e999 reads as infinity, which no count is (it raised OverflowError before)."""
+        text = result().to_json().replace('"rows":3', '"rows":1e999')
+        with pytest.raises(ValueError):
+            DiagnosticResult.from_json(text)
+        with pytest.raises(ValueError):
+            counts(rows=math.inf)
+
+
+class TestReviewRound1:
+    @pytest.mark.parametrize("settings", [{"seed": np.int64(1)}, {"x": math.nan}, {"p": np.array([0.5, 99.5])}])
+    def test_settings_refused_when_built(self, settings):
+        """Finding 5: settings that aren't strict JSON data are refused when built, not at W5."""
+        with pytest.raises(ValueError):
+            interval_info(settings=settings)
+
+    def test_a_signed_zero_estimate_differs(self):
+        """P3, C17: -0.0 and 0.0 are different doubles, so different results."""
+        e = estimates()
+        zero = Estimate(key="rank_correlation", label="c", value=0.0, interval=None, reason=e.estimates[1].reason)
+        changed = EstimateTable(**{**e.__dict__, "estimates": (e.estimates[0], zero)})
+        assert result(estimates=(changed,)) != result()
+
+    @pytest.mark.parametrize(
+        "make",
+        [
+            lambda: result(counts=counts(rows=3, runs=3, new=2, reused=1, usable=2)),  # 2 distinct runs, 3 counted
+            lambda: result(counts=counts(new=0, reused=2)),  # an approval with no new runs (§5.9)
+            lambda: result(provenance=provenance(approval_id=None)),  # new runs with no approval
+            lambda: result(measured_noisy=noisy()),  # another result's record (§5.11)
+            lambda: provenance(measured_noisy_read=(noisy(prediction="z"),)),  # Q10: this model prediction
+            lambda: provenance(measured_noisy_read=(noisy(model_version_id=RID),)),  # Q10: this model version
+            lambda: provenance(design=DesignIdentity(**{**identity().canonical(), "model_version_id": RID})),
+        ],
+    )
+    def test_cross_checks(self, make):
+        """Finding 10."""
+        with pytest.raises(ValueError):
+            make()
+
+    def test_a_replay_with_no_new_runs_and_no_approval_is_valid(self):
+        r = result(counts=counts(new=0, reused=2), provenance=provenance(approval_id=None))
+        assert r.provenance.approval_id is None
+
+    def test_provenance_freezes_its_source(self):
+        """Finding 11: no copy, and the caller's array can't change the provenance."""
+        ids = id_array(["0a" * 32, "0b" * 32, "0a" * 32])
+        p = provenance(run_ids=ids)
+        assert not ids.flags.writeable and np.shares_memory(p.run_ids, ids)
+
+    def test_id_arrays_one_rule(self):
+        """Finding 14: an (n, 32) uint8 array and S32 bytes are read as id_array reads them."""
+        ids = id_array(["11" * 31 + "00", "0b" * 32, "0a" * 32])
+        as_bytes = np.frombuffer(ids.tobytes(), dtype="S32")
+        as_uint8 = np.frombuffer(ids.tobytes(), dtype=np.uint8).reshape(3, 32)
+        assert provenance(run_ids=as_bytes) == provenance(run_ids=as_uint8) == provenance(run_ids=ids)
+
+    @pytest.mark.parametrize("make", [counts, interval_info, lambda: request(), lambda: noisy()])
+    def test_hash(self, make):
+        """Finding 15: a type holding read-only mappings is unhashable, or hashes by its canonical JSON."""
+        value = make()
+        if isinstance(value, Request):
+            assert hash(value) == hash(request())
+        elif isinstance(value, MeasuredNoisy):
+            assert hash(value) == hash(noisy())
+        else:
+            with pytest.raises(TypeError):
+                hash(value)

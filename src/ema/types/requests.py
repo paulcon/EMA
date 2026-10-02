@@ -16,13 +16,23 @@ from ema.types.runs import Price
 from ema.types.space import ModelParameterSpace
 
 
-@dataclass(frozen=True)
+def _json_text(data: Any, what: str) -> str:
+    """Return ``canonical_json(data)``; raise ``ValueError`` for data that isn't strict JSON (NaN, numpy's numbers)."""
+    try:
+        return canonical_json(data)
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"{what} isn't strict JSON data: {error}") from error
+
+
+@dataclass(frozen=True, eq=False)
 class Request:
     """What one diagnostic evaluation is asked for (glossary), canonical, with defaults filled in (§3.4).
 
     The space is parsed and written in its canonical form (every range ``{"range": [lo, hi], "scale": ...}``,
     every value a double, 0061), so a space given in any of its forms makes the same request. The diagnostic
-    parameters are as the diagnostic parsed them. A request whose canonical form isn't strict JSON is refused.
+    parameters are as the diagnostic parsed them. A request whose canonical form isn't strict JSON is refused
+    with ``ValueError``. Two requests are equal when their canonical JSON is, as their ids are (so a seed 1.0 is
+    not 1, nor -0.0 0.0).
 
     Attributes
     ----------
@@ -49,7 +59,15 @@ class Request:
         if not all(isinstance(k, str) for k in self.params):
             raise ValueError(f"diagnostic parameters are named by text: {list(self.params)!r}")
         object.__setattr__(self, "params", _freeze(self.params))
-        canonical_json(self.canonical())
+        _json_text(self.canonical(), "a request")
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Request):
+            return NotImplemented
+        return canonical_json(self.canonical()) == canonical_json(other.canonical())
+
+    def __hash__(self) -> int:
+        return hash(canonical_json(self.canonical()))
 
     def canonical(self) -> Mapping[str, Any]:
         """Return ``{"diagnostic", "prediction", "space", "params"}`` as plain JSON data (§3.4; record 0070)."""
@@ -127,6 +145,8 @@ class ApprovalRequest:
     env: Mapping[str, str]
     pass_env: Mapping[str, bool]
     text: str
+
+    __hash__ = None  # type: ignore[assignment]  # it holds read-only mappings
 
     def __post_init__(self) -> None:
         if self.asked_for not in ("diagnostic_evaluation", "test_run"):

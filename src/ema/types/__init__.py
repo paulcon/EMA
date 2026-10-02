@@ -1,8 +1,7 @@
 """Layer 0: the domain's data classes and errors, the canonical encoder, hashes and ids, and number formatting.
 
 Pure: it imports only the standard library's pure modules and numpy (architecture.md §3; AR2). Each module's
-public names are re-exported here; later build steps add theirs (``runs``, ``results``, ``requests``,
-``summaries``).
+public names are re-exported here.
 """
 
 from ema.types.design import Design, DesignIdentity, DesignStructure, Line

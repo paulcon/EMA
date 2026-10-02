@@ -69,8 +69,9 @@ We will, provisionally:
     forms, the design structure's levels and lines (0063). `from_json` rebuilds it, refusing non-strict JSON
     (NaN, Infinity) and anything that isn't a result with `ValueError`; `from_json(r.to_json()) == r`, every double
     bit for bit.
-12. **`Provenance.canonical()` and `Provenance.from_canonical()`** (beyond §3's stubs): the store writes the
-    provenance column on its own (§5.9), and a replay may take a provenance alone (U8).
+12. **`Provenance.canonical()` and `Provenance.from_canonical()`** (beyond §3's stubs): the whole provenance, as
+    an export's `result.json` and a bare replay hold it (U8). *Corrected in review round 1 (item 18): the store
+    does not write this form; its columns are `Provenance.column()` and `DiagnosticResult.column()`.*
 13. **Timestamps:** `text.timestamp_text` and `text.parse_timestamp`, one rule for every stored timestamp (ISO
     8601 in UTC to the millisecond, "2026-10-01T14:03:07.123Z"): a naive datetime is refused; a timestamp a
     type holds (`MeasuredNoisy.made_at`, `ResultSummary.made_at`) is converted to UTC and cut to the millisecond,
@@ -96,6 +97,59 @@ We will, provisionally:
 17. **`finite_doubles`** joins `ema.types._values` (record 0067 item 8's home for reading numbers), for EMA's own
     records: a run's point, a run key's, the test run's, a measured-noisy point.
 
+**Review round 1** (an independent review's findings; each amends or adds to the items above)
+
+18. **The store's columns, not the whole JSON** (corrects item 12; `data_model.md` §5.9, §5.10, §5.12, W5).
+    `Provenance.column()` is the `provenance` column: exactly `ema`, `numpy`, `scipy`, `matplotlib`,
+    `spawn_tags`, `measured_noisy_read`, and `design_structure`, as canonical JSON. `DiagnosticResult.column()`
+    is the `result` column: `title`, `counts`, `header_rows`, `notes`, `estimates`, `observations`, `figures`,
+    and `extra`. Everything else has a column or a table of its own (the ids, the diagnostic, the model
+    prediction, the request, the design, the approval; the run ids in `result_runs`; the result's
+    measured-noisy record in `measured_noisy`, §5.11). `Provenance.from_columns(column, *, model_version_id,
+    request, design, approval_id, run_ids)` and `DiagnosticResult.from_columns(*, result_id, model_version_id,
+    diagnostic, prediction, result, measured_noisy, provenance)` rebuild them from a row (JSON columns as stored
+    text) and its `result_runs`. Writing the whole JSON would copy `result_runs` into two columns: a 10⁷-row
+    design's run ids are about 670 MB of hex text a copy, near SQLite's default limit of 1 GB on one value.
+    `to_json` and `canonical()` stay whole, for `export.md`'s `result.json`, C17, and a bare replay.
+19. **Equality without writing the JSON:** a `Provenance` and a `DiagnosticResult` are equal exactly when their
+    JSON is, compared part by part (the run ids as bytes, the rest by their canonical JSON). A **`Request`** is
+    equal exactly when its canonical JSON is, and hashes by it, as its approval id and reuse key do: a seed 1.0
+    is not 1, and −0.0 is not 0.0.
+20. **JSON read strictly, records checked when built:** `from_json`, `from_canonical`, and `from_columns` refuse,
+    with `ValueError`, any object without exactly the keys written (an unknown key, `shown` included), a number
+    past the doubles or infinite (`1e999`), an id that isn't 64 hex digits, a text field that isn't text, and a
+    malformed stored space (the `RequestError` inside becomes `ValueError`: a stored record is EMA's). The
+    constructors make the same checks, so a malformed record is refused when built, not at W5: an
+    `IntervalInfo`'s settings must be strict JSON data (numpy's integers, NaN, and arrays refused; in JSON, only an
+    `ID_DTYPE` array is ids), as must a `Request`'s parameters (`ValueError`, not `TypeError`).
+21. **A result's cross-checks** (amends item 7): `counts.runs` is the number of distinct run ids in its
+    provenance (`numpy.unique`, about 0.35 s per 10⁶ rows); it has an approval exactly when `counts.new > 0`
+    (§5.9; a replay keeps the original's approval and counts, so it passes); its own measured-noisy record has
+    its result id, model version, and model prediction (§5.11); each record its provenance read has the
+    provenance's model version and the request's model prediction (Q10); the design identity's model version is
+    the provenance's (0046).
+22. **Codes and integer columns** (amends items 2 and 4): `from_code` refuses a code no member has (−1 is
+    `FailureKind`'s only, for an ok run); `RunColumns` refuses a status other than 0 and 1 and a kind other than
+    −1 to 2; an integer column (`row_keys`, `replicates`, `status`, `kind`) refuses a non-integer array rather
+    than casting it; a `Resolution`'s stored row has its run's id, never zeros.
+23. **`Price`:** `reused ≤ from_runs`, since Q2 counts every stored run of the model version, any status, the
+    reused included (amends item 4).
+24. **Arrays don't alias their sources** (amends item 8): an input array that owns its data is made read-only
+    in place, the caller's too (no copy: 10⁷ ids are 320 MB); one that nothing can write is shared; a writable
+    view of another array's data is copied. Step 01's `Design` keeps its rule (not this step's to change).
+25. **One rule for ids given to a type:** `id_array` reads every form `batch_call_id` takes (hex text, 32-byte
+    `bytes`, an `(n, 32)` uint8 array, an array of 32-byte elements), and `RunColumns`, `Resolution`, and
+    `Provenance` read ids through it; an `S32` array is read whole, so its trailing zero bytes aren't dropped.
+26. **`Reproduction.make(result, *, result_id, short_id, identical, differences=(), versions=(),
+    design_differences=())`** (amends items 14 and 15): `result_id` is the original's, and a `Reproduction`
+    refuses a replayed result with another (`architecture.md` §7, `reproduce`: the replay keeps it); it has
+    differences exactly when `identical` is False; `versions` are `(name, here, there)` triples, written
+    "numpy: 2.3.1 here, 2.4.0 there" in `provenance_differences` and "numpy (2.3.1 here, 2.4.0 there)" in the
+    text; each of the rebuilt design's differences is its own sentence.
+27. **Unhashable, plainly:** the frozen types holding read-only mappings (`Run`, `Counts`, `IntervalInfo`,
+    `ApprovalRequest`, `DiagnosticParameterInfo`, `RunInfo`) set `__hash__ = None`, so `hash` fails at once;
+    `Request` hashes by its canonical JSON. Step 01's and step 03's types are theirs to change.
+
 ## Deferrals
 
 - **Each summary type as strict JSON** (the MCP envelope's `data`, step 15): `results._plain` is the seam (it
@@ -105,9 +159,10 @@ We will, provisionally:
 ## Spec edits on acceptance
 
 None is required. Clarifications that would help: `architecture.md` §3 could list `ID_DTYPE`, `id_array`,
-`hex_ids`, `timestamp_text`, `parse_timestamp`, `Provenance.canonical`/`from_canonical`, and the `make`
-classmethods (items 1, 12–14), and say that ids in arrays are `V32`; `data_model.md` §3.4 could give the
-request's canonical keys (item 9).
+`hex_ids`, `timestamp_text`, `parse_timestamp`, `Provenance.canonical`/`from_canonical`, the `column` and
+`from_columns` methods, and the `make` classmethods (items 1, 12–14, 18, 26), and say that ids in arrays are
+`V32`; `data_model.md` §3.4 could give the request's canonical keys (item 9); §5.9 could name the `result`
+column's keys (item 18).
 
 ## Alternatives considered
 
@@ -117,15 +172,20 @@ request's canonical keys (item 9).
   (14), the CLI, and the MCP server; one renderer beside `duration` keeps one wording, tested once.
 - **`RequestError` for a malformed record:** no user reaches these constructors; `ValueError` marks a bug in
   EMA.
+- **`to_json(provenance=False)` for the `result` column** (item 18): it would still repeat the ids, the
+  diagnostic, the model prediction, and the measured-noisy record, which have columns and a table of their own;
+  `column` and `from_columns` name the store's form once, beside the export's.
+- **Copying every input array** (item 24): safe, but 320 MB for 10⁷ ids; freezing an owner costs nothing.
 - **Keeping microseconds in timestamps:** the store keeps milliseconds (§3.2), so a stored record wouldn't
   read back equal.
 
 ## Consequences
 
-- **Size:** `ema.types` is now 1,304 code lines (without docstrings, comments, blank lines, or `__init__.py`'s
-  175 lines of re-exports): step 01's 494 and this step's 810 (`results.py` 367, `runs.py` 195, `summaries.py`
-  96, `requests.py` 86, and 66 in `identity.py`, `text.py`, and `_values.py`). With step 03's model spec JSON
-  and checks (about 275, §11), `ema.types` ends near 1,580, against §11's 860: plan 01's forecast (about 1,500)
-  holds. The budget record is the coordinator's to propose.
+- **Size:** `ema.types` is now 1,514 code lines (without docstrings, comments, blank lines, or `__init__.py`'s
+  175 lines of re-exports): step 01's 494 and this step's 1,020 (`results.py` 531, `runs.py` 225,
+  `summaries.py` 98, `requests.py` 98, and 68 in `identity.py`, `text.py`, and `_values.py`); review round 1
+  added 210 (the store's columns, strict reading, and the cross-checks). With step 03's model spec JSON and
+  checks (about 275, §11), `ema.types` ends near 1,790, against §11's 860, past plan 01's forecast (about
+  1,500). The budget record is the coordinator's to propose.
 - Steps 06, 07, 08, 09, and 14 build on these types; a change to a field after them is a schema change for the
   store (`data_model.md` §11).

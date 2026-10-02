@@ -81,7 +81,8 @@ Each is record 0070's, numbered as there, one line each.
    "params"}`, the space null for the point run; non-strict JSON refused.
 10. `TestRunRequest.__test__ = False`, so pytest doesn't collect it.
 11. A result's JSON is the canonical JSON of every field but `shown`; `from_json` refuses NaN and malformed input.
-12. `Provenance.canonical()` and `from_canonical()`, for the store's provenance column and a bare replay.
+12. `Provenance.canonical()` and `from_canonical()`: the whole provenance, for an export and a bare replay
+    (corrected by 18: not the store's column).
 13. `timestamp_text` and `parse_timestamp` in `text.py`: UTC to the millisecond; naive refused.
 14. Renderers: `Price.make`, `Progress.of_runs`, `ResultSummary.make`, `Reproduction.make`; `RunKey.make`.
 15. U8's text where U8 is silent: no original; versions joined as "numpy (2.3.1 here, 2.4.0 there)"; other
@@ -89,6 +90,25 @@ Each is record 0070's, numbered as there, one line each.
 16. A result without `shown` prints "Diagnostic result <12 hex>: <diagnostic>, <prediction>"; `Note` prints as
     its text.
 17. `finite_doubles` joins `ema.types._values`.
+
+Review round 1:
+
+18. The store's columns: `Provenance.column()` (§5.12's keys and the design structure) and `from_columns`;
+    `DiagnosticResult.column()` (title, counts, header rows, notes, estimates, observations, figures, extra) and
+    `from_columns`; `to_json` and `canonical()` stay whole for export and C17.
+19. A provenance and a result compared part by part (run ids as bytes); a `Request` equal and hashed by its
+    canonical JSON.
+20. JSON read strictly (exact keys, ids, texts, overflow, a stored space's `RequestError`, all `ValueError`); the
+    same checks when built; settings and parameters strict JSON data when built.
+21. A result's cross-checks: distinct runs, an approval exactly when new runs, its own measured-noisy record,
+    Q10's records, the design identity's model version.
+22. Codes range-checked; integer columns refuse non-integer arrays; a stored row's `row_runs` is not zeros.
+23. `Price`: `reused ≤ from_runs` (Q2).
+24. Input arrays: an owner made read-only in place, a read-only one shared, a writable view copied.
+25. One rule for ids given to a type: `id_array`'s, every form `batch_call_id` takes.
+26. `Reproduction.make` takes the original's `result_id`, structured `versions`, and `design_differences`, and
+    refuses inconsistent inputs.
+27. `__hash__ = None` on the frozen types holding read-only mappings.
 
 ## Notes
 
@@ -109,8 +129,14 @@ Each is record 0070's, numbered as there, one line each.
 - **Shared files, edited additively:** `identity.py` (a `TYPE_CHECKING` import after `numpy`, then functions
   appended), `text.py` and `_values.py` (functions appended; `text.py`'s first import lines gain `re` and
   `datetime`), `types/__init__.py` (re-exports inserted in sorted order, as Ruff's isort requires, and a second
-  `__all__ +=` list appended), `docs/index.md` (four modules). The docstrings of `identity.py` and
-  `types/__init__.py` still say the approval id, the reuse key, and the four modules "come with later steps":
-  left as they were for the merge; update them when steps 03 and T are merged.
+  `__all__ +=` list appended), `docs/index.md` (four modules). `identity.py`'s docstring still says the
+  approval id and the reuse key "come with later steps": step 03 rewrites the same lines, so update it when
+  steps 03 and T are merged. (`types/__init__.py`'s was updated in review round 1; step 03 leaves it.)
+- **Review round 1** (2026-10-02; 0070 items 18–27): both majors and every minor but 12 (the size budget, the
+  coordinator's) fixed, each with a test; nits 13 (the package docstring only, above), 14–18 fixed. Tests: 590
+  in the fast tier (the slow one skipped), 56 of them new. `ema.types` 1,514 code lines: this step's 1,020,
+  review round 1's 210 among them (`results.py` 531, `runs.py` 225, `summaries.py` 98, `requests.py` 98; 68 in
+  `identity.py`, `text.py`, `_values.py`). For step 06: write the `column()`s, not `to_json()`, and read with
+  `from_columns` (0070 item 18).
 - **Deferred** (0070): each summary type as strict JSON for the MCP envelope (step 15; `results._plain` is the
   seam, about an hour); the questions' and summaries' texts (steps 07 and 14).

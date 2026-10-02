@@ -212,16 +212,24 @@ def model_version_label(name: str, model_version_id: str) -> str:
 ID_DTYPE = np.dtype("V32")
 
 
-def id_array(ids: Sequence[str]) -> np.ndarray:
-    """Return ids, given as 64 hex digits each, as an ``(n,)`` array of ``ID_DTYPE``.
+def id_array(ids: np.ndarray | Sequence[str] | Sequence[bytes]) -> np.ndarray:
+    """Return ids as a new ``(n,)`` array of ``ID_DTYPE``, from any form ``batch_call_id`` takes.
+
+    The one rule for ids given to a type (record 0070, review round 1): 64 hex digits each, 32-byte ``bytes``,
+    an ``(n, 32)`` uint8 array, or an array of 32-byte fixed-width elements, ``ID_DTYPE`` included.
 
     Raises
     ------
     ValueError
         For anything that isn't an id.
     """
-    raw = b"".join(bytes.fromhex(i) for i in _hex_ids(list(ids)))
+    raw = b"".join(bytes.fromhex(i) for i in _hex_ids(ids))
     return np.frombuffer(raw, dtype=ID_DTYPE).copy()
+
+
+def _is_id(value: object) -> bool:
+    """Tell whether ``value`` is an id's text: 64 lowercase hex digits (data_model.md §3.2)."""
+    return isinstance(value, str) and _HEX_ID.fullmatch(value) is not None
 
 
 def hex_ids(ids: np.ndarray | Sequence[str] | Sequence[bytes]) -> tuple[str, ...]:

@@ -28,8 +28,17 @@ class _Coded(Enum):
 
     @classmethod
     def from_code(cls, code: int) -> Any:
-        """Return the member with this code; None for -1 (a kind's code for an ok run)."""
-        return None if code == -1 else list(cls)[code]
+        """Return the member with this code.
+
+        Raises
+        ------
+        ValueError
+            For a code that isn't a member's.
+        """
+        members = list(cls)
+        if not 0 <= code < len(members):
+            raise ValueError(f"no {cls.__name__} has code {code!r}")
+        return members[code]
 
 
 class RunStatus(_Coded):
@@ -52,24 +61,54 @@ class FailureKind(_Coded):
     TIMEOUT = "timeout"
     UNREAD = "unread"
 
+    @classmethod
+    def from_code(cls, code: int) -> "FailureKind | None":
+        """Return the kind with this code; None for -1, an ok run's (``ValueError`` for any other code)."""
+        return None if code == -1 else super().from_code(code)
+
 
 def _freeze_map(mapping: Mapping[str, Any]) -> Mapping[str, Any]:
     return MappingProxyType(dict(mapping))
 
 
-def _read_only(array: np.ndarray, dtype: Any, ndim: int, n: int | None, what: str) -> np.ndarray:
-    out = np.asarray(array, dtype=dtype).view()
-    if out.ndim != ndim or (n is not None and out.shape[0] != n):
-        raise ValueError(f"{what}: shape {out.shape}, expected {ndim} dimensions with {n} rows")
+def _frozen(array: np.ndarray) -> np.ndarray:
+    """Return a read-only view that nothing else can write through (record 0070, item 8 and review round 1).
+
+    An array no one can write is shared; one that owns its data is made read-only in place, the caller's array
+    too (no copy: 10^7 ids are 320 MB); a writable view of another array's data is copied.
+    """
+    chain = [array]
+    while isinstance(chain[-1].base, np.ndarray):
+        chain.append(chain[-1].base)
+    if any(a.flags.writeable for a in chain):
+        if array.base is None:
+            array.flags.writeable = False
+        else:
+            array = array.copy()
+            array.flags.writeable = False
+    out = array.view()
     out.flags.writeable = False
     return out
 
 
+def _read_only(array: Any, dtype: Any, ndim: int, n: int | None, what: str) -> np.ndarray:
+    given = np.asarray(array)
+    integral = dtype is not None and np.dtype(dtype).kind == "i"
+    if integral and given.size and given.dtype.kind not in "iu":
+        raise ValueError(f"{what}: integers, not {given.dtype}")
+    out = np.asarray(given, dtype=dtype)
+    if out.ndim != ndim or (n is not None and out.shape[0] != n):
+        raise ValueError(f"{what}: shape {out.shape}, expected {ndim} dimensions with {n} rows")
+    return _frozen(out)
+
+
 def _ids(array: np.ndarray | Sequence[str], n: int | None, what: str) -> np.ndarray:
+    """Read ids by ``id_array``'s one rule, as a read-only ``ID_DTYPE`` array; an ``ID_DTYPE`` array is not copied."""
     if not (isinstance(array, np.ndarray) and array.dtype == ID_DTYPE):
-        if isinstance(array, np.ndarray) and array.dtype.kind not in "UO":
-            raise ValueError(f"{what}: not ids (dtype {array.dtype})")
-        array = id_array(list(array))
+        try:
+            array = id_array(array)
+        except ValueError as error:
+            raise ValueError(f"{what}: {error}") from error
     return _read_only(array, ID_DTYPE, 1, n, what)
 
 
@@ -136,6 +175,8 @@ class Run:
     host: str
     program: str
     approval_id: str
+
+    __hash__ = None  # type: ignore[assignment]  # it holds read-only mappings
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "point", finite_doubles(self.point, "a run's point"))
@@ -235,8 +276,9 @@ class Resolution:
         object.__setattr__(self, "new_keys", tuple(self.new_keys))
         if n and (row_keys.min() < -1 or row_keys.max() >= len(self.new_keys)):
             raise ValueError("row_keys must index new_keys, or be -1 for a stored row")
-        if np.any(row_runs[row_keys >= 0] != np.zeros(1, dtype=ID_DTYPE)):
-            raise ValueError("a new row's row_runs entry is zeros")
+        zero = row_runs == np.zeros(1, dtype=ID_DTYPE)
+        if not np.array_equal(zero, row_keys >= 0):
+            raise ValueError("a new row's row_runs entry is zeros, and a stored row's is its run's id")
         if self.reused_failed < 0:
             raise ValueError(f"reused_failed must be >= 0, not {self.reused_failed}")
 
@@ -314,6 +356,8 @@ class RunColumns:
         set_(self, "reasons", _freeze_map(self.reasons))
         set_(self, "stderr_tails", _freeze_map(self.stderr_tails))
         set_(self, "missing", MappingProxyType({k: _freeze_map(v) for k, v in self.missing.items()}))
+        if not (np.isin(self.status, (0, 1)).all() and np.isin(self.kind, (-1, 0, 1, 2)).all()):
+            raise ValueError("a status code is 0 or 1, a kind code -1, 0, 1, or 2 (record 0070, item 2)")
         if not np.array_equal(self.kind == -1, self.status == RunStatus.OK.code):
             raise ValueError("a run has a kind exactly when it failed")
 
@@ -395,8 +439,11 @@ class Price:
     text: str
 
     def __post_init__(self) -> None:
-        if min(self.new, self.reused, self.reused_failed, self.from_runs) < 0 or self.reused_failed > self.reused:
-            raise ValueError(f"a price's counts are >= 0, with reused_failed <= reused: {self}")
+        if (
+            min(self.new, self.reused, self.reused_failed) < 0
+            or not self.reused_failed <= self.reused <= self.from_runs
+        ):
+            raise ValueError(f"a price's counts are >= 0, with reused_failed <= reused <= from_runs (Q2): {self}")
         if (self.time_s is None) != (self.from_runs == 0):
             raise ValueError("a price has a time exactly when it is estimated from stored runs (P3)")
         if self.time_s is not None and not (math.isfinite(self.time_s) and self.time_s >= 0):

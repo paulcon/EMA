@@ -192,6 +192,8 @@ class DiagnosticParameterInfo:
     changes_design: str
     json_schema: Mapping[str, Any]
 
+    __hash__ = None  # type: ignore[assignment]  # it holds read-only mappings
+
     def __post_init__(self) -> None:
         object.__setattr__(self, "json_schema", _freeze(self.json_schema))
 
@@ -271,6 +273,8 @@ class RunInfo(_Shown):
     run_dir: str | None
     batch_dir: str | None
     text: str
+
+    __hash__ = None  # type: ignore[assignment]  # it holds read-only mappings
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "point", MappingProxyType(dict(self.point)))

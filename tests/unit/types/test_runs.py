@@ -55,6 +55,12 @@ class TestEnums:
         assert all(FailureKind.from_code(k.code) is k for k in FailureKind)
         assert FailureKind.from_code(-1) is None
 
+    @pytest.mark.parametrize(("enum", "code"), [(FailureKind, -2), (FailureKind, 3), (RunStatus, -1), (RunStatus, 2)])
+    def test_unknown_codes_refused(self, enum, code):
+        """Record 0070, item 2 (review round 1): a code no member has is refused, not decoded."""
+        with pytest.raises(ValueError):
+            enum.from_code(code)
+
 
 class TestRun:
     def test_point_as_doubles_and_mappings_read_only(self):
@@ -132,6 +138,8 @@ class TestResolution:
             (["0a" * 32] * 3, [-1, -1, -1]),  # wrong length
             (["0a" * 32] * 4, [-1, -1, -1, 2]),  # a key index past new_keys
             (["0a" * 32] * 4, [-1, 0, -1, -1]),  # a new row with a stored id
+            (["0a" * 32, "00" * 32, "00" * 32, "0a" * 32], [-1, 0, -1, -1]),  # a stored row with zeros
+            (["0a" * 32, "00" * 32, "0b" * 32, "0a" * 32], [-1.0, 0.0, -1.0, -1.0]),  # float keys
         ],
     )
     def test_refusals(self, row_runs, row_keys):
@@ -177,11 +185,26 @@ class TestRunColumns:
             {"points": np.zeros((3, 2))},
             {"kind": np.array([-1, 0, 1, -1])},  # an ok run with a kind
             {"run_ids": np.zeros(4)},  # not ids
+            {"status": np.array([0, 0, 7, 0]), "kind": np.array([-1, -1, 1, -1])},  # no status 7
+            {"kind": np.array([-1, -1, 9, -1])},  # no kind 9
+            {"replicates": np.zeros(4)},  # integers, not doubles
         ],
     )
     def test_refusals(self, kw):
         with pytest.raises(ValueError):
             columns(**kw)
+
+
+def test_arrays_do_not_alias_their_sources():
+    """Record 0070, item 8 (review round 1): a source owning its data is made read-only; a writable view copied."""
+    run_ids = id_array([f"{i:02x}" * 32 for i in range(4)])
+    owner = np.zeros(8)
+    cols = columns(run_ids=run_ids, time_s=owner[:4])
+    assert not run_ids.flags.writeable and np.shares_memory(cols.run_ids, run_ids)
+    owner[0] = 5.0
+    assert cols.time_s[0] == 0.0
+    shared = columns(run_ids=cols.run_ids)  # a read-only array is shared, not copied
+    assert np.shares_memory(shared.run_ids, run_ids)
 
 
 class TestRunBatch:
@@ -225,8 +248,8 @@ class TestPrice:
             ),
             # 0010, C47: reused failed runs counted
             (
-                {"new": 100, "reused": 200, "reused_failed": 34, "time_s": None, "from_runs": 0},
-                "100 new runs, 200 reused, of which 34 failed, time unknown",
+                {"new": 100, "reused": 200, "reused_failed": 34, "time_s": 500.0, "from_runs": 200},
+                "100 new runs, 200 reused, of which 34 failed, about 8 min (from 200 stored runs)",
             ),
         ],
     )
@@ -243,6 +266,9 @@ class TestPrice:
             {"new": 1, "reused": 0, "time_s": 1.0, "from_runs": 0},  # a time from no stored run
             {"new": 1, "reused": 0, "time_s": None, "from_runs": 3},  # stored runs and no time
             {"new": 1, "reused": 0, "time_s": math.inf, "from_runs": 3},
+            # Q2 counts every stored run, the reused included (review round 1)
+            {"new": 1, "reused": 4, "time_s": 1.0, "from_runs": 3},
+            {"new": 1, "reused": 1, "time_s": None, "from_runs": 0},
         ],
     )
     def test_refusals(self, kw):
