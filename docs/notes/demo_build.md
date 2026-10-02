@@ -169,3 +169,27 @@ State lives in git and on disk; nothing is only in the conversation.
 - Started from `demo` (a2e8226): 10 scatter, 11 coordinate lines and lines, 12 linear model, 13 polynomial model,
   and 14 the workspace (diagnostic-agnostic; it needs only the base), each in its own worktree. Reviews started
   on `demo`: step 07 (round 1), step 09 (round 1), and round 2 of 04+05, 06, 08, with an end-to-end probe.
+- **Step 07, review round 1** (a2e8226): 0 blockers, 2 major, 6 minor, 5 nits; P3's paths (declined, another
+  model version, a batch past the approved count, files changed, the cap at a call's start), pricing per
+  distinct key, and the question's text (T7) verified. Major: a key already run under another approval could
+  run again from a stale resolution (unreachable through the workspace's lock-then-resolve, but the runner is
+  the one place that checks); a Ctrl-C right after W4's commit deleted stored runs' directories. Fixing round 1
+  on `demo-07fix`.
+- **Step 09, review round 1** (a2e8226): 0 blockers, 2 major, 5 minor, 5 nits; every point-run known answer and
+  reference model recomputed and agreeing; counts, notes, refusals, and identities verified. Major: the point
+  run's mean and standard deviation rounding for a constant value (a nonzero standard deviation for a
+  deterministic model); the contract's batch builder deciding failures per row, not per run (coordinate lines'
+  shared anchor broke C2). The builder's fix is handed to step 11's agent; the rest is fixing round 1 on
+  `demo-09fix`.
+- **Steps 04+05, 06, 08, review round 2** (merged, a2e8226): 06 and 08 done (round-1 fixes correct; W5 refused
+  no valid case among nine tried: retries, test runs, interrupted evaluations, all-failed models, R8); 04+05's
+  round-1 fixes correct but two new bugs (a 64 MiB reply cap too small for large batch calls, a major; `poll`'s
+  timeout overflow). A point run went end to end through runner → store → diagnostics → report → W5 in a
+  scratch script; its seams sent to step 14's agent. Fixing on `demo-wave3fix` (the cap, the overflow, a lock
+  around styled drawing for the MCP server's two threads, W6's directory removal).
+- **Step 07, fixing round 1** (fb0ad25, merged): both majors and every minor fixed (a key already run cut from
+  the call; Ctrl-C after a commit keeps the runs; `current_keys` in `resolve`); its round 2 comes with the
+  final integrated review.
+- **Step 09, fixing round 1** (merged, acfed84): the point run's moments from replicate 0 (exact for a
+  constant); decimal text kept as written; plain-text notes; C2, C6, C10 tightened; −0.0 kept distinct from 0.0
+  per `data_model.md` §3.4. The four diagnostic agents and the workspace agent told of the tightened checks.
