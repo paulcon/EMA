@@ -53,6 +53,8 @@ MODULES += [
 ]
 #: The runner and approval (step 07).
 MODULES += ["ema/runner.py", "ema/approval.py"]
+#: The polynomial model (step 13).
+MODULES += ["ema/diagnostics/polynomial_model.py"]
 
 
 @pytest.mark.slow

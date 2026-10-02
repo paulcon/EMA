@@ -11,7 +11,7 @@ import math
 from dataclasses import dataclass
 
 import numpy as np
-import scipy.linalg
+from scipy.linalg import lapack
 
 from ema.numerics._vector import centered, dot, matvec, norm
 
@@ -100,7 +100,11 @@ def least_squares(A: np.ndarray, y: np.ndarray) -> Fit:
     r = _rank_of(np.linalg.svd(R, compute_uv=False), (n, P))
     if r < P:
         return Fit(np.full(P, math.nan), np.full(n, math.nan), r, np.full(n, math.nan))
-    coefficients = scipy.linalg.solve_triangular(R, matvec(Q.T, y))  # one term: a one-row product (0068 item 1)
+    # LAPACK's dtrtrs, which scipy.linalg.solve_triangular calls after about 80 µs of checks: the same numbers, and
+    # the bootstrap's 1000 refits a third faster (record 0079). R is nonsingular here: its rank is P.
+    coefficients, info = lapack.dtrtrs(R, matvec(Q.T, y))  # one term: a one-row product (0068 item 1)
+    if info != 0:  # pragma: no cover - the rank rule has already refused a singular R
+        raise np.linalg.LinAlgError(f"R is singular: dtrtrs info {info}")
     residuals = y - matvec(A, coefficients)
     leverages = np.sum(Q * Q, axis=1)
     return Fit(coefficients, residuals, r, leverages)
