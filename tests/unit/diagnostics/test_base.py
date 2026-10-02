@@ -237,7 +237,7 @@ def test_register_and_unregister():
     assert "toy" not in base.names()
     with pytest.raises(ValueError, match="no diagnostic toy"):
         base.unregister("toy")
-    with pytest.raises(NotFound, match="the diagnostics are point_run"):
+    with pytest.raises(NotFound, match="the diagnostics are .*point_run"):  # any registered (steps 10-13)
         base.get("toy")
 
 

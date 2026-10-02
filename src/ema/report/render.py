@@ -397,7 +397,7 @@ def _provenance_section(result: DiagnosticResult, spec: ModelSpec) -> list[str]:
     parts = [_cell(request.diagnostic.replace("_", " "))]
     if request.space is not None:
         parts.append("space as above")
-    for key in sorted(k for k in params if k != "seed"):
+    for key in sorted(k for k in params if k != "seed" and params[k] is not None):  # None: not given (lines' m)
         if key == "sampler" and p.design.sampler is not None:
             parts.append(_sampler(p.design, rate=False))
         elif key in _NAMED:

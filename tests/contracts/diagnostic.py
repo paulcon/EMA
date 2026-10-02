@@ -155,14 +155,24 @@ def expected(value: float, transform: Transform, a: float, b: float) -> float | 
 
 
 def assert_transformed(
-    diagnostic: Any, got: DiagnosticResult, ref: DiagnosticResult, a: float, b: float, tol: Callable[..., float]
+    diagnostic: Any,
+    got: DiagnosticResult,
+    ref: DiagnosticResult,
+    a: float,
+    b: float,
+    tol: Callable[..., float],
+    *,
+    skip_log: bool = False,
 ) -> None:
     """Each estimate (and its interval) and observation of ``got`` is ``ref``'s transformed as declared, within
-    ``tol(transform, through_log, value)``."""
+    ``tol(transform, through_log, value)``; with ``skip_log``, a number declared through a logarithm is left out (C6:
+    lines' rates and their k*, decided at a cutoff of a line's range; record 0077)."""
     assert [t.key for t in got.estimates] == [t.key for t in ref.estimates], "other estimates tables"
     assert [t.key for t in got.observations] == [t.key for t in ref.observations], "other observations tables"
 
     def same(where: str, v: Any, w: Any, transform: Transform, log: bool) -> None:
+        if skip_log and log:
+            return
         if isinstance(w, str) or isinstance(v, str):
             assert v == w, f"{where}: {v!r}, not {w!r}"
             return
@@ -261,7 +271,8 @@ def check_partial_failures(diagnostic: Any, tmp_path: Path) -> None:
     usable ones; a cell that reports a run's kind shows the new kind."""
     for name, mask in masks(sd.prepare(diagnostic)).items():
         case, made, first = run(diagnostic, tmp_path, failed=mask, kinds=KINDS, reasons=REASONS)
-        failed_kinds = made.runs.kind[mask]
+        _, firsts = np.unique(made.runs.run_ids, return_index=True)  # distinct runs: a shared anchor is one (0077)
+        failed_kinds = made.runs.kind[firsts]
         for kind in FailureKind:
             assert first.counts.failed[kind] == int((failed_kinds == kind.code).sum()), f"{name}: counts of {kind}"
         text = note(first, "not_usable")
@@ -288,8 +299,10 @@ def check_partial_failures(diagnostic: Any, tmp_path: Path) -> None:
         _, _, other_z = run(diagnostic, tmp_path, missing_y=mask, z=lambda c: 1000.0 * c.f() + 5.0)
         assert numbers(other_z) == numbers(missing), f"{name}: z of a run missing y moved a number"
     case, made, z = run(diagnostic, tmp_path, prediction="z")
-    want = int((made.runs.status == RunStatus.OK.code).sum() - made.usable("z").sum())
-    assert z.counts.missing == want and z.counts.usable == int(made.usable("z").sum()), "z's missing runs"
+    _, firsts = np.unique(made.runs.run_ids, return_index=True)  # counted over distinct runs (0077)
+    usable_z = int(made.usable("z")[firsts].sum())
+    want = int((made.runs.status[firsts] == RunStatus.OK.code).sum()) - usable_z
+    assert z.counts.missing == want and z.counts.usable == usable_z, "z's missing runs"
 
 
 def check_minimum(diagnostic: Any, tmp_path: Path) -> None:
@@ -346,8 +359,9 @@ def check_units(diagnostic: Any, tmp_path: Path) -> None:
 
 def check_large_offset(diagnostic: Any, tmp_path: Path) -> None:
     """C6: 10⁶ + 10⁻³·f: no constant note, and each number equals f's transformed, within OFFSET_RTOL of the range
-    (absolute when dimensionless); but the relative spread, and a fixture whose distinct values the offset merges
-    (the point run's, 0061)."""
+    (absolute when dimensionless); but the relative spread, the numbers a cutoff at a fraction of a line's range
+    decides (lines' k* and rates, declared through a logarithm; record 0077), and a fixture whose distinct values the
+    offset merges (the point run's, 0061)."""
     case, made, ref = run(diagnostic, tmp_path)
     y = case.f()
     offset = 1e6 + 1e-3 * y
@@ -362,7 +376,7 @@ def check_large_offset(diagnostic: Any, tmp_path: Path) -> None:
     def tol(transform: Transform, log: bool, value: float) -> float:
         return OFFSET_RTOL if transform is Transform.UNCHANGED else OFFSET_RTOL * y_range
 
-    assert_transformed(diagnostic, got, ref, 1e-3, 1e6, tol)
+    assert_transformed(diagnostic, got, ref, 1e-3, 1e6, tol, skip_log=True)
 
 
 def check_deterministic(diagnostic: Any, tmp_path: Path) -> None:

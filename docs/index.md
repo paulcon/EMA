@@ -87,11 +87,15 @@ The store (step 06):
    ema.reference_models
 
 .. Step 10: scatter (a block of its own, to ease merging).
+.. Step 11: coordinate lines and lines (a block of its own, to ease merging).
 
 .. autosummary::
    :toctree: _autosummary
 
    ema.diagnostics.scatter
+   ema.diagnostics._lines
+   ema.diagnostics.coordinate_lines
+   ema.diagnostics.lines
 ```
 
 The runner and approval (step 07):
