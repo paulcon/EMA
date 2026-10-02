@@ -49,6 +49,7 @@ README.md                     this file
 CLAUDE.md                     instructions for Claude Code
 TODO.md                       what to do by hand before coding, in order
 STATUS.md                     done, in progress, next, open decisions
+LICENSE                       MIT (0060)
 docs/design/
   purpose.md                  why EMA exists, and for whom
   principles.md               P1…

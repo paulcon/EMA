@@ -1,6 +1,7 @@
 # Reference models
 
-**Status:** accepted. **Updated:** 2026-10-01 (step 11: the expected answers checked; 0058). **Depends on:** records 0009, 0021, 0022, 0024, 0027, 0030, 0058.
+**Status:** accepted. **Updated:** 2026-10-01 (step 11: the expected answers checked; 0058; R2's model name, 0060).
+**Depends on:** records 0009, 0021, 0022, 0024, 0027, 0030, 0058.
 
 > The models v2 is developed and verified against, each with the answers a correct diagnostic must give. With
 > these, "done" means "matches what was worked out independently", not "the tests Claude wrote pass". Each
@@ -28,6 +29,8 @@
 - **Nominal values** are at the centers of the ranges (the geometric center for a log range), so coordinate
   lines through the nominal point share it when n is odd (`designs.md`, G12). A test that needs the anchor off
   center gives it.
+- **Model names:** R2's is `ishigami` (the get-started guide loads it; 0060); the others are named by the
+  build step that adds them.
 - **Model predictions:** one, named `y`, unless a model says otherwise. Units are empty (dimensionless) except
   R3's.
 - **The shared rules** (a constant model prediction, 0035; the minimum runs) are in `diagnostics/shared.md`;

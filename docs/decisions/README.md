@@ -85,3 +85,4 @@ Write one when a choice:
 | 0057 | Give a model an allowlisted environment, confine the MCP server to a root, and check a spec's paths | accepted | 2026-10-01 |
 | 0058 | Drop the kink-line known answer, and set two tolerances from step 11's checks | accepted | 2026-10-01 |
 | 0059 | Support Python 3.13 and newer; build with uv and a lockfile, document with Sphinx, run the checks on GitHub Actions by hand, and make PDFs with lualatex | accepted | 2026-10-01 |
+| 0060 | Install from GitHub with uv, test the get-started guide, license EMA under MIT, and accept C53–C55 | accepted | 2026-10-01 |

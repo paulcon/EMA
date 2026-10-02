@@ -268,5 +268,5 @@ A Python function model (U1's beam):
   dataclass per interface, the three phases in place of `Model.evaluate`, and `RunStatus` without
   `INVALID_INPUT` or `TIMEOUT` as statuses (a failure kind instead).
 - **Trust (step 10):** done (`trust.md`, 0057).
-- **Guides (step 13):** the add-a-model guide: the JSON wrapper for other model output, stateless functions,
-  helper files to list, shared files.
+- **Guides (step 13):** done (`../guides/`, 0060): the add-a-model guide: the JSON wrapper for other model
+  output, stateless functions, helper files to list, shared files.

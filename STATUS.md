@@ -4,8 +4,8 @@
 
 ## Now
 
-- Writing the design documents by hand (`TODO.md`): steps 1–12 done.
-- Next: step 13, guides as outlines.
+- Writing the design documents by hand (`TODO.md`): steps 1–13 done.
+- Next: "Before the first line of code" (`TODO.md`): the specs checked against each other, and the first plan.
 
 ## Done
 
@@ -61,10 +61,18 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   `PdfFailed`; import-linter sees standard-library imports), applied to `CLAUDE.md` (the commands),
   `architecture.md`, `contracts.md`, `trust.md`, `scope.md`, `TODO.md`, and 0018's status. uv and its Pythons
   installed on this Mac (staged steps; an old `~/pyvenv.cfg` renamed, which had hidden uv's Pythons).
+- 2026-10-01: step 13, guides as outlines (`docs/guides/`: get started, add a model, run a diagnostic, add a
+  diagnostic), each walked through `ema.workspace` on paper (no new workspace function), from an interview; record
+  0060 (install from GitHub with uv; get started in Python, its blocks tested on R2 under C53;
+  `ema.reference_models.path` gives the model spec; `ema report` prints its path on stderr; add-a-diagnostic for
+  outside contributors too; the MIT license, `LICENSE`; C53–C55 accepted), applied to `architecture.md`,
+  `contracts.md`, `trust.md`, `model_interface.md`, `reference_models.md`, `docs/plans/_template.md`, `README.md`,
+  `TODO.md`, and the decisions index; three independent reviews (28, 11, then 9 findings, all fixed).
 
 ## Next
 
-- Step 13, guides as outlines: `TODO.md` step 13.
+- "Before the first line of code" (`TODO.md`): a consistency check of the specs, and the first plan
+  (`docs/plans/01-…`).
 - For the first plan of `ema.numerics`: the coordinate lines' Lanczos basis must be the same bit for bit on
   every call (C7). With numpy on Accelerate (this Mac), the matrix products in its reorthogonalization gave two
   different bases in 50 calls in one process (step 11's round 3 review). Build the basis without BLAS
@@ -83,7 +91,7 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
 | `docs/design/designs.md` | accepted |
 | `docs/design/diagnostics/` | accepted: `shared.md` and the six diagnostics |
 | `docs/design/uncertainty.md` | accepted |
-| `docs/design/contracts.md` | accepted (C53–C55 provisional until step 13) |
+| `docs/design/contracts.md` | accepted (C53–C55 with the guides, 0060) |
 | `docs/design/data_model.md` | accepted (Q1–Q15, W1–W6, I1–I12) |
 | `docs/design/architecture.md` | accepted (AR1–AR7) |
 | `docs/design/trust.md` | accepted (T1–T10) |

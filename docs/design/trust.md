@@ -384,11 +384,11 @@ Record 0057, applied 2026-10-01:
 - **`diagnostics/shared.md`:** the notes' reasons print "verbatim" as escaped Markdown that renders verbatim
   (T10); Figures, Axes: "with mathtext for symbols" becomes "mathtext for EMA's own symbols; a spec's names
   and units print literally"; golden reports compare names as rendered.
-- **Guides (step 13):** the add-a-model guide: no secret in `env`; `pass_env` with an example; `DYLD_*`
-  dropped on macOS; a wrapper script for a command of more than one line, or for a scheduler's or module
-  system's many variables; units as plain text or Unicode; a link for a file outside the model's directory.
-  The get-started guide: `ema mcp --root` in an MCP client's configuration. The run-a-diagnostic guide, with
-  export: open `runs.csv` as data.
+- **Guides (step 13):** done (`../guides/`, 0060): the add-a-model guide: no secret in `env`; `pass_env` with an
+  example; `DYLD_*` dropped on macOS; a wrapper script for a command of more than one line, or for a scheduler's
+  or module system's many variables; units as plain text or Unicode; a link for a file outside the model's
+  directory. The get-started guide: `ema mcp --root` in an MCP client's configuration. The run-a-diagnostic guide,
+  with export: open `runs.csv` as data.
 - **`contracts.md`:** C32's promise "M2 and T2", and its Generalizes adds T2.
 - **Record 0029:** "accepted; its list of what is not covered amended by 0057 (`pass_env` values)".
 - **`docs/decisions/README.md`:** the 0057 row; 0029's status.

@@ -1,12 +1,12 @@
 # Architecture: packages, layers, and modules
 
-**Status:** accepted (TODO step 9; 0056). **Updated:** 2026-10-01 (0057: the trust rules placed). **Depends on:** P1–P7;
-`scope.md`; `use_cases.md` (U1–U9); `model_interface.md` (M1–M21); `designs.md` (G1–G17);
-`diagnostics/shared.md` (S1–S10) and the six diagnostic specs; `uncertainty.md` (V1–V7); `contracts.md`
-(C1–C56); `data_model.md` (Q1–Q12, W1–W6, I1–I12; Q13–Q15 added by 0056); `export.md` (E1–E7); records 0005, 0008, 0010, 0015–0022,
-0024–0030, 0032–0036, 0040, 0041, 0046, 0047, 0049, 0050, 0053–0055, 0057; `trust.md` (T1–T10). Rewritten from the specs' "Architecture
-(step 9)" asks and the consistency review's "Step 9 inputs"; the draft of 2026-09-28 (`api_spec_draft.md`) is
-replaced.
+**Status:** accepted (TODO step 9; 0056). **Updated:** 2026-10-01 (0057: the trust rules placed; 0060: the
+guides). **Depends on:** P1–P7; `scope.md`; `use_cases.md` (U1–U9); `model_interface.md` (M1–M21); `designs.md`
+(G1–G17); `diagnostics/shared.md` (S1–S10) and the six diagnostic specs; `uncertainty.md` (V1–V7); `contracts.md`
+(C1–C56); `data_model.md` (Q1–Q12, W1–W6, I1–I12; Q13–Q15 added by 0056); `export.md` (E1–E7); records 0005, 0008,
+0010, 0015–0022, 0024–0030, 0032–0036, 0040, 0041, 0046, 0047, 0049, 0050, 0053–0055, 0057; `trust.md` (T1–T10).
+Rewritten from the specs' "Architecture (step 9)" asks and the consistency review's "Step 9 inputs"; the draft of
+2026-09-28 (`api_spec_draft.md`) is replaced.
 
 > Every package and module in v2.0, what each is for, its layer, and its public names, with signatures, so
 > each module's code and contract tests can be written against it. Signatures are Python stubs (`...` for the
@@ -1379,7 +1379,7 @@ formats a number (C54, C55; P1).
 | `ema price MODEL DIAGNOSTIC [--space FILE] [--param k=v]… [--prediction P] [--retry-failed]` | `price` |
 | `ema run MODEL DIAGNOSTIC [--space FILE] [--param k=v]… [--prediction P] [--retry-failed] [--yes]` | `run`; a progress line on stderr |
 | `ema results [ID] [--model M] [--model-version V] [--diagnostic D] [--prediction P]` | `get_result`, or `list_results` |
-| `ema report ID [--pdf]` | `report` (0018) |
+| `ema report ID [--pdf]` | `report` (0018); the Markdown on stdout, then the report's path (and the PDF's) on stderr (0060) |
 | `ema failed-runs ID` | `failed_runs` (U3) |
 | `ema run-dirs ID [--point FILE]` | `run_dirs` (0020) |
 | `ema reproduce ID` | `reproduce` (U8) |
@@ -1458,7 +1458,7 @@ implementation with `pytest.mark.parametrize`, with its toy and its broken toys.
 | `IntervalMethod` | `tests/contracts/interval.py` | C30 | the bootstrap, a fake |
 | the model adapter | `tests/contracts/model.py` | C31–C45 | a Python function, the same as a batch, and a command-line program (`tests/models/`), every Python model isolated (0026); the three parsers |
 | `Store` | `tests/contracts/store.py` | C46–C52, C56; I1–I12 | the store; with the runner and millisecond models for C47–C49 (the cap counted at a call's start, an interrupt) |
-| `Workspace` and CLI | `tests/contracts/workspace.py` | C53, C54 | the use cases U1–U9 (slow tier), the guides' examples, and every CLI command against its workspace function |
+| `Workspace` and CLI | `tests/contracts/workspace.py` | C53, C54 | the use cases U1–U9 and get started's examples (slow tier; 0060), and every CLI command against its workspace function |
 | MCP tools | `tests/contracts/tools.py` | C55 | every tool, through a scripted MCP client (U9) |
 
 The fast tier also runs the import contracts (§10) and the terminology test (0008).
@@ -1570,7 +1570,8 @@ specs:
 
 - **Reference models ship with `ema`,** in `ema/reference_models/` (each a model spec with its function or
   program), counted against their own 1,000 lines, not the 8,000. The get-started guide and the use cases'
-  "Done when" tests load them from an installed EMA; `ema.reference_models.path(id)` gives one's directory.
+  "Done when" tests load them from an installed EMA; `ema.reference_models.path(id)` gives one's model spec
+  (its `model.json`; 0060).
 - **Each build step's plan** measures its package against its line here, and reports an overrun.
 
 ## 12. Decisions
@@ -1632,4 +1633,5 @@ specs:
   - `STATUS.md`: OD-16 decided (0056).
 - **Trust (step 10):** done (`trust.md`, 0057).
 - **Setup (step 12):** done (0059): import-linter sees standard-library imports (§10); CLAUDE.md's commands.
-- **Guides (step 13):** each guide walked through against §7; any awkward step changes §7 first.
+- **Guides (step 13):** done (`../guides/`, 0060): each guide walked through against §7; no new workspace
+  function; §8's `ema report` and §11's `path(id)` changed.

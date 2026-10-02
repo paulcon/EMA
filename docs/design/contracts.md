@@ -1,9 +1,10 @@
 # Contracts and degenerate cases
 
-**Status:** accepted; C46–C52 and C56 cite `data_model.md`'s invariants (0054, 0055); C53–C55 provisional until
-the guides (step 13). **Updated:** 2026-10-01 (0054, 0055, 0056, 0057). **Depends on:** P1–P7; `scope.md`; `model_interface.md` (M1–M21),
-`designs.md` (G1–G17), `diagnostics/shared.md` (S1–S10) and the six diagnostic specs, `uncertainty.md`
-(V1–V7); records 0008, 0010, 0011, 0015–0019, 0022, 0025–0030, 0032–0043, 0045–0048, 0051, 0052, 0054, 0055.
+**Status:** accepted; C46–C52 and C56 cite `data_model.md`'s invariants (0054, 0055); C53–C55 accepted with the
+guides (0060). **Updated:** 2026-10-01 (0054, 0055, 0056, 0057, 0060). **Depends on:** P1–P7; `scope.md`;
+`model_interface.md` (M1–M21), `designs.md` (G1–G17), `diagnostics/shared.md` (S1–S10) and the six diagnostic
+specs, `uncertainty.md` (V1–V7); records 0008, 0010, 0011, 0015–0019, 0022, 0025–0030, 0032–0043, 0045–0048, 0051,
+0052, 0054, 0055.
 
 > The promises each interface makes, written so each becomes one `check_*` function run over every
 > implementation (`../notes/v1/lessons_learned_answers_2026-09-27.md` §4). This file is the test plan: Claude
@@ -195,12 +196,12 @@ added in the interview, after C55; ids are not renumbered.
 
 ## Workspace and MCP contracts
 
-Provisional until the guides (step 13). `architecture.md` §9 runs the workspace
-contract over the guides' examples; C53 adds the use cases.
+Accepted with the guides (step 13, 0060). `architecture.md` §9 runs the workspace contract over the use cases
+and the get-started guide's examples.
 
 | Id | Promise | Generalizes | Check | Negative control |
 |---|---|---|---|---|
-| C53 | Each use case U1–U9 runs as written, and meets its "Done when" (no budgets in v2.0, 0050). | `use_cases.md` | `check_use_case`, one parametrized check over the use cases, slow tier | a workspace that runs before showing the price fails every use case that makes a new run |
+| C53 | Each use case U1–U9 runs as written, and meets its "Done when" (no budgets in v2.0, 0050); the get-started guide's Python blocks run as written on R2, from an installed EMA (0060). | `use_cases.md`, `../guides/get_started.md` | `check_use_case`, one parametrized check over the use cases, and `check_get_started`, slow tier | a workspace that runs before showing the price fails every use case that makes a new run |
 | C54 | Each CLI command's result equals the workspace function it calls. | AR3 (`architecture.md`, 0056) | `check_cli_matches_workspace` | a command that formats its own numbers |
 | C55 | Every MCP tool returns the envelope, has a description for every schema field, and marks errors `retryable` or not; every number in a tool result equals the stored value it names. | P1, 0016, 0019, U9 | `check_tool` | a tool that rounds a number itself |
 
@@ -225,7 +226,7 @@ C16, C46, and C52.
 | Tier | Contains | Budget | Runs |
 |---|---|---|---|
 | fast | unit tests; the contracts on run batches built directly, and on millisecond models; doctests; import-linter | 30 s, serial: a size budget (`scope.md`) | after every edit |
-| slow | the use cases end to end; reference models' expected answers and golden reports; C18 at d = 20 for the polynomial model, and every d = 20 timing; the command-line reference models; the wheel build, with its data files; the PDF tests (0018, T10), skipped when `to_pdf` raises `PandocMissing` (0059) | 10 min with `-n auto`: a target | before a step is reported done |
+| slow | the use cases end to end, and the get-started guide's Python blocks (C53, 0060); reference models' expected answers and golden reports; C18 at d = 20 for the polynomial model, and every d = 20 timing; the command-line reference models; the wheel build, with its data files; the PDF tests (0018, T10), skipped when `to_pdf` raises `PandocMissing` (0059) | 10 min with `-n auto`: a target | before a step is reported done |
 
 - **Budgets:** the fast tier's 30 s is one of `scope.md`'s size budgets: going over it is a decision record,
   not a drift. The slow tier's 10 min is a target: each build step's plan reports the tiers' times, and a step

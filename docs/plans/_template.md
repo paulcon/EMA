@@ -1,6 +1,6 @@
 # NN. <Step title>
 
-**Status:** proposed | approved | in progress | done. **Branch:** `<step-NN-topic>`. **Updated:** <YYYY-MM-DD>.
+**Status:** proposed | approved | in progress | done. **Branch:** `build-NN-<topic>`. **Updated:** <YYYY-MM-DD>.
 
 ## Goal
 

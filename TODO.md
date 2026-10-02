@@ -42,11 +42,8 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 - [x] **12. Repository and tooling.** Records: 0059 (OD-17, OD-18: Python 3.13 and newer, uv and a
   lockfile, Sphinx, checks on GitHub Actions by hand, PDFs with lualatex). uv and its Pythons 3.14 and 3.13
   installed on the owner's Mac; pandoc and LaTeX already were.
-- [ ] **13. Guides as outlines.** `docs/guides/`: get started, add a model, run a diagnostic, add a diagnostic.
-  - You: walk through each against `ema.workspace` on paper. Any awkward step means the workspace's functions
-    change before any code exists.
-  - Get started, step 1: install EMA with uv on Python 3.13 or newer; pandoc and a LaTeX with lualatex as an
-    optional install, in staged steps (0018, 0059).
+- [x] **13. Guides as outlines.** `docs/guides/`: get started, add a model, run a diagnostic, add a diagnostic.
+  Records: 0060 (install from GitHub with uv; get started tested; MIT license; C53–C55 accepted).
 
 ## Before the first line of code
 
@@ -54,4 +51,5 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 - [ ] Claude Code has checked the specs against each other for contradictions, and you've resolved them.
 - [ ] The first plan (`docs/plans/01-…`) is written and approved: the repository's scaffolding (0059:
       `.python-version`, `pyproject.toml`, `uv.lock`, `conftest.py`, `docs/conf.py`, `docs/index.md`,
-      `.github/workflows/checks.yml`), and probably `ema.types` and the design generators, with their contracts.
+      `.github/workflows/checks.yml`; `pyproject.toml` with `license = "MIT"`, 0060), and probably `ema.types`
+      and the design generators, with their contracts.
