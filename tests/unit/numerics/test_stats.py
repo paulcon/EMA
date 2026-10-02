@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from ema.numerics.stats import binned_index, rank_correlation
-from tests.support.numerics import r2_unit
+from ema.numerics.stats import average_ranks, binned_index, binned_indices, rank_correlation, rank_correlations
+from tests.support.numerics import OFFSETS, at_offset, r2_unit
 
 #: The scatter mock report's design (scatter.md, Mock report; docs/checks/scatter.py): R2, n = 200, seed 1.
 MOCK_Z = 2 * np.random.default_rng(1).random((200, 3)) - 1
@@ -93,3 +93,36 @@ def test_r4b_wiggle_has_estimates() -> None:
     y = 2.5 + 1e-12 * np.sin(40 * Z.sum(axis=1))
     for j in range(3):
         assert math.isfinite(rank_correlation(Z[:, j], y)) and math.isfinite(binned_index(Z[:, j], y, 14))
+
+
+# Record 0076: the column-wise forms scatter's bootstrap calls
+
+
+def test_average_ranks_are_scipys() -> None:
+    """``average_ranks`` gives scipy's "average" ranks exactly, row by row, ties included."""
+    rng = np.random.default_rng(3)
+    for _ in range(100):
+        A = rng.integers(0, 6, (int(rng.integers(1, 5)), int(rng.integers(1, 40)))).astype(float)
+        assert np.array_equal(average_ranks(A), stats.rankdata(A, axis=1))
+
+
+def test_the_column_wise_forms_equal_the_scalar_ones_at_every_offset() -> None:
+    """``rank_correlations`` and ``binned_indices`` give each column's ``rank_correlation`` and ``binned_index``, bit
+    for bit, ties and a constant column included, and the same bytes at 8 memory offsets (P4; record 0068 item 1)."""
+    rng = np.random.default_rng(4)
+    keep: list[object] = []
+    for n in (10, 37, 200):
+        X = rng.random((n, 3))
+        X[:, 1] = np.round(X[:, 1], 1)  # ties
+        X[:, 2] = 0.5  # constant: rho is NaN
+        y = np.sin(7 * X[:, 0]) + X[:, 1]
+        B = math.isqrt(n)
+        rho, S = rank_correlations(X, y), binned_indices(X, y, B)
+        for j in range(3):
+            assert np.array_equal(rho[j], rank_correlation(X[:, j], y), equal_nan=True)
+            assert S[j] == binned_index(X[:, j], y, B)
+        assert math.isnan(rho[2]) and not math.isnan(S[2])
+        assert len({rank_correlations(at_offset(X, o, keep), at_offset(y, o, keep)).tobytes() for o in OFFSETS}) == 1
+        assert len({binned_indices(at_offset(X, o, keep), at_offset(y, o, keep), B).tobytes() for o in OFFSETS}) == 1
+    assert np.isnan(rank_correlations(rng.random((9, 2)), np.full(9, 0.1))).all()
+    assert np.isnan(binned_indices(rng.random((9, 2)), np.full(9, 0.1), 3)).all()
