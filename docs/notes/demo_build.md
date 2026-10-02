@@ -230,3 +230,9 @@ State lives in git and on disk; nothing is only in the conversation.
   exemption of k* and rates confirmed by contracts.md's own wording. Step 11 done. To the cleanup pass: a test
   of the cells' precedence (constant line with runs not usable, and three more paths); C6's skip limited to
   named diagnostics.
+- **Step 12, review round 1**: 0 blockers, 0 major, 7 minor, 4 nits; the mock's every value and 12 interval
+  ends, and the known answers at 20,000 runs, recomputed independently; figures byte-identical under a user's
+  rcParams and from 12 threads. Step 12 done. To the cleanup pass: units kept in the per-level cells' JSON;
+  tests for the rank-deficient and LOO-undefined notes; the LOO note's wording; a lean interval method in the
+  contract's checks that don't need the real bootstrap (the fast tier's cost: about 30 s of CPU per
+  bootstrapped diagnostic).
