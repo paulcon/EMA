@@ -31,6 +31,10 @@ def _holder(fd: int) -> str:
     return text or "another process"
 
 
+def _this_process() -> str:
+    return f"process {os.getpid()} on {socket.gethostname()}"
+
+
 @contextmanager
 def run_lock(path: str) -> Iterator[None]:
     """Hold the run lock at ``path`` for a ``with`` block.
@@ -43,17 +47,18 @@ def run_lock(path: str) -> Iterator[None]:
     Raises
     ------
     WorkspaceBusy
-        When another holder, in this process or another, has it; the message names the holder and the lock.
+        When another holder, in this process or another, has it; the message names the holder and the lock, and
+        says "another workspace of this process" when the holder is this process (another thread's workspace).
     """
     fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o644)
     try:
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            raise WorkspaceBusy(
-                f"another process is making runs in this workspace ({_holder(fd)}); it holds {path}"
-            ) from None
-        holder = f"process {os.getpid()} on {socket.gethostname()}, since {timestamp_text(datetime.now(UTC))}"
+            holder = _holder(fd)
+            who = "another workspace of this process" if holder.startswith(_this_process()) else "another process"
+            raise WorkspaceBusy(f"{who} is making runs in this workspace ({holder}); it holds {path}") from None
+        holder = f"{_this_process()}, since {timestamp_text(datetime.now(UTC))}"
         os.ftruncate(fd, 0)
         os.pwrite(fd, holder.encode("utf-8") + b"\n", 0)
         try:

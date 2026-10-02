@@ -65,8 +65,12 @@ def _span(text: str, *, path: bool = False) -> str:
     return f"{ticks} {shown} {ticks}" if padded else f"{ticks}{shown}{ticks}"
 
 
-def _fenced(text: str) -> str:
-    """Show a text EMA didn't write, of several lines: a fenced block, longer than any run of backticks in it (T7)."""
+def fenced(text: str) -> str:
+    """Show a text EMA didn't write, of several lines: a fenced block, longer than any run of backticks in it (T7).
+
+    Public for the workspace, which fences a drafted spec's text and a failed run's stderr tail with it (record
+    0080, Review round 1), so the T7 rule has one home.
+    """
     shown = _visible(text, lines=True)
     fence = "`" * max(3, _longest_ticks(shown) + 1)
     return f"{fence}\n{shown if shown.endswith(chr(10)) else shown + chr(10)}{fence}"
@@ -92,7 +96,7 @@ def _what_runs(model: LoadedModel, program: str | None, pass_env: dict[str, bool
             lines.append(
                 f"Input deck {_span(deck.writes, path=True)}, from the template {_span(deck.template, path=True)}:"
             )
-            lines.append(_fenced(_file_text(model, deck.template)))
+            lines.append(fenced(_file_text(model, deck.template)))
     else:
         lines.append(f"Function: {_span(interface.function)}")
         lines.append(f"Interpreter: {_span(program or sys.executable, path=True)}")
@@ -273,7 +277,7 @@ def _meaning(store: Store, spec_text: str, saved: bool) -> str | None:
 
 def _same_bytes(path: str, data: bytes) -> bool:
     try:
-        with open(path, "rb") as f:
+        with open_regular(path) as f:
             return f.read(len(data) + 1) == data
     except OSError:
         return False
@@ -316,7 +320,7 @@ def ask_confirmation(*, store: Store, spec_path: str, spec_text: str, confirm: A
     shown = _span(spec_path, path=True)
     first = (f"{shown} is already saved, unchanged: load it?" if saved else
              f"Save the model spec an MCP client drafted to {shown}?")  # fmt: skip
-    lines = [first, *([replaces] if replaces else []), "The spec's full text:", _fenced(spec_text)]
+    lines = [first, *([replaces] if replaces else []), "The spec's full text:", fenced(spec_text)]
     question = ConfirmationRequest(spec_path, replaces, spec_text, "\n".join(lines))
     try:
         yes, why = _answer(confirm, question)

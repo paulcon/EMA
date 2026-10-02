@@ -97,3 +97,13 @@ Each also in record 0080, with its reason.
 - Checked against `demo` at 8e236a6 (steps 07's and 09's fixes, and scatter, merged), in an exported copy with this
   step's files and shared-file changes applied: the fast tier passes (1741), and the slow contract module runs U1,
   U6, U7, and U8 as written and passing; U3 and the get-started guide run up to the polynomial model; U2 and U4 skip.
+- Review round 1 (`demo-14fix`; record 0080, items 18–28): a linked spec's files are checked beside its target,
+  and `load_model` checks them before `load_spec` reads any (M1); a result directory is rebuilt by moving an
+  incomplete one aside under the store's write lock, never deleted in place (`Store.result_directory`'s
+  `complete`; m1); `reproduce`'s design check catches any exception (m2); `propose_model` reads with
+  `open_regular` (m3); a workspace refuses a call from another thread with `EMAError` (m4); the interrupted
+  evaluation's test compares the data cards, and a C51 test changes the seed and the model version (m5);
+  `ema.approval.fenced` is public (n1); the run lock names "another workspace of this process" (n2); an export
+  into a new `.ssh` or `.aws` directory is refused (n3); a label's name is honored by `list_results` (n4); `_reproduce`
+  reads each file once (n5); `describe_model` keeps exact values (n6, disagreed: they are the spec's inputs, not
+  computed numbers). 8 fast tests added (33 in `tests/unit/workspace`); the workspace's code is 886 lines.

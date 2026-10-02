@@ -7,23 +7,25 @@ in the order the rules require (``_evaluate``), and every method returns a type 
 interface formats no number (P1; C54, C55).
 """
 
+import functools
 import json
 import os
+import threading
 from collections.abc import Callable, Mapping
 from types import TracebackType
-from typing import Any, Self
+from typing import Any, Concatenate, Self
 
 import numpy as np
 
 import ema.diagnostics  # noqa: F401  (registers every diagnostic: record 0075 item 1)
-from ema.approval import _fenced, ask, ask_confirmation
+from ema.approval import ask, ask_confirmation, fenced
 from ema.diagnostics import base
-from ema.models.files import check_files, is_within
+from ema.models.files import check_files, is_within, open_regular
 from ema.models.processes import ModelProcesses
 from ema.models.spec import load_spec, save_spec
 from ema.report.pdf import to_pdf
 from ema.store import Store
-from ema.types.errors import NotFound, PathRefused, RequestError, SpecError
+from ema.types.errors import EMAError, NotFound, PathRefused, RequestError, SpecError
 from ema.types.identity import hex_ids, model_version_label, point_hash, reuse_key, sha256_hex
 from ema.types.model import CommandLine, ModelSpec, PythonFunction, hidden_character, is_credentials_file
 from ema.types.requests import Approver, Progress
@@ -102,6 +104,27 @@ def _limits(p: Any) -> str:
     return f"; limits {' and '.join(parts)}" if parts else ""
 
 
+def _on_its_thread[**P, R](
+    method: Callable[Concatenate["Workspace", P], R],
+) -> Callable[Concatenate["Workspace", P], R]:
+    """Refuse a call from a thread other than the one that opened the workspace, as EMA's error (§5, Connections).
+
+    The store's SQLite connection stays on its thread; without this check, such a call fails deep inside it with
+    ``sqlite3.ProgrammingError``. Record 0080, Review round 1.
+    """
+
+    @functools.wraps(method)
+    def checked(self: "Workspace", /, *args: P.args, **kwargs: P.kwargs) -> R:
+        if threading.get_ident() != self._thread:
+            raise EMAError(
+                f"the workspace {self.path} was opened on another thread, and its database connection stays there: "
+                "open a workspace on each thread that uses one"
+            )
+        return method(self, *args, **kwargs)
+
+    return checked
+
+
 def open_workspace(path: str | os.PathLike[str] = "ema_workspace", *, root: str | os.PathLike[str] | None = None
                    ) -> "Workspace":  # fmt: skip
     """Open the workspace at ``path``, creating it on first use (data_model.md §1, §11; U1).
@@ -147,7 +170,9 @@ def open_workspace(path: str | os.PathLike[str] = "ema_workspace", *, root: str 
 class Workspace:
     """An open workspace: its store and its model versions' children (architecture.md §7; OD-16).
 
-    Not frozen; a context manager, whose exit closes it. Open one with ``open_workspace``. ``approve`` and
+    Not frozen; a context manager, whose exit closes it. Open one with ``open_workspace``. It is bound to the thread
+    that opened it, as its SQLite connection is (architecture.md §5, Connections): a call from another thread is
+    refused (``EMAError``); open a workspace on each thread that uses one (the MCP server holds two). ``approve`` and
     ``confirm`` have no default: they are called only when there are new runs, or a file to save (P3), and ``None``
     says nobody can be asked: new runs and saving are refused before any question (``CannotAsk``).
 
@@ -161,6 +186,7 @@ class Workspace:
         self._store = store
         self._processes = ModelProcesses()
         self._root = root
+        self._thread = threading.get_ident()
         self.path = store.layout.root
 
     def __enter__(self) -> Self:
@@ -172,6 +198,7 @@ class Workspace:
     def __repr__(self) -> str:
         return f"Workspace({self.path!r})"
 
+    @_on_its_thread
     def close(self) -> None:
         """Stop the model versions' children and close the store (0026)."""
         try:
@@ -181,8 +208,12 @@ class Workspace:
 
     # -- paths under the root (trust.md, T5) -------------------------------------------------------------------
 
-    def _path(self, path: str | os.PathLike[str], what: str) -> str:
-        """Return a path argument, absolute; under a root, refused outside it or inside a workspace (T5)."""
+    def _path(self, path: str | os.PathLike[str], what: str, *, directory: bool = False) -> str:
+        """Return a path argument, absolute; under a root, refused outside it or inside a workspace (T5).
+
+        A credentials file is refused by the path's name, or, for a ``directory`` EMA writes into (an export), by
+        the files it would hold: a new ``.ssh`` or ``.aws`` directory is refused too (T7).
+        """
         text = os.fspath(path)
         if self._root is None:
             return os.path.abspath(text)
@@ -196,13 +227,17 @@ class Workspace:
         if holder is not None:
             raise PathRefused(f"{what} {text} is inside the workspace {holder}; name a path outside any workspace")
         below = os.path.relpath(os.path.realpath(full), self._root).replace(os.sep, "/")
-        if is_credentials_file(below):
+        if is_credentials_file(below) or (directory and is_credentials_file(f"{below}/runs.csv")):
             raise PathRefused(f"{what} {text} names a credentials file, which EMA doesn't read or write")
         return os.path.abspath(full)
 
     def _spec_files_inside(self, spec: ModelSpec, spec_path: str) -> tuple[str, ...]:
-        """Under a root, refuse a spec's file resolving outside it (T5); return the files that don't exist yet."""
-        directory = os.path.dirname(spec_path)
+        """Under a root, refuse a spec's file resolving outside it (T5); return the files that don't exist yet.
+
+        The files are named relative to the spec's directory resolved through its links, as ``load_spec`` reads them
+        (C33): a spec that is a link names the files beside its target.
+        """
+        directory = os.path.dirname(os.path.realpath(spec_path))
         missing = []
         for relative in _named_files(spec):
             full = os.path.join(directory, *relative.split("/"))
@@ -226,6 +261,7 @@ class Workspace:
             text=f"{label}: {_counts(spec)}; spec {model.spec_path}",
         )
 
+    @_on_its_thread
     def load_model(self, path: str | os.PathLike[str]) -> LoadingSummary:
         """Load a model spec: validate it, hash its files, and make the name mean it (W1; M3; U6; 0054).
 
@@ -237,12 +273,21 @@ class Workspace:
         SpecError
             For a spec that doesn't validate, naming the field.
         PathRefused
-            Under a root, for a path refused (T5).
+            Under a root, for a path refused, or a file the spec names resolving outside the root, before any is
+            read or hashed (T5).
         """
         spec_path = self._path(path, "the model spec")
+        if self._root is not None:  # before load_spec reads or hashes any file the spec names (T5)
+            try:
+                with open_regular(spec_path) as f:
+                    drafted = ModelSpec.from_json(f.read().decode("utf-8"))
+            except (OSError, UnicodeDecodeError, SpecError):
+                drafted = None  # load_spec refuses it, saying why, before it reads a file the spec names
+            if drafted is not None:
+                self._spec_files_inside(drafted, spec_path)
         model = load_spec(spec_path)
-        if self._root is not None:
-            self._spec_files_inside(model.spec, model.spec_path)
+        if self._root is not None:  # the spec as load_spec read it, had it changed meanwhile
+            self._spec_files_inside(model.spec, spec_path)
         name, mv = model.spec.name, model.model_version_id
         store = self._store
         before = store.current_loading(name)
@@ -280,10 +325,12 @@ class Workspace:
             text="\n".join(lines),
         )
 
+    @_on_its_thread
     def list_models(self) -> list[ModelSummary]:
         """List the models loaded, each as its name means now (Q3; 0054)."""
         return [self._summary(name) for name in self._store.model_names()]
 
+    @_on_its_thread
     def describe_model(self, name: str) -> ModelDescription:
         """Describe a model: its model parameters, units, nominal values, limits, and model predictions (U1).
 
@@ -305,6 +352,7 @@ class Workspace:
                   for q in spec.predictions]  # fmt: skip
         return ModelDescription(model=summary, spec=spec, text="\n".join(lines))
 
+    @_on_its_thread
     def propose_model(self, spec: str | Mapping[str, Any], path: str | os.PathLike[str]) -> Proposal:
         """Validate and render a drafted model spec, and the path it would be saved at; save nothing (U9; T6).
 
@@ -313,8 +361,9 @@ class Workspace:
         SpecError
             For a spec that doesn't validate.
         PathRefused
-            For a path not ending in ``.json``, a parent that doesn't exist, another file at the path, or, under a
-            root, a path refused or a spec's file resolving outside it (T5).
+            For a path not ending in ``.json``, a parent that doesn't exist, another file at the path (or something
+            at it that isn't a regular file), or, under a root, a path refused or a spec's file resolving outside it
+            (T5), its files named beside the spec's target when the path is a link.
         """
         parsed = _spec_of(spec)
         given = self._path(path, "the model spec's path")
@@ -326,20 +375,24 @@ class Workspace:
         absolute = os.path.join(os.path.realpath(parent), os.path.basename(given))
         text = parsed.to_json()
         if os.path.lexists(absolute):
-            try:
-                with open(absolute, "rb") as f:
-                    same = f.read() == text.encode("utf-8")
-            except OSError:
-                same = False
+            data = text.encode("utf-8")
+            try:  # a regular file only, never blocking on a FIFO or a device (T6)
+                with open_regular(absolute) as f:
+                    same = f.read(len(data) + 1) == data
+            except OSError as error:
+                raise PathRefused(
+                    f"{absolute} exists, and isn't a file EMA can read ({error.strerror}); EMA never overwrites a file"
+                ) from None
             if not same:
                 raise PathRefused(f"{absolute} exists, with other text; EMA never overwrites a file")
         missing = self._spec_files_inside(parsed, absolute)
         lines = [f"Model spec {parsed.name}: {_counts(parsed)}", f"Would be saved at {absolute}; nothing saved yet."]
         if missing:
             lines.append(f"Files it names that don't exist yet: {', '.join(missing)}")
-        lines += ["Its full text:", _fenced(text)]
+        lines += ["Its full text:", fenced(text)]
         return Proposal(spec=parsed, path=absolute, spec_text=text, missing_files=missing, text="\n".join(lines))
 
+    @_on_its_thread
     def save_model(self, spec: str | Mapping[str, Any], path: str | os.PathLike[str], *, confirm: Approver | None
                    ) -> LoadingSummary:  # fmt: skip
         """Save a drafted model spec after the user's yes, and load it (W2, W1; T6; 0049).
@@ -362,6 +415,7 @@ class Workspace:
         save_spec(proposal.spec, proposal.path)
         return self.load_model(proposal.path)
 
+    @_on_its_thread
     def test_model(self, name: str, *, approve: Approver | None) -> RunInfo:
         """Run the model once at its nominal point, replicate 0, after the user's yes (0049; U1, U2).
 
@@ -383,10 +437,12 @@ class Workspace:
 
     # -- diagnostics -------------------------------------------------------------------------------------------
 
+    @_on_its_thread
     def list_diagnostics(self) -> list[DiagnosticSummary]:
         """List the diagnostics, each with its parameters (U1; C55)."""
         return [base.describe(base.get(name)) for name in base.names()]
 
+    @_on_its_thread
     def describe_diagnostic(self, name: str) -> DiagnosticSummary:
         """Describe a diagnostic: its summary and each diagnostic parameter's type, default, and meaning (C55).
 
@@ -397,6 +453,7 @@ class Workspace:
         """
         return base.describe(base.get(name))
 
+    @_on_its_thread
     def price(
         self,
         model: str,
@@ -417,6 +474,7 @@ class Workspace:
         prepared = _evaluate.prepare(self._store, model, diagnostic, space, prediction, params)
         return _evaluate.price(self._store, prepared, retry_failed=retry_failed)
 
+    @_on_its_thread
     def run(
         self,
         model: str,
@@ -473,7 +531,7 @@ class Workspace:
         ApprovalDeclined
             On a no: "declined: no runs made".
         WorkspaceBusy
-            When another process is making runs in the workspace.
+            When another process, or another workspace of this process, is making runs in the workspace.
         """
         prepared = _evaluate.prepare(self._store, model, diagnostic, space, prediction, params)
         result = _evaluate.run(
@@ -491,6 +549,7 @@ class Workspace:
             raise RequestError(f"a diagnostic result is a result or its id, not {result!r}")
         return self._store.resolve("result", result)
 
+    @_on_its_thread
     def get_result(self, result: ResultRef) -> DiagnosticResult:
         """Return a stored diagnostic result with its provenance (Q6), by any unique id prefix of 4 or more (Q11).
 
@@ -501,17 +560,29 @@ class Workspace:
         """
         return _evaluate.shown(self._store, self._store.get_result(self._result_id(result)))
 
+    @_on_its_thread
     def list_results(self, *, model: str | None = None, model_version: str | None = None,
                      diagnostic: str | None = None, prediction: str | None = None) -> list[ResultSummary]:  # fmt: skip
         """List the stored diagnostic results, newest first, each with its short id and model version (Q8; U6).
 
-        ``model_version`` is a label ("beam@91c0a2b3c4d5") or an id prefix.
+        ``model_version`` is a label ("beam@91c0a2b3c4d5") or an id prefix; a label's name must be its model's.
+
+        Raises
+        ------
+        NotFound, AmbiguousId
+            For a model version that isn't there, or a label whose name isn't its model's; a prefix naming several.
         """
         version = None
         if model_version is not None:
-            version = self._store.resolve("model_version", model_version.rsplit("@", 1)[-1])
+            name, at, prefix = model_version.rpartition("@")
+            version = self._store.resolve("model_version", prefix)
+            if at:
+                actual = self._store.model_version(version).spec.name
+                if actual != name:
+                    raise NotFound(f"no model version {model_version}: {prefix} is a version of {actual!r}")
         return list(self._store.list_results(model, version, diagnostic, prediction))
 
+    @_on_its_thread
     def report(self, result: ResultRef, *, pdf: bool = False) -> Report:
         """Return a result's report, rebuilding its directory from the store when missing (data_model.md §6).
 
@@ -534,6 +605,7 @@ class Workspace:
             markdown = f.read()
         return Report(stored.result_id, markdown, path, to_pdf(path) if pdf else None)
 
+    @_on_its_thread
     def failed_runs(self, result: ResultRef) -> list[RunInfo]:
         """List each run not usable for the result's model prediction: failed, or missing it (U3; shared.md, S7).
 
@@ -552,6 +624,7 @@ class Workspace:
             out.append(_evaluate.info_of(self._store, spec, self._store.get_run(run_id), row, stored.prediction))
         return out
 
+    @_on_its_thread
     def run_dirs(self, id: str, *, point: Mapping[str, float] | None = None) -> list[RunInfo]:
         """Return a run's directories by its id; or, with ``point``, a result's runs there, one per replicate (0020; Q9).
 
@@ -581,6 +654,7 @@ class Workspace:
                 values.append(space.held.get(p.name, p.nominal))
         return [_evaluate.info_of(store, spec, run) for run in store.runs_at(result.result_id, point_hash(values))]
 
+    @_on_its_thread
     def reproduce(self, result: ResultRef | Provenance) -> Reproduction:
         """Replay a result from its provenance and the stored runs, and compare it with the original (U8; 0055).
 
@@ -599,6 +673,7 @@ class Workspace:
             result = self._store.get_result(self._result_id(result))
         return _reproduce.reproduce(self._store, result, result.provenance)
 
+    @_on_its_thread
     def export(self, result: ResultRef, directory: str | os.PathLike[str]) -> str:
         """Export a result's runs, design, result, and report into a new or empty directory (E1-E7; U5).
 
@@ -612,6 +687,6 @@ class Workspace:
         PathRefused
             For a directory that isn't empty; under a root, a path refused (E7, T5). Nothing is written.
         """
-        target = self._path(directory, "the export's directory")
+        target = self._path(directory, "the export's directory", directory=True)
         stored = self._store.get_result(self._result_id(result))
         return _export.export(self._store, stored, target)

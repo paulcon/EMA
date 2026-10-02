@@ -77,6 +77,50 @@ We will, provisionally:
     step that needs an unregistered diagnostic, naming it. C53's negative control is `RunsBeforeAsking`, a workspace
     that makes a diagnostic evaluation's runs with a yes nobody gave; the meta-test runs U7 with it.
 
+## Review round 1
+
+The independent review's findings, and the choices their fixes make (each implemented on `demo-14fix`):
+
+18. **A spec's files are named beside its target** (M1; T5, C33): under a root, `_spec_files_inside` takes the
+    spec's directory through its links (`dirname(realpath(spec))`), as `load_spec` does, so a spec that is a link,
+    or sits in a linked directory, has its files checked where loading reads them. `load_model` reads and parses the
+    spec's text first (`open_regular`, never blocking) and refuses a file resolving outside the root before
+    `load_spec` reads or hashes any; it checks the spec as `load_spec` read it again afterwards, had it changed
+    meanwhile. A spec that doesn't parse is left to `load_spec`, which refuses it before reading a named file.
+19. **A result directory is rebuilt without deleting it in place** (m1; data_model.md §6): `Store.result_directory`
+    takes an optional `complete` (a test of a directory); with it, a stored result's directory in place that is
+    incomplete is moved aside under the write lock and replaced, as a leftover is, and a complete one is kept and
+    the rebuild discarded. Rebuilds at once, in threads or processes, all succeed with the same bytes, and a
+    directory found complete is never moved from under its reader. `report`, `export`, and `reproduce` use it
+    through `_evaluate.result_directory`.
+20. **`reproduce`'s design check never raises** (m2; 0062, 0063, §7): any exception of a generator's or sampler's
+    lookup, a rebuild, or the comparison is "the design could not be rebuilt: ValueError: boom" (an `EMAError` by
+    its message alone); `KeyboardInterrupt` passes through.
+21. **`propose_model` reads a file at the path with `open_regular`** (m3; T6): a FIFO, a device, or a dangling
+    link at the path is `PathRefused` ("exists, and isn't a file EMA can read"), at once. `ask_confirmation`'s
+    same-bytes check reads with it too.
+22. **A workspace is bound to the thread that opened it** (m4; architecture.md §5, Connections): each public method
+    and `close` check the thread first, and a call from another thread is `EMAError` ("opened on another thread
+    ... open a workspace on each thread that uses one"), not SQLite's `ProgrammingError`. The base class, as no
+    error class fits and the MCP server and CLI treat every `EMAError` alike; signatures are unchanged.
+23. **Tests of the figures' values and of C51** (m5): the interrupted evaluation's rerun has the same figures
+    and byte-identical data cards as an uninterrupted one; a seed change differs in `request` and `design` (each
+    only in the seed), `run_ids`, and `approval_id`; a model version change in `model_version_id`, `design` (only
+    its model version), `run_ids`, and `approval_id`; nothing else.
+24. **`fenced` is public in `ema.approval`** (n1): the workspace fences a drafted spec's text and a failed run's
+    stderr tail with it, so T7's rule has one home and no private name crosses a package.
+25. **The run lock names this process's other workspace** (n2): a holder whose process and host are this one's is
+    "another workspace of this process is making runs in this workspace (…)", as another thread's workspace is.
+26. **An export's directory is refused by the files it would hold** (n3; T5, T7): under a root, a new `.ssh`,
+    `.aws`, or `.config/gcloud` directory is `PathRefused`, as `runs.csv` there would be a credentials file.
+27. **`list_results(model_version="name@prefix")` honors the name** (n4; Q8): a label whose name isn't its model
+    version's model's is `NotFound` ("… is a version of 'ishigami'"); a bare prefix is as before.
+28. **`describe_model` shows a spec's values exactly** (n6; disagreed): a nominal value and limits are the spec's
+    own inputs, not computed numbers, which S3's `fmt` writes; four significant digits would make a nominal
+    1.00004 beside a limit "> 1" read as "nominal 1; limits > 1", and an agent drafting a request needs the exact
+    value. `repr` writes the shortest text that reads back the same double, as the spec's JSON does. `RunInfo`'s
+    point keeps `fmt`, as a run's point is the design's (computed) and is named with its values.
+
 ## Deferrals
 
 - **The use cases that need scatter, coordinate lines, or the linear and polynomial models** run once those are
@@ -91,7 +135,9 @@ We will, provisionally:
 
 ## Spec edits on acceptance
 
-- `architecture.md` §7: items 4–7, 9, 14, 15; `Workspace(store, root)` is built by `open_workspace` only.
+- `architecture.md` §7: items 4–7, 9, 14, 15, 22; `Workspace(store, root)` is built by `open_workspace` only.
+- `architecture.md` §5: `Store.result_directory(result_id, *, complete=None)` (item 19); §6: `ema.approval`'s
+  `fenced` (item 24).
 - `data_model.md` §8: Q3's `model_names()` (item 3).
 - `export.md`: `result.json`'s `spec` is the model version's (item 10); the column dictionary's kinds.
 - `use_cases.md` and the guides: the shown texts of items 12 and 13 where they show "<…>".
@@ -109,8 +155,10 @@ We will, provisionally:
 
 - **Size:** `ema.workspace` 830 code lines (no docstrings, comments, or blanks: `__init__.py` 333, `_evaluate.py` 252, `_reproduce.py` 154, `_export.py` 91) against §11's 685
   and the roadmap's 745; `ema.diagnostics.base` already holds the request, identity, and provenance helpers the
-  estimate counted (record 0075).
+  estimate counted (record 0075). After review round 1, 886 (`__init__.py` 382, `_evaluate.py` 252,
+  `_reproduce.py` 161, `_export.py` 91): the thread check is 34 of the 56 added (its decorator, and one line on
+  each of the 18 methods), the linked spec's check before loading 9.
 - **Tests:** the fast tier gains 25 tests (about 35 s serially, 2 s each); the slow tier 10 (U1–U8, the guide, and
-  their skips until steps 10–13 merge).
+  their skips until steps 10–13 merge). Review round 1 adds 8 fast tests (33 in `tests/unit/workspace`).
 - Steps 15 and 16 call one workspace method per tool or command; every method returns a type that prints as EMA's
   text, so they format no number (P1; C54, C55).
