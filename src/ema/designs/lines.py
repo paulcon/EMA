@@ -216,15 +216,10 @@ class CoordinateLines:
     version: str = "1"
 
     def _read(self, identity: DesignIdentity, spec: ModelSpec) -> tuple[list[_Segment], list[Any], int, int]:
-        check_identity(self.name, self.version, identity, uses_sampler=False)
-        space = space_of(self.name, identity, spec)
-        params = read_params(self.name, identity.canonical()["params"], ("n",), {"anchor": {}})
-        n = as_int(params["n"], "n", 2)
-        base = np.array([space.held.get(p.name, p.nominal) for p in spec.parameters])
-        anchor_x = _anchor(space, spec, params["anchor"], base, "coordinate_lines")
+        space, n, anchor_x, anchor_z = _coordinate_anchor(identity, spec)
         varied = space.varied(spec)
         names = [p.name for p in spec.parameters]
-        anchor_z = space.to_unit(spec, anchor_x[None, :])[0]
+        through = _through_anchor(n, anchor_z)
         segments, records = [], []
         for i, name in enumerate(varied):
             direction = np.zeros(len(varied))
@@ -235,7 +230,7 @@ class CoordinateLines:
             # or two of the anchor's place, (z + 1)/2·(n - 1), so only those are made (0051).
             near = round((float(anchor_z[i]) + 1.0) / 2.0 * (n - 1))
             column = segment.points(max(0, near - 2), min(n, near + 3))[:, names.index(name)]
-            if n % 2 == 1 and abs(anchor_z[i]) <= SHARED_ANCHOR_TOL:
+            if through[i]:
                 segment = _SharedAnchor(segment, names.index(name), value)
             elif np.any(column == value):
                 raise RequestError(
@@ -255,6 +250,35 @@ class CoordinateLines:
         """Rows [start, stop): each varied model parameter's line in turn, in the model spec's order."""
         segments, records, n, d = self._read(identity, spec)
         return _lines(segments, records, n, identity, start, stop, d)
+
+
+def _coordinate_anchor(
+    identity: DesignIdentity, spec: ModelSpec
+) -> tuple[ModelParameterSpace, int, np.ndarray, np.ndarray]:
+    """Read a coordinate-lines identity: its space, n, and the anchor as a point and in unit coordinates (G12, G14)."""
+    check_identity(CoordinateLines.name, CoordinateLines.version, identity, uses_sampler=False)
+    space = space_of(CoordinateLines.name, identity, spec)
+    params = read_params(CoordinateLines.name, identity.canonical()["params"], ("n",), {"anchor": {}})
+    n = as_int(params["n"], "n", 2)
+    base = np.array([space.held.get(p.name, p.nominal) for p in spec.parameters])
+    anchor_x = _anchor(space, spec, params["anchor"], base, CoordinateLines.name)
+    return space, n, anchor_x, space.to_unit(spec, anchor_x[None, :])[0]
+
+
+def _through_anchor(n: int, anchor_z: np.ndarray) -> list[bool]:
+    """Whether each varied model parameter's coordinate line has the anchor as its middle point (G12)."""
+    return [n % 2 == 1 and abs(float(z)) <= SHARED_ANCHOR_TOL for z in anchor_z]
+
+
+def lines_through_anchor(identity: DesignIdentity, spec: ModelSpec) -> tuple[str, ...]:
+    """Return the varied model parameters whose coordinate line has the anchor's run as its middle point (G12).
+
+    The rule ``CoordinateLines`` builds by, in one place, for the report's Design row (record 0073 item 5): with n
+    odd, a line along which the anchor's unit coordinate is within ``SHARED_ANCHOR_TOL`` of 0; none with n even.
+    In the model spec's order. Refuses what ``CoordinateLines`` refuses of the identity's space and anchor.
+    """
+    space, n, _, anchor_z = _coordinate_anchor(identity, spec)
+    return tuple(name for name, on in zip(space.varied(spec), _through_anchor(n, anchor_z), strict=True) if on)
 
 
 class _SharedAnchor(_Segment):

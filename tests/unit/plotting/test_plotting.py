@@ -164,3 +164,45 @@ def test_png_has_no_text_chunks(tmp_path):
         i += 12 + n
     assert not {b"tEXt", b"iTXt", b"zTXt", b"tIME"} & set(chunks)
     assert zlib  # the chunks are read by hand: no image library needed
+
+
+@pytest.mark.parametrize(
+    "user",
+    [
+        {"text.usetex": True},  # would send a spec's escaped label to LaTeX (T10)
+        {"axes.xmargin": 0.2, "axes.ymargin": 0.3, "axes.autolimit_mode": "round_numbers"},  # the card's extent
+        {"font.size": 20.0, "lines.linewidth": 4.0, "savefig.dpi": 72.0, "axes.unicode_minus": True},
+    ],
+)
+def test_the_users_rcparams_change_no_figure(tmp_path, user):
+    """Record 0073 item 8 (review round 1): figures start from matplotlib's defaults, not the user's rcParams; T10,
+    S10: with the user's usetex, margins, or style set, the card and the PNG are byte for byte the same."""
+    reference = draw(tmp_path / "default")
+    with matplotlib.rc_context(user):
+        mine = draw(tmp_path / "user")
+        assert {k: matplotlib.rcParams[k] for k in user} == user  # the user's settings, left alone
+    assert mine == reference
+    for name in (reference.png, reference.card):
+        assert (tmp_path / "user" / name).read_bytes() == (tmp_path / "default" / name).read_bytes()
+
+
+def test_a_nan_is_drawn_as_nothing_not_an_open_marker():
+    """0048's open markers are for values below the lower limit; a NaN is no value, and is not drawn (review nit)."""
+    _, (ax, ax2) = plotting.new_figure(2)
+    plotting.spectrum(ax, np.arange(1, 5), np.array([0.5, np.nan, 0.0, 1e-3]), ymin=1e-17, floor=1e-10)
+    hollow = [line for line in ax.lines if line.get_marker() == "o" and line.get_markerfacecolor() == "none"]
+    assert list(hollow[0].get_xdata()) == [3]
+    plotting.intervals(
+        ax2, np.array([1.0, 2.0]), np.array([np.nan, 0.0]), np.array([np.nan, 0.0]), np.array([np.nan, 1.0]), ymin=1e-9
+    )
+    hollow = [line for line in ax2.lines if line.get_marker() == "o" and line.get_markerfacecolor() == "none"]
+    assert list(hollow[0].get_xdata()) == [2.0]
+
+
+@pytest.mark.parametrize("name", ["a/b", "../a", "a b", "a)", ".hidden", "", "a.b"])
+def test_a_figure_name_is_a_plain_file_name(tmp_path, name):
+    """T10 (review round 1): the name becomes a file and a Markdown link, so it is letters, digits, _, and -."""
+    fig, _ = plotting.new_figure(1)
+    with pytest.raises(ValueError, match="file name"):
+        plotting.save(fig, {"panels": []}, str(tmp_path), name, "")
+    assert not list(tmp_path.iterdir())

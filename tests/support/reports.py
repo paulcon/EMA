@@ -2,10 +2,13 @@
 
 ``mock_report(name)`` reads the Markdown block under a diagnostic spec's "Mock report" heading. ``differences(
 rendered, mock)`` parses both and lists how they differ: the sections in order; the title's diagnostic and model
-prediction; each table's headings, row labels, and cells; each paragraph and note. Numbers compare within one unit
-in the 4th significant digit; ids, hashes, model version labels, the model's name, and the Provenance section's
-library versions are not compared (0044, 0061). Text is compared as rendered: Markdown's backslash escapes are
-removed (trust.md T10), whitespace collapsed, and images compared by their file only (record 0073 item 7).
+prediction; each table's headings, row labels, and cells; each paragraph and note; and the Provenance line. Numbers
+written with a decimal point or an exponent compare within one unit in the 4th significant digit; integers (counts,
+seeds, sizes, which S3 prints in full) compare exactly. Ids (12 hex digits, or an approval's), model version labels,
+the model's name, and the Provenance line's EMA and library versions are not compared (0044, 0061); its request's
+parameters are compared as a set (record 0073 item 6: sorted, where the mocks follow each spec's order). Text is
+compared as rendered: Markdown's backslash escapes are removed (trust.md T10), whitespace collapsed, and images
+compared by their file only (record 0073 item 7).
 
 The diagnostic steps (09-13) call ``differences`` in their golden report tests.
 """
@@ -21,6 +24,7 @@ DESIGN = Path(__file__).resolve().parents[2] / "docs" / "design" / "diagnostics"
 
 _NUMBER = re.compile(r"(?<![\w.])-?\d+(?:\.\d+)?(?:e[+-]\d+)?(?![\w])")
 _VERSION = re.compile(r"\b[\w-]+@[0-9a-f]{4,64}\b")
+_ID = re.compile(r"\b[0-9a-f]{12}\b|(?<=approvals: )[0-9a-f]{4,64}\b")
 _IMAGE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 
 
@@ -91,22 +95,25 @@ def parse(markdown: str) -> Parsed:
     return parsed
 
 
-def _close(a: float, b: float) -> bool:
-    """Within one unit in the 4th significant digit of the mock's ``b`` (0044)."""
+def _close(got: str, want: str) -> bool:
+    """Integers exactly (S3: in full); other numbers within one unit in the 4th significant digit (0044)."""
+    if not any(c in t for t in (got, want) for c in ".e"):
+        return int(got) == int(want)
+    a, b = float(got), float(want)
     if a == b:
         return True
     scale = max(abs(a), abs(b))
     return abs(a - b) <= 10 ** (math.floor(math.log10(scale)) - 3) * 1.0000001
 
 
-def _skeleton(text: str) -> tuple[str, list[float]]:
-    text = _VERSION.sub("<version>", text)
-    numbers = [float(m.group()) for m in _NUMBER.finditer(text)]
+def _skeleton(text: str) -> tuple[str, list[str]]:
+    text = _ID.sub("<id>", _VERSION.sub("<version>", text))
+    numbers = [m.group() for m in _NUMBER.finditer(text)]
     return _NUMBER.sub("<n>", text), numbers
 
 
 def same_text(got: str, want: str) -> bool:
-    """Equal with numbers within one unit in the 4th digit, and model version labels not compared."""
+    """Equal with numbers compared as ``_close`` does, and ids and model version labels not compared."""
     (g, gn), (w, wn) = _skeleton(got), _skeleton(want)
     return g == w and len(gn) == len(wn) and all(_close(a, b) for a, b in zip(gn, wn, strict=True))
 
@@ -117,11 +124,24 @@ def _title(text: str) -> tuple[str, str]:
     return head, rest.rpartition(", ")[2]
 
 
-def differences(rendered: str, mock: str, *, skip: tuple[str, ...] = ("Provenance",)) -> list[str]:
+def provenance(line: str) -> str:
+    """The Provenance line as compared: without the EMA and library versions, the request's parameters sorted."""
+    parts = []
+    for part in line.split("; "):
+        if part.startswith(("EMA ", "numpy ")):
+            continue
+        if part.startswith("request: "):
+            head, *params = part.removeprefix("request: ").split(", ")
+            part = "request: " + ", ".join([head, *sorted(params)])
+        parts.append(part)
+    return "; ".join(parts)
+
+
+def differences(rendered: str, mock: str, *, skip: tuple[str, ...] = ()) -> list[str]:
     """List how a rendered report differs from its mock, as 0044 compares them; empty when it matches.
 
-    The header's Model version row and the sections named in ``skip`` (Provenance: versions and ids) are compared
-    by their presence only.
+    The header's Model version row and the sections named in ``skip`` are compared by their presence only; the
+    Provenance line by ``provenance``.
     """
     got, want = parse(rendered), parse(mock)
     found: list[str] = []
@@ -139,6 +159,8 @@ def differences(rendered: str, mock: str, *, skip: tuple[str, ...] = ("Provenanc
             continue
         for (kind, g), (_, w) in zip(mine, blocks, strict=True):
             if kind != "table":
+                if name == "Provenance":
+                    g, w = provenance(str(g)), provenance(str(w))
                 if not same_text(str(g), str(w)):
                     found.append(f"{name}: {kind} {g!r}, not {w!r}")
                 continue

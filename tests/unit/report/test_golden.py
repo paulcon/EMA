@@ -6,7 +6,9 @@ every mock; each diagnostic's own golden report test, on its reference model, is
 
 Where the renderer differs from a mock by record 0073, the mock is edited here before comparing, citing the item:
 item 1, EMA's own symbols are Unicode in result text ("ρ", "Sᵢ" for "$\\rho$", "$S_i$"); item 3, a table's title
-opens the line under it (scatter's "14 bins.").
+opens the line under it (scatter's "14 bins."); item 6, the Provenance line's runs are "runs: N" (the polynomial
+model's "(72 reused from the linear model's evaluation)": where reused runs came from isn't in a result, and the
+header's Runs row says how many were reused).
 """
 
 import math
@@ -409,10 +411,14 @@ def lines_r7():
     )
 
 
+def polynomial_mock():
+    return mock_report("polynomial_model").replace(" (72 reused from the linear model's evaluation)", "")
+
+
 CASES = {
     "scatter": (scatter_r2, scatter_mock),
     "linear_model": (linear_r3, lambda: mock_report("linear_model")),
-    "polynomial_model": (polynomial_r3, lambda: mock_report("polynomial_model")),
+    "polynomial_model": (polynomial_r3, polynomial_mock),
     "point_run": (point_run_r6a, lambda: mock_report("point_run")),
     "coordinate_lines": (coordinate_lines_r8, lambda: mock_report("coordinate_lines")),
     "lines": (lines_r7, lambda: mock_report("lines")),
@@ -421,7 +427,7 @@ CASES = {
 
 @pytest.mark.parametrize("name", list(CASES))
 def test_the_mock_report(name):
-    """S1-S4 against each spec's mock report (0044); the Provenance section by test_render's own checks."""
+    """S1-S4 and the Provenance line against each spec's mock report (0044; record 0073 item 6)."""
     build, mock = CASES[name]
     spec, result = build()
     report = render(result, spec)

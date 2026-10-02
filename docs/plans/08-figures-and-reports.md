@@ -1,7 +1,7 @@
 # 08. Figures and reports
 
 **Status:** in progress (demo; record 0066); its choices are record 0073. **Branch:** `demo-08-reports`.
-**Updated:** 2026-10-02.
+**Updated:** 2026-10-02 (review round 1).
 
 ## Goal
 
@@ -24,8 +24,9 @@ draws every figure their specs name, as a PNG with its JSON data card.
 - **Each diagnostic spec's Report, Figures, and Mock report sections:** the report's shape; the figures' kinds.
 - **`uncertainty.md`:** the bootstrap's line under the table (step 6), "none: <reason>" (Rules), V4's count of
   undefined resamples in the line, V7 (a fake method's name in the line).
-- **`trust.md` T10:** text EMA didn't write prints literally: the report escapes it for Markdown, pandoc reads with
-  `-f markdown-raw_tex-raw_html-raw_attribute`, and figure labels escape `$`.
+- **`trust.md` T10:** text EMA didn't write prints literally: the report escapes it for Markdown (a block marker at
+  a line's start too), pandoc reads with `-f markdown-raw_tex-raw_html-raw_attribute-tex_math_dollars-smart
+  --sandbox` (record 0073 item 11, stricter than T10's), and figure labels escape `$` and never reach LaTeX.
 - **Records:** 0018 (Markdown with PNG figures; the optional PDF), 0042 (the explanation once per report), 0044
   (golden reports: structure, and numbers within one unit in the 4th digit), 0048 (open markers below the
   spectrum's axis), 0055 (ids as 12 hex digits), 0059 item 8 (lualatex with matplotlib's DejaVu fonts;
@@ -68,7 +69,7 @@ draws every figure their specs name, as a PNG with its JSON data card.
 | `empty_panel(ax, text)` | the kept, empty panel with its reason ("no spectrum: constant") | coordinate lines, lines |
 | `strip(ax, x, kinds, log, *, run_ids=None)` | each run not usable as × below the axes, the count and kinds in its label; returns the card's entries `{x, kind, run_id}` | every panel along a model parameter, the replicate, a line, w·u, ŷ |
 | `card_points(run_ids, **columns)` | a data card's points: `[{run_id, <column>: value, ...}]`, ids as hex | every card |
-| `save(fig, card, out_dir, name, caption)` | `name.png` and `name.json` (canonical JSON, indented 2, a final newline; S10), returns the `Figure` | every figure |
+| `save(fig, card, out_dir, name, caption)` | `name.png` and `name.json` (canonical JSON, indented 2, a final newline; S10), returns the `Figure`; `name` is letters, digits, `_`, `-` | every figure |
 
 **A data card** is `{"name", "panels": [{"x": axis, "y": axis, "points": [...], "not_usable": [...], ...}],
 ...}`: each panel's axes from `axis`, its points from `card_points` (a point from a run has `run_id`, one from a
@@ -94,9 +95,11 @@ report reads as their mock:
   ...").
 - **Text in a result is plain, not Markdown:** labels, columns, titles, notes, captions, and header rows are
   escaped by the report (T10), so EMA's own symbols in them are Unicode (ρ, Sᵢ, √E_k, R², ‖y - ŷ‖), not TeX.
-- **Notes** print as a list, a note's later lines indented under it. **Figures** with one caption are grouped:
+- **Notes** print as a list, a note's later lines indented under it (blank lines dropped). **Figures** with one caption are grouped:
   their images, then the caption and "Data cards: `a.json`, `b.json`." **The point run's** measured-noisy record
   prints its sentence under the observations.
+- **The coordinate lines' Design row** names the lines through the anchor by
+  `ema.designs.lines.lines_through_anchor(identity, spec)`, the generator's own rule (record 0073 item 13).
 
 ## Checks before reporting done
 
@@ -113,18 +116,30 @@ All checks pass; the report goes to the coordinator (0066). Nothing committed.
 Each is record 0073's, numbered as there, one line each.
 
 1. A result's text is plain; the report escapes all of it (T10), so EMA's own symbols in a result are Unicode.
-2. Escaped: `` \ ` * _ [ ] < > $ | ~ ^ @ # & ``; a newline in a cell becomes a space; a version label's `@` isn't.
+2. Escaped: `` \ ` * _ [ ] < > $ | ~ ^ @ # & ``, and a block marker at a line's start; any line ending in a cell, a
+   title, or a caption becomes a space; a version label's `@` isn't.
 3. Tables: estimates with one label form a row; tab-separated leading cells; a table's title printed under it.
 4. The line under an estimates table is built from `IntervalInfo` (method, n, resamples, distinct, percentiles,
    other keys, seed; "none" reasons; undefined counts).
 5. The header's rows come from the spec, the request, and the design identity; the Design row per generator kind.
-6. The Provenance line's request parameters are sorted by name (seed last), as a stored result keeps them.
+6. The Provenance line's request parameters are sorted by name (seed last), as a stored result keeps them; "level 2"
+   as the mocks write it; the point run's "runs: 5 (replicates 0–4)".
 7. A figure's alt text is its name; figures with one caption share a paragraph.
-8. No `pyplot`, no global rcParams: `rc_context` in each function, the Agg canvas; the reference palette's 3 slots.
+8. No `pyplot`, no global rcParams: matplotlib's defaults, then `_RC`, in each function (`text.usetex` off), the Agg
+   canvas; the reference palette's 3 slots.
 9. Drawing helpers beyond §6's four names, so the diagnostics draw one way; a log panel's floor is a sticky edge.
 10. PNGs without `Software` or time chunks, 150 dpi, tight; cards sorted, indent 2, strict, a final newline.
-11. `to_pdf` runs pandoc in a temporary directory with copies of the report, figures, and fonts.
-12. The golden comparator in `tests/support/reports.py`, for steps 09-13; the six mocks checked here.
+11. `to_pdf` runs pandoc in a temporary directory with copies of the report, figures, and fonts; TeX math and
+    `smart` off, `--sandbox`.
+12. The golden comparator in `tests/support/reports.py`, for steps 09-13; the six mocks checked here; integers
+    exactly, the Provenance line compared.
+13. Review round 1: `lines_through_anchor` in `ema.designs.lines`, the shared anchor's rule in one place.
+14. Review round 1: the sampler's rate only for the stored sampler version.
+15. Review round 1: figure names and files plain (`save`, `render`).
+16. Review round 1: a NaN drawn as nothing.
+17. Review round 1: GitHub's autolinks and emoji accepted.
+18. Review round 1: the size overrun, 697 against 540, proposed as §11's 700 and the diagnostics' 1,850.
+19. Review round 1: `IntervalInfo.settings`' keys (`seed`, `distinct`) as the diagnostics' convention.
 
 ## Notes
 
@@ -138,6 +153,17 @@ Each is record 0073's, numbered as there, one line each.
 - **Size** (code lines without docstrings, comments, or blanks): `ema.plotting` 284 (38 re-exports),
   `ema.report` 376; 660 against §11's 540 (record 0073, Consequences: the drawing helpers, about 120, are figure
   code moved out of the diagnostics).
+- **Review round 1** (record 0073 items 2, 6, 8, 11, 12 revised; 13-19 new). Fixed: the coordinate lines' Design
+  row failed (IndexError) with a held model parameter before a varied one; a user's `text.usetex` sent a spec's
+  text to LaTeX and `axes.xmargin` changed a card's extent; `$...$` in a report reached lualatex as math, and
+  `smart` rewrote "--"; a block marker at a line's start in a note, a table's title, or a caption made a list or
+  rule; only `\n` ended a line; the sampler's rate was read for any version; `PdfFailed` could name a line before
+  LaTeX's `!` line; the comparator let integers differ by one and skipped Provenance; the Provenance line's
+  `level 2`, `anchor {}`, and "(replicates 0–4)" differed from the mocks; a NaN was drawn as an open marker;
+  figure file names weren't checked. Each has a test (29 in the fast tier, 2 in the slow). Times: fast tier
+  1,169 passed, 6 skipped, in about 20 s; the slow tier with `-n auto`, 1,175 passed in about 32 s. Size:
+  `ema.plotting` 290 (38 re-exports), `ema.report` 407 (`render.py` 321, `pdf.py` 83): 697 against 540 (item
+  18); `ema.designs` grows by 10 (`lines.py` 236).
 - **Checked by eye:** a coordinate line's two panels (the strip, the open markers on the bottom edge, the tail
   fit, the floor, the window), a scatter panel with bin means, a log panel of intervals, and the linear model's
   mock as a PDF (DejaVu Serif, tables, "≈", "‖", "²").

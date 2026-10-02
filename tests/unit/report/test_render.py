@@ -1,12 +1,13 @@
 """``ema.report.render``: the report's sections, header, numbers, intervals, and escaping (S1-S4, S10; V4, V6, V7;
 T10; 0042, 0044, 0051, 0055; record 0073)."""
 
+import dataclasses
 import re
 
 import pytest
 
 from ema.report import EXPLAIN_INTERVALS, render
-from ema.types.results import DiagnosticResult, Note
+from ema.types.results import DiagnosticResult, Figure, Note
 from ema.types.runs import FailureKind
 from tests.support.reports import parse, unescape
 from tests.support.results import etable, make_result, make_spec, otable, shared
@@ -167,6 +168,96 @@ def test_coordinate_lines_design_row_says_which_lines_hold_the_anchor():
     assert off.endswith("lines through the anchor: c, e, f, g")
 
 
+def cl_design(spec, space, anchor, n=5):
+    """The Design row of a coordinate-lines result on ``spec``."""
+    varied = [k for k, v in space.items() if isinstance(v, list)]
+    r = make_result(
+        spec,
+        diagnostic="coordinate_lines",
+        title="Coordinate lines",
+        space=space,
+        params={"n": n, "anchor": anchor, "seed": 0},
+        kind="coordinate_lines",
+        design_params={"n": n, "anchor": anchor},
+        seed=0,
+        rows=len(varied) * n,
+        runs=len(varied) * n,
+        new=len(varied) * n,
+        usable=len(varied) * n,
+        observations=[shared(len(varied) * n, "y", 0.0, 1.0, 1.0)],
+    )
+    return header(render(r, spec))["Design"]
+
+
+@pytest.mark.parametrize(
+    ("nominal", "space", "through"),
+    [
+        ((5.0, 0.0, 0.0), {"a": 5.0, "b": [-1, 1], "c": [-1, 1]}, "all 2 lines share the anchor's run"),
+        ((0.0, 5.0, 0.5), {"a": [-1, 1], "b": 5.0, "c": [-1, 1]}, "lines through the anchor: a"),
+        ((0.5, 5.0, 0.0), {"a": [-1, 1], "b": 5.0, "c": [-1, 1]}, "lines through the anchor: c"),
+        ((0.0, 0.5, 5.0), {"a": [-1, 1], "b": [-1, 1], "c": 5.0}, "lines through the anchor: a"),
+    ],
+)
+def test_coordinate_lines_with_a_held_model_parameter_before_or_between_varied_ones(nominal, space, through):
+    """S2, G12 (review round 1's blocker): the anchor's unit coordinates are the varied model parameters' only, and
+    the lines through it are the generator's own (``lines_through_anchor``), whatever the held ones' places."""
+    spec = make_spec("cl", [(n, "", v) for n, v in zip("abc", nominal, strict=True)])
+    assert cl_design(spec, space, {}).endswith(through)
+
+
+# Line starts and line endings (T10; record 0073 item 2, review round 1)
+
+MARKERS = ["---", "- x", "+ x", "* x", "1. x", "2) x", "a) x", "(iv) x", ": x", "===", "# x", "> x", "  - x"]
+
+
+def test_a_block_marker_at_a_line_start_is_escaped():
+    """A note's lines, a table's title, and a caption start lines; no block marker there acts (T10)."""
+    note = Note("n", "\n".join(["first", *MARKERS]))
+    title = otable("x", ("Line", "Range"), [("0", 1.5)], title="1. Decay rate: 2")
+    caption = "- y against a"
+    figure = Figure("scatter_a", "scatter_a.png", "scatter_a.json", caption)
+    first = Note("m", "- starts with a dash")
+    report = render(simple(notes=[note, first], observations=[title], figures=[figure]), ABC)
+    lines = report.splitlines()
+    escaped = [r"\---", r"\- x", r"\+ x", r"\* x", r"1\. x", r"2\) x", r"a\) x", r"(iv\) x", r"\: x", r"\===", r"\# x"]
+    for text in [*escaped, r"\> x", r"  \- x"]:
+        assert f"  {text}" in lines, text
+    assert "- \\- starts with a dash" in lines
+    assert "1\\. Decay rate: 2" in lines
+    assert "\\- y against a Data card: `scatter_a.json`." in lines
+    plain = render(simple(notes=[Note("n", "a\n1.5 m\ne.g. x\n-0.5")]), ABC)
+    assert "  1.5 m\n  e.g. x\n  \\-0.5\n" in plain  # a list marker needs a space after it; a dash is escaped
+
+
+@pytest.mark.parametrize("ending", ["\r\n", "\r", "\u2028", "\x85", "\v"])
+def test_every_line_ending_is_a_line_end(ending):
+    """A cell and a title are one line, a note's lines are its lines, whatever their line endings (T10)."""
+    t = otable("x", (f"Line{ending}head", "Range"), [(f"a{ending}b", 1.5)], title=f"Rate{ending}- per run")
+    note = Note("n", f"one{ending}- two")
+    report = render(simple(notes=[note], observations=[t]), ABC)
+    assert "| Line head | Range |" in report and "| a b | 1.5 |" in report
+    assert "\nRate \\- per run\n" not in report and "\nRate - per run\n" in report
+    assert "- one\n  \\- two\n" in report
+    assert not set("\r\u2028\x85\v") & set(report)
+
+
+def test_a_figure_file_that_isnt_a_plain_name_is_refused():
+    """T10 (review round 1): a figure's png and card are written into a Markdown link, so they are plain names."""
+    for png, card in (("a).png", "a.json"), ("a.png", "../a.json"), ("a b.png", "a.json")):
+        with pytest.raises(ValueError, match="file name"):
+            render(simple(figures=[Figure("a", png, card, "")]), ABC)
+
+
+def test_the_sampler_rate_only_for_the_stored_version():
+    """S10, P1 (review round 1): the rate is the registered sampler's, printed only when its version is the stored one."""
+    result = simple()
+    design = dataclasses.replace(result.provenance.design, sampler_version="0")
+    provenance = dataclasses.replace(result.provenance, design=design)
+    old = dataclasses.replace(result, provenance=provenance)
+    assert header(render(old, ABC))["Design"] == "uniform, n = 20, sampler random 0, seed 0"
+    assert header(render(result, ABC))["Design"] == "uniform, n = 20, sampler random 1 (rate ½), seed 0"
+
+
 # S3: numbers (0044)
 
 
@@ -306,7 +397,10 @@ def test_provenance_line():
     ), line
     spec, result = point_run_r6a()
     line = parse(render(result, spec)).sections["Provenance"][0][1]
-    assert "request: point run, repeats = 4, x = {}, seed 0, prediction y; runs: 5; approvals:" in line
+    assert "request: point run, repeats = 4, x = {}, seed 0, prediction y; runs: 5 (replicates 0–4); approvals:" in line
+    spec, result = coordinate_lines_r8()
+    line = parse(render(result, spec)).sections["Provenance"][0][1]
+    assert "request: coordinate lines, space as above, anchor {}, n = 17, seed 0, prediction y; runs: 97;" in line
     no_new = simple(new=0, observations=[shared(20, "T_max", 1.0, 2.0, 0.5, "K")])
     assert parse(render(no_new, ABC)).sections["Provenance"][0][1].endswith("approvals: none (no new runs).")
 

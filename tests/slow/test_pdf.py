@@ -4,6 +4,7 @@ Slow tier; skipped when ``to_pdf`` raises ``PandocMissing`` (as on the workflow'
 when ``pdftotext`` isn't installed.
 """
 
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -13,7 +14,10 @@ import pytest
 
 from ema import plotting
 from ema.report import render, to_pdf
+from ema.report.pdf import READER
 from ema.types.errors import PandocMissing
+from ema.types.results import Figure, Note
+from tests.support.results import otable
 from tests.unit.report.test_golden import linear_r3, scatter_r2
 from tests.unit.report.test_render import ATTACK
 
@@ -85,9 +89,52 @@ def test_text_ema_didnt_write_is_not_tex(tmp_path):
     (tmp_path / "report.md").write_text(render(result, spec), encoding="utf-8")
     text = pdf_text(pdf_or_skip(tmp_path / "report.md"))
     assert r"\input{/etc/hosts}" in text and "_T_" in text
-    hosts = [
+    assert not [line for line in hosts_lines() if line in text]
+
+
+def hosts_lines() -> list[str]:
+    return [
         line.strip()
         for line in Path("/etc/hosts").read_text().splitlines()
         if line.strip() and not line.startswith("#")
     ]
-    assert not [line for line in hosts if line in text]
+
+
+def test_raw_tex_math_and_dashes_in_a_report_print_as_written(tmp_path):
+    """T10 (review round 1): a report with unescaped raw TeX and TeX math (as a hand-edited report could hold) makes
+    a PDF that prints them as written: pandoc's reader passes nothing to lualatex as TeX, and "--" stays two dashes."""
+    (tmp_path / "report.md").write_text(
+        "# Raw\n\nraw: \\input{/etc/hosts}\n\nmath: $\\input{/etc/hosts}$ and a -- b\n", encoding="utf-8"
+    )
+    text = pdf_text(pdf_or_skip(tmp_path / "report.md"))
+    assert text.count(r"\input{/etc/hosts}") == 2 and "$" in text and "a -- b" in text
+    assert not [line for line in hosts_lines() if line in text]
+
+
+def test_no_block_marker_in_a_results_text_makes_a_block(tmp_path):
+    """T10, record 0073 item 2 (review round 1): pandoc reads the report's own blocks only; a note's lines, a table's
+    title, and a caption that start with a list, rule, or definition marker stay text."""
+    from tests.unit.report.test_render import ABC, MARKERS, simple
+
+    note = Note("n", "\n".join(["first", *MARKERS]))
+    title = otable("x", ("Line", "Range"), [("0", 1.5)], title="1. Decay rate: 2")
+    figure = Figure("scatter_a", "scatter_a.png", "scatter_a.json", "- y against a")
+    report = render(simple(notes=[note], observations=[title], figures=[figure]), ABC)
+    if shutil.which("pandoc") is None:
+        pytest.skip("pandoc isn't installed")
+    done = subprocess.run(
+        ["pandoc", "-f", READER, "-t", "json"], input=report, capture_output=True, text=True, check=True
+    )
+    blocks = json.loads(done.stdout)["blocks"]
+
+    def kinds(items):
+        for block in items:
+            yield block["t"]
+            if block["t"] == "BulletList":
+                for item in block["c"]:
+                    yield from kinds(item)
+
+    found = list(kinds(blocks))
+    assert found.count("BulletList") == 1  # the Notes section's list, with one item
+    assert not {"OrderedList", "HorizontalRule", "DefinitionList", "BlockQuote", "CodeBlock"} & set(found)
+    assert found.count("Header") == 5  # the title; Notes, Observations, Figures, Provenance

@@ -26,3 +26,22 @@ def test_a_missing_figure_fails_before_pandoc(tmp_path, monkeypatch):
     monkeypatch.setattr(shutil, "which", lambda name, *a, **k: f"/usr/bin/{name}")
     with pytest.raises(PdfFailed, match="scatter_a.png"):
         to_pdf(str(tmp_path / "report.md"))
+
+
+def test_pdf_failed_names_latexs_error_line_first():
+    """Review round 1: LaTeX's "!" line is the error, even after a line that mentions "Error" in passing."""
+    from ema.report.pdf import _failure
+
+    stderr = "Error producing PDF.\n(./report.tex\n! Undefined control sequence.\nl.42 \\foo\n"
+    failure = _failure(stderr)
+    assert isinstance(failure, PdfFailed) and str(failure).endswith("! Undefined control sequence.")
+    assert str(_failure("Error producing PDF.\nsomething\n")).endswith("Error producing PDF.")
+
+
+def test_the_reader_turns_off_tex_math_and_smart_punctuation():
+    """T10 (review round 1): `$\\input{...}$` would reach lualatex as math, and "--" would print as a dash."""
+    from ema.report.pdf import READER
+
+    assert READER.startswith("markdown-")
+    off = set(READER.removeprefix("markdown-").split("-"))
+    assert {"raw_tex", "raw_html", "raw_attribute", "tex_math_dollars", "smart"} <= off

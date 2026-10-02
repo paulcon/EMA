@@ -1,8 +1,9 @@
 """A report's PDF, through pandoc and lualatex (0018; 0059 item 8; trust.md T10; record 0073 item 10).
 
 The text is set in DejaVu Serif and code in DejaVu Sans Mono, each from the four files matplotlib ships, named
-one by one, so no TeX text font is needed. pandoc reads the report with raw TeX, raw HTML, and raw attributes off,
-the second guard after the report's escaping (T10). It runs in a temporary directory holding a copy of the report
+one by one, so no TeX text font is needed. pandoc reads the report with raw TeX, raw HTML, raw attributes, TeX math
+in dollars, and smart punctuation off, in its sandbox, the second guard after the report's escaping (T10): nothing
+in the report reaches lualatex as TeX, and "--" prints as written. It runs in a temporary directory holding a copy of the report
 and its figures, so a path with ``%``, ``#``, or ``~`` (which lualatex can't take), or a figure pandoc would drop
 with exit 0, doesn't spoil the PDF (0059's pitfalls).
 """
@@ -17,8 +18,9 @@ import matplotlib
 
 from ema.types.errors import PandocMissing, PdfFailed
 
-#: pandoc's reader: Markdown with raw TeX, raw HTML, and raw attributes off (T10).
-READER = "markdown-raw_tex-raw_html-raw_attribute"
+#: pandoc's reader: Markdown with raw TeX, raw HTML, raw attributes, and TeX math off (T10), and no smart
+#: punctuation, so "--" and quotes print as written (the report writes no math: record 0073 item 11).
+READER = "markdown-raw_tex-raw_html-raw_attribute-tex_math_dollars-smart"
 #: Seconds for one PDF; one takes about 4 s (0059).
 PDF_TIMEOUT_S = 300
 _FONTS = {
@@ -48,7 +50,10 @@ def _failure(stderr: str) -> Exception:
         if found:
             return PandocMissing(f"lualatex lacks {found.group(1)}: install it, or {_INSTALL}")
     lines = [line.strip() for line in stderr.splitlines() if line.strip()]
-    error = next((line for line in lines if line.startswith("!") or "Error" in line), lines[-1] if lines else "")
+    error = next(
+        (line for line in lines if line.startswith("!")),
+        next((line for line in lines if "Error" in line), lines[-1] if lines else ""),
+    )
     return PdfFailed(f"the PDF wasn't made: {error}")
 
 
@@ -99,6 +104,7 @@ def to_pdf(report_path: str) -> str:
             "report.md",
             "-f",
             READER,
+            "--sandbox",
             "--pdf-engine=lualatex",
             "-V",
             "geometry:margin=2cm",

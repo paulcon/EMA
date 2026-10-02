@@ -9,14 +9,13 @@ Every text field of the result and the spec is plain text, which the report esca
 symbols in a result are Unicode, and the report's own sentences are the only Markdown it writes unescaped.
 """
 
+import re
 from collections.abc import Mapping, Sequence
 from fractions import Fraction
 from typing import Any
 
-import numpy as np
-
 from ema.designs import samplers
-from ema.designs.lines import SHARED_ANCHOR_TOL
+from ema.designs.lines import lines_through_anchor
 from ema.types.design import DesignIdentity
 from ema.types.errors import EMAError
 from ema.types.identity import canonical_json, model_version_label
@@ -35,7 +34,14 @@ EXPLAIN_INTERVALS = (
 
 #: Markdown's (and pandoc's) characters that act on text: each is backslash-escaped in text EMA didn't write (T10).
 _SPECIAL = frozenset("\\`*_[]<>$|~^@#&")
+#: A block marker at a line's start, after ``_escape`` (which escapes "*", "#", ">", "|", "~", "`"): a list item ("-",
+#: "+", "1.", "a)", "(iv)"), a rule or setext underline ("---", "==="), or a definition (":") (record 0073 item 2).
+_BLOCK = re.compile(r"^(\s*)(?:([-+:=])|(\(?[0-9A-Za-z]+)([.)])(?=\s|$))")
 _ID_DIGITS = 12  # 0055
+#: Request parameters that name one of a family, printed "level 2", as the mocks do; others "n = 200" (0073 item 6).
+_NAMED = frozenset({"anchor", "basis", "degree", "level"})
+#: A figure's file name: letters, digits, "_", "-", "." (not first, no ".."), so the image link can't break (T10).
+_FILE = re.compile(r"[A-Za-z0-9_-][A-Za-z0-9_.-]*")
 
 
 def _escape(text: str) -> str:
@@ -43,9 +49,37 @@ def _escape(text: str) -> str:
     return "".join("\\" + c if c in _SPECIAL else c for c in text)
 
 
+def _one_line(text: str) -> str:
+    """Join text's lines, whatever their line endings, with spaces (record 0073 item 2)."""
+    return " ".join(text.splitlines())
+
+
 def _cell(text: str) -> str:
-    """Escape text for a table cell: one line."""
-    return _escape(" ".join(text.split("\n")))
+    """Escape text for a table cell or inside a line: one line."""
+    return _escape(_one_line(text))
+
+
+def _line_start(text: str) -> str:
+    """Escape text that starts a line, a block marker at its start included, so it is no list or rule (T10)."""
+    escaped = _escape(text)
+    found = _BLOCK.match(escaped)
+    if found is None:
+        return escaped
+    if found.group(2):
+        return f"{found.group(1)}\\{escaped[found.end(1) :]}"
+    return f"{escaped[: found.start(4)]}\\{escaped[found.start(4) :]}"
+
+
+def _paragraph(text: str) -> str:
+    """Escape text that starts a paragraph (a table's title, a caption): one line, its start escaped."""
+    return _line_start(_one_line(text).strip())
+
+
+def _file(name: str) -> str:
+    """Return a figure's file name, refused unless plain (``ema.plotting.save`` writes only such names)."""
+    if not _FILE.fullmatch(name) or ".." in name:
+        raise ValueError(f"a figure's file name is letters, digits, _, -, and ., not {name!r}")
+    return name
 
 
 def _number(x: float, units: str = "") -> str:
@@ -138,13 +172,19 @@ def _rate(rate: Fraction) -> str:
 
 
 def _sampler(design: DesignIdentity, *, rate: bool) -> str:
-    """'sampler random 1 (rate ½)': its name and version, and its rate when it is still registered."""
+    """'sampler random 1 (rate ½)': its name and version, and its rate when that version is still registered.
+
+    The rate is the registered sampler's, so it is printed only when the registered version is the stored one (S10,
+    P1): a later version's rate is not this design's.
+    """
     text = f"sampler {_cell(str(design.sampler))} {_cell(str(design.sampler_version))}"
     if rate:
         try:
-            text += f" (rate {_rate(samplers.get(str(design.sampler)).rate)})"
+            sampler = samplers.get(str(design.sampler))
         except EMAError:
-            pass
+            return text
+        if str(sampler.version) == str(design.sampler_version):
+            text += f" (rate {_rate(sampler.rate)})"
     return text
 
 
@@ -156,9 +196,7 @@ def _coordinate_lines(design: DesignIdentity, spec: ModelSpec, space: ModelParam
     base = {p.name: float(anchor.get(p.name, space.held.get(p.name, p.nominal))) for p in spec.parameters}
     varied = space.varied(spec)
     values = [(p.name, base[p.name], p.units) for p in spec.parameters if p.name in varied]
-    z = space.to_unit(spec, np.array([[base[p.name] for p in spec.parameters]]))[0]
-    names = [p.name for p in spec.parameters]
-    through = [v for v in varied if n % 2 == 1 and abs(float(z[names.index(v)])) <= SHARED_ANCHOR_TOL]
+    through = lines_through_anchor(design, spec)  # the generator's own rule (G12)
     if n % 2 == 0:
         on = "lines through the anchor: none (n is even)"
     elif len(through) == len(varied) > 1:
@@ -166,6 +204,12 @@ def _coordinate_lines(design: DesignIdentity, spec: ModelSpec, space: ModelParam
     else:
         on = f"lines through the anchor: {', '.join(_cell(v) for v in through) or 'none'}"
     return f"coordinate lines, n = {n}, anchor {_point(values, list(anchor))}; {on}"
+
+
+def _replicates(design: DesignIdentity) -> str:
+    """Write the point design's replicates: "replicates 0–4", or "replicate 0"."""
+    repeats = int(design.params.get("repeats", 0))
+    return f"replicates 0–{repeats}" if repeats else "replicate 0"
 
 
 def _design_row(result: DiagnosticResult, spec: ModelSpec, space: ModelParameterSpace) -> str:
@@ -183,8 +227,7 @@ def _design_row(result: DiagnosticResult, spec: ModelSpec, space: ModelParameter
         )
     if kind == "point":
         repeats = int(p.get("repeats", 0))
-        replicates = f"replicates 0–{repeats}" if repeats else "replicate 0"
-        return f"point, repeats = {repeats} ({replicates})"
+        return f"point, repeats = {repeats} ({_replicates(design)})"
     if kind == "coordinate_lines":
         return _coordinate_lines(design, spec, space)
     if kind == "random_lines":
@@ -293,7 +336,7 @@ def _estimates_section(result: DiagnosticResult) -> list[str]:
             counts = ", ".join(f"{_cell(k)} {n}" for k, n in sorted(table.interval.undefined.items()))
             line.append(f"Undefined resamples, dropped: {counts}.")
         if table.title and table.title != table.columns[0]:
-            line.insert(0, _escape(table.title))
+            line.insert(0, _paragraph(table.title))
         blocks.append(" ".join(line))
     return blocks
 
@@ -314,7 +357,7 @@ def _observations_section(result: DiagnosticResult, spec: ModelSpec) -> list[str
         _fit(table.columns, rows, f"observations table {table.key}'s columns")
         blocks.append(_table(table.columns, rows))
         if table.title and table.title != table.columns[0]:
-            blocks.append(_escape(table.title))
+            blocks.append(_paragraph(table.title))
     if result.measured_noisy is not None:
         label = _version(spec, result.model_version_id)
         blocks.append(
@@ -328,7 +371,7 @@ def _observations_section(result: DiagnosticResult, spec: ModelSpec) -> list[str
 
 
 def _code(name: str) -> str:
-    return f"`{name}`" if "`" not in name else _escape(name)
+    return f"`{name}`"
 
 
 def _figures_section(result: DiagnosticResult) -> list[str]:
@@ -340,9 +383,9 @@ def _figures_section(result: DiagnosticResult) -> list[str]:
         else:
             groups.append([f])
     for group in groups:
-        blocks.append(" ".join(f"![{_escape(f.name)}]({f.png})" for f in group))
-        cards = ", ".join(_code(f.card) for f in group)
-        caption = f"{_escape(group[0].caption)} " if group[0].caption else ""
+        blocks.append(" ".join(f"![{_cell(f.name)}]({_file(f.png)})" for f in group))
+        cards = ", ".join(_code(_file(f.card)) for f in group)
+        caption = f"{_paragraph(group[0].caption)} " if group[0].caption.strip() else ""
         blocks.append(f"{caption}Data card{'s' if len(group) > 1 else ''}: {cards}.")
     return blocks
 
@@ -357,6 +400,8 @@ def _provenance_section(result: DiagnosticResult, spec: ModelSpec) -> list[str]:
     for key in sorted(k for k in params if k != "seed"):
         if key == "sampler" and p.design.sampler is not None:
             parts.append(_sampler(p.design, rate=False))
+        elif key in _NAMED:
+            parts.append(f"{_cell(key)} {_value(params[key])}")
         else:
             parts.append(_setting(key, params[key]))
     if "seed" in params:
@@ -369,11 +414,18 @@ def _provenance_section(result: DiagnosticResult, spec: ModelSpec) -> list[str]:
         else "none (no new runs)"
     )
     label = _version(spec, result.model_version_id)
+    runs = f"{result.counts.runs} ({_replicates(p.design)})" if p.design.kind == "point" else str(result.counts.runs)
     line = (
         f"EMA {_cell(p.ema)}; numpy {_cell(p.numpy)}, scipy {_cell(p.scipy)}, matplotlib {_cell(p.matplotlib)}; "
-        f"model version {label}; request: {', '.join(parts)}; runs: {result.counts.runs}; approvals: {approval}."
+        f"model version {label}; request: {', '.join(parts)}; runs: {runs}; approvals: {approval}."
     )
     return ["## Provenance", line]
+
+
+def _note(text: str) -> str:
+    """Write a note as a list item, its later lines indented under it; blank lines dropped, so none is code (T10)."""
+    lines = [line.rstrip() for line in text.splitlines() if line.strip()] or [""]
+    return "- " + "\n  ".join(_line_start(line) for line in [lines[0].lstrip(), *lines[1:]])
 
 
 def render(result: DiagnosticResult, spec: ModelSpec) -> str:
@@ -406,7 +458,7 @@ def render(result: DiagnosticResult, spec: ModelSpec) -> str:
     title = f"# {_cell(result.title)}: {_cell(spec.name)}, {_cell(result.prediction)}"
     blocks = [title, _header(result, spec)]
     if result.notes:
-        notes = ["- " + "\n  ".join(_escape(line) for line in n.text.split("\n")) for n in result.notes]
+        notes = [_note(n.text) for n in result.notes]
         blocks += ["## Notes", "\n".join(notes)]
     if result.estimates:
         blocks += _estimates_section(result)

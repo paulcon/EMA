@@ -146,7 +146,8 @@ class EstimateTable:
     key : str
         Stable, not shown: "rank_correlation", "sobol_total" (C5).
     title : str
-        Its title.
+        Its title. The report prints it under the table, opening the line there, unless it equals ``columns[0]``
+        (record 0073 item 3): a table with no sentence of its own takes its row heading as its title. Plain text.
     columns : tuple of str
         Its column headings.
     estimates : tuple of Estimate
@@ -211,7 +212,8 @@ class ObservationTable:
     key : str
         Stable, not shown: "shared", "line_rates".
     title : str
-        Its title.
+        Its title. The report prints it under the table, unless it equals ``columns[0]`` (record 0073 item 3; the
+        shared table's "Of the 200 usable runs" is its row heading). Plain text.
     columns : tuple of str
         Its column headings.
     rows : tuple of tuple of Observation

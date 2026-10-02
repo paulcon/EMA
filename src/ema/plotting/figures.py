@@ -4,19 +4,22 @@ architecture.md §6 (3a): ``new_figure``, ``axis_label``, ``strip``, ``save``; a
 diagnostics' figures need (record 0073; docs/plans/08-figures-and-reports.md, The API the diagnostics call).
 
 Figures are drawn on ``matplotlib.figure.Figure`` with the Agg canvas, never through ``pyplot``, and every function
-here applies EMA's fixed style with ``rc_context`` (record 0073 item 8), so the user's backend and rcParams are left
-alone. A spec's names and units print literally (T10): ``axis_label`` and ``title`` escape ``$``, so mathtext never
+here runs under matplotlib's default rcParams, then EMA's fixed style (``style.context``; record 0073 item 8), so the
+user's backend and rcParams are left alone, and neither changes a figure: not its extent (``axes.xmargin``), nor how
+its text is set (``text.usetex`` off, so a spec's text never reaches LaTeX; T10). A spec's names and units print literally (T10): ``axis_label`` and ``title`` escape ``$``, so mathtext never
 reads them; EMA's own labels may use mathtext (``axis(..., own=True)``).
 """
 
 import functools
 import json
 import math
+import re
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
 
 import matplotlib
+import matplotlib.style
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -32,8 +35,10 @@ from ema.types.runs import FailureKind
 INK, MUTED = "#0b0b0b", "#52514e"
 SERIES = ("#2a78d6", "#eb6834", "#1baf7a")
 
-#: EMA's fixed style: DejaVu Sans (matplotlib's own), an ASCII minus as in the report (0044), and no grid.
+#: EMA's fixed style, over matplotlib's defaults: DejaVu Sans (matplotlib's own), an ASCII minus as in the report
+#: (0044), no grid, and never LaTeX (T10).
 _RC: dict[str, Any] = {
+    "text.usetex": False,
     "font.family": "DejaVu Sans",
     "mathtext.fontset": "dejavusans",
     "font.size": 9.0,
@@ -57,15 +62,16 @@ _RC: dict[str, Any] = {
     "savefig.dpi": 150.0,
 }
 _PANEL_SIZE = (4.0, 3.0)  # inches
+_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")  # a figure's name: a plain file name, safe in a Markdown link
 _STRIP_Y = -0.05  # the strip's place, in axes coordinates: just below the x axis
 
 
 def _styled[F: Callable[..., Any]](fn: F) -> F:
-    """Run ``fn`` under EMA's style (record 0073 item 8)."""
+    """Run ``fn`` under matplotlib's default rcParams (not the user's), then EMA's style (record 0073 item 8)."""
 
     @functools.wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        with matplotlib.rc_context(_RC):  # type: ignore[arg-type]  # its keys are rcParams'
+        with matplotlib.style.context(["default", _RC]):
             return fn(*args, **kwargs)
 
     return cast(F, wrapper)
@@ -209,8 +215,11 @@ def _floor(ax: Axes, x: np.ndarray, ymin: float) -> None:
 
 
 def _open_below(ax: Axes, x: np.ndarray, values: np.ndarray, ymin: float, series: int) -> np.ndarray:
-    """Draw values below ``ymin`` as open markers on the bottom edge (0048); return the mask of those drawn so."""
-    below = ~(np.asarray(values, dtype=float) >= ymin)
+    """Draw values below ``ymin`` as open markers on the bottom edge (0048); return the mask of those drawn so.
+
+    A NaN is not below ``ymin``: it is drawn as nothing, not as an open marker.
+    """
+    below = np.asarray(values, dtype=float) < ymin
     if below.any():
         ax.plot(x[below], np.full(int(below.sum()), ymin), marker="o", linestyle="none", markerfacecolor="none",
                 markeredgecolor=SERIES[series], markersize=5, clip_on=False)  # fmt: skip
@@ -400,8 +409,11 @@ def save(fig: MplFigure, card: Mapping[str, Any], out_dir: str, name: str, capti
     Raises
     ------
     ValueError
-        For a card that isn't strict JSON, or names another figure.
+        For a name that isn't a plain file name (letters, digits, ``_``, ``-``), a card that isn't strict JSON, or
+        a card that names another figure.
     """
+    if not _NAME.fullmatch(name):
+        raise ValueError(f"a figure's name is letters, digits, _, and -, as a file name, not {name!r}")
     if card.get("name", name) != name:
         raise ValueError(f"the card names the figure {card['name']!r}, not {name!r}")
     text = card_text({**card, "name": name})
