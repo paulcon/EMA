@@ -202,3 +202,7 @@ State lives in git and on disk; nothing is only in the conversation.
 
 - 15 the MCP server and 16 the CLI, from `demo` at the workspace's merge, in parallel; the seam between them
   fixed by the coordinator: `ema mcp` calls `ema.mcp.server.serve(root=..., workspace=...)`.
+- **Step 11** built and merged (coordinate lines and lines; both mocks matched; R8 through the runner; the
+  contract's batch builder per run). U2 passes on `demo`. Review round 1 started.
+- **Step 12** built and merged (the linear model; the mock matched exactly). Review round 1 started. The
+  bootstrapped diagnostics make the fast tier slow (about 2,000 fits per bootstrap); to settle at the end.
