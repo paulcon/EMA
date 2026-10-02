@@ -193,3 +193,12 @@ State lives in git and on disk; nothing is only in the conversation.
 - **Step 09, fixing round 1** (merged, acfed84): the point run's moments from replicate 0 (exact for a
   constant); decimal text kept as written; plain-text notes; C2, C6, C10 tightened; −0.0 kept distinct from 0.0
   per `data_model.md` §3.4. The four diagnostic agents and the workspace agent told of the tightened checks.
+- **Step 10** built and merged (scatter; the mock reproduced to every printed digit). Review round 1 started.
+- **Step 14** built and merged (the workspace; an evaluation end to end in §7's order). On merged `demo`, C53's
+  U1, U6, U7, U8 pass with scatter; U2–U5 wait for coordinate lines and the linear and polynomial models.
+  Review round 1 started.
+
+### Wave 7 (started early)
+
+- 15 the MCP server and 16 the CLI, from `demo` at the workspace's merge, in parallel; the seam between them
+  fixed by the coordinator: `ema mcp` calls `ema.mcp.server.serve(root=..., workspace=...)`.
