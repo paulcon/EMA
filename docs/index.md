@@ -68,4 +68,12 @@ The store (step 06):
    ema.store.layout
    ema.store.lock
    ema.store.migrations
+.. Step 08: figures and reports (a block of its own, to ease merging).
+
+.. autosummary::
+   :toctree: _autosummary
+
+   ema.plotting.figures
+   ema.report.render
+   ema.report.pdf
 ```

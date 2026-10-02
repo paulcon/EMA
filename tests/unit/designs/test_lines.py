@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from ema.designs import generators
-from ema.designs.lines import SHARED_ANCHOR_TOL
+from ema.designs.lines import SHARED_ANCHOR_TOL, lines_through_anchor
 from ema.types.errors import RequestError
 from ema.types.model import Limits
 from ema.types.space import ModelParameterSpace
@@ -139,6 +139,30 @@ class TestG12SharedAnchor:
 
     def test_the_tolerance(self):
         assert SHARED_ANCHOR_TOL == 1e-12
+
+    @pytest.mark.parametrize(
+        ("space", "anchor", "n", "through"),
+        [
+            ({"a": 5.0, "b": [-1, 1], "c": [-1, 1]}, {}, 5, ("b", "c")),  # a held model parameter first
+            ({"a": [-1, 1], "b": 5.0, "c": [-1, 1]}, {"c": 0.3}, 5, ("a",)),  # one between varied ones
+            ({"a": [-1, 1], "b": 5.0, "c": [-1, 1]}, {"a": 0.3}, 5, ("c",)),
+            ({"a": [-1, 1], "b": 5.0, "c": [-1, 1]}, {}, 4, ()),  # n even
+        ],
+    )
+    def test_lines_through_anchor_names_the_lines_built_through_it(self, space, anchor, n, through):
+        """G12 in one place (review round 1): the lines ``lines_through_anchor`` names are those whose middle point
+        is the anchor, bit for bit, in the built design; the report's Design row reads it."""
+        spec = make_spec([("a", 0.0), ("b", 0.0), ("c", 0.0)])
+        identity = ident(spec, "coordinate_lines", space, n=n, anchor=anchor)
+        design = COORD.build(identity, spec)
+        varied = [k for k, v in space.items() if isinstance(v, list)]
+        x = np.array([anchor.get(k, space[k] if k not in varied else 0.0) for k in "abc"])
+        built = tuple(
+            name
+            for name, line in zip(varied, design.lines, strict=True)
+            if n % 2 and np.array_equal(design.points[line.rows[0] + (n - 1) // 2], x)
+        )
+        assert lines_through_anchor(identity, spec) == built == through
 
 
 class TestG13RandomLines:

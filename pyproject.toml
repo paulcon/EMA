@@ -110,6 +110,7 @@ exclude_type_checking_imports = true
 name = "AR1 One-way layers"
 type = "layers"
 layers = [
+    "ema.plotting | ema.report",
     "ema.models | ema.store",
     "ema.numerics | ema.designs",
     "ema.types",
@@ -155,6 +156,8 @@ source_modules = [
     "ema.models.sandbox",
     "ema.models._worker",
     "ema.store",
+    "ema.plotting",
+    "ema.report",
 ]
 forbidden_modules = [
     "ema.models.execute",
@@ -169,6 +172,8 @@ source_modules = [
     "ema.numerics",
     "ema.designs",
     "ema.models",
+    "ema.plotting",
+    "ema.report",
 ]
 forbidden_modules = [
     "sqlite3",
@@ -201,6 +206,8 @@ source_modules = [
     "ema.designs",
     "ema.models",
     "ema.store",
+    "ema.plotting",
+    "ema.report",
 ]
 forbidden_modules = [
     "ema.reference_models",
