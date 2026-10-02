@@ -110,3 +110,36 @@ Each wave's review rounds: the findings (counted by severity), what was fixed, a
   the float path pinned against an 80-digit reference with a negative control; `_power_bounds` and the
   refinement tested; more banned library calls (`np.cov`, `pearsonr`, …) and `__matmul__` in the AST test; the
   wave 2 nits. Records 0067 (39–41), 0068, 0070 (28–30).
+- **Step 08, review round 1** (6684ad9): 1 blocker, 3 major, 9 minor, 4 nits; rebuilds byte-identical after
+  every round trip; PNGs identical across processes; no interpretation found. Blocker: the coordinate-lines
+  Design row indexed varied-only unit coordinates by all model parameters (a crash with a held parameter
+  first). Major: the user's rcParams reaching figures (`text.usetex` read `/etc/hosts` through a label;
+  margins changed the data cards), and the PDF reader keeping TeX math (T10's second guard missing). Fixing
+  round 1 started.
+- **Step 06, review round 1** (a8d3a85): 0 blockers, 2 major, 5 minor, 8 nits; the lock (same Store, second
+  Store, subprocess, SIGKILL), round trips (−0.0, subnormals), Q1's construction, and SQL safety verified.
+  Major: two processes writing one result at once raised raw OS errors and leaked temporary directories
+  (18 of 260 attempts); W5 let an approval's runs be split across results or cited by another request (I12).
+  Fixing round 1 started.
+- **Steps 04 and 05** built (3cc811a): the model adapter contract C31–C45 over Python, batch, and command-line
+  toys with 15 broken toys; 1,210 lines of `ema.models` against 1,323; v1's `_sandbox.py` and `_worker.py`
+  ported after re-review. Review round 1 started. The fast tier is near its 30 s budget (about 25 s under load).
+- **Step 07** started (`demo-07-runner`, from `demo` with 04 and 06 merged, 3c26723), before 06's fixes land.
+
+## How to resume (if the session stops)
+
+State lives in git and on disk; nothing is only in the conversation.
+
+1. `git worktree list` and, in each worktree under `../EMA-worktrees/`, `git status --short` and
+   `git log --oneline -3`. A worktree with uncommitted changes was being built or fixed when the session stopped:
+   run its checks (`uv run pytest -q && uv run lint-imports && uv run ruff check && uv run mypy`); if green and
+   its plan/record look complete, commit it; otherwise hand it to a new agent with its plan
+   (`docs/plans/NN-*.md`) and record, saying "finish this step".
+2. The last entries in "Rounds" above say which step is at which stage (built, in review, fixing). A step whose
+   fixing round is committed but not re-reviewed gets a round-2 review.
+3. Branches: `demo` holds waves 1–2 (reviewed) plus the cleanup. Wave 3 and 4 work is on `demo-04-models`,
+   `demo-06-store`, `demo-08-reports`, `demo-07-runner` (04 + 06 merged in), `demo-09-diagnostics` (from 08).
+   Merge order into `demo`: 04, 06, 08, then 07, then 09; conflicts are usually only `pyproject.toml`'s
+   import contracts (keep both sides) and `docs/index.md` (keep both blocks).
+4. Then continue the waves table: wave 5 (diagnostics 10–13, in parallel on top of 09), 6 (workspace), 7 (MCP,
+   CLI), 8 (demo). Agents follow `docs/notes/demo_agent_brief.md`.
