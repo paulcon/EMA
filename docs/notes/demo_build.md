@@ -257,3 +257,16 @@ State lives in git and on disk; nothing is only in the conversation.
   load an existing spec; sent to the review.
 - **Diagnostics cleanup** merged (the lean interval method in the contract: 36 s → 15 s; the minors of 10–12).
 - Review of 15 and 16 started; step 13's review running.
+- **Step 13, review round 1**: 0 blockers, 1 major, 7 minor, 6 nits; every mock number and interval end, the 45
+  coefficients and their intervals recomputed independently; `dtrtrs` bit-identical to `solve_triangular` and
+  offset-invariant. Major: C18 at d = 20 takes about 114 s against `D20_SECONDS` = 60 (its CPU cost suggests it
+  misses idle too; contracts.md's 19 s counted only the as-drawn refits). Fixing round 1 on `demo-13fix`, with
+  one sampler reader for the three diagnostics and one home for `SPECTRUM_YMIN`.
+- **Steps 15 and 16, review round 1** (merged `demo`): 0 blockers, 2 major, 5 minor, 10 nits; P3 and T5 held
+  under every probe (malformed and late answers, cancels, disconnects, two concurrent runs; every path argument
+  and resource traversal); T9 held with a model writing to fd 1. Major: the docs' index left broken by the merge
+  (fixed with step 13's fixes); `save_model` can't load a hand-written spec, and `tools.md` says it can (ruled:
+  load when the existing file renders to the same text; reword `tools.md`). The approval form's `approve`
+  defaults to checked (ruled; pressing Accept on the priced form is the yes).
+- **Step 13, fixing round 1** merged: C18's bound measured and set to 180 s (both refits; LAPACK's time); one
+  sampler reader; `basis`'s plain "no" with C14 tightened; the exact V = 0 fixture; the docs build passes.
