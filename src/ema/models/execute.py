@@ -36,6 +36,9 @@ from ema.types.model import CommandLine
 _REASON_CHARS = 500
 #: A call's stream is created exclusively, never through a link (T9).
 _CREATE = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW
+#: The longest single wait for a program's exit, in seconds: ``poll`` takes whole milliseconds as a C int, and kqueue
+#: a timespec, so a ``timeout_s`` of a month or more would overflow them (M1; record 0071, review round 2).
+_MAX_WAIT_S = 60.0
 
 
 @dataclass(frozen=True)
@@ -78,9 +81,10 @@ def _wait(proc: subprocess.Popen[bytes], timeout_s: float) -> None:
     """Wait for the program to exit, without reaping it; ``TimeoutExpired`` past ``timeout_s``.
 
     Woken by its exit (a pidfd, or kqueue), not by ``Popen.wait``'s polling, whose sleeps add up to 50 ms to a run;
-    each wakeup is checked with ``has_exited``, so an early one only waits again. Where neither can be had (a pidfd
-    refused by an old kernel or a seccomp filter), it checks every 5 ms. The program isn't reaped, so its process
-    group is still its own when ``kill_group`` kills it (record 0071, choice 3).
+    each wakeup is checked with ``has_exited``, so an early one only waits again, and no wait is longer than
+    ``_MAX_WAIT_S``, whatever the timeout. Where neither can be had (a pidfd refused by an old kernel or a seccomp
+    filter), it checks every 5 ms. The program isn't reaped, so its process group is still its own when
+    ``kill_group`` kills it (record 0071, choice 3).
     """
     deadline = time.monotonic() + timeout_s
     pidfd: int | None = None
@@ -103,9 +107,9 @@ def _wait(proc: subprocess.Popen[bytes], timeout_s: float) -> None:
             if remaining <= 0:
                 raise subprocess.TimeoutExpired(proc.args, timeout_s)
             if pidfd is not None:
-                readable(pidfd, remaining)
+                readable(pidfd, min(remaining, _MAX_WAIT_S))
             elif queue is not None:
-                queue.control(None, 1, remaining)
+                queue.control(None, 1, min(remaining, _MAX_WAIT_S))
             else:
                 time.sleep(min(remaining, 0.005))
     finally:

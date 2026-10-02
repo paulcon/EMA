@@ -394,6 +394,33 @@ def test_delete_result_removes_its_rows_and_directory(store):
         store.delete_result(res.result_id)
 
 
+def test_w6_the_directory_goes_under_the_transaction(store, monkeypatch):
+    """Review round 2 (record 0072): W6 moves the directory aside before its rows are committed, as
+    ``_put_in_place`` does under the same lock, so a W5 of the same result after the commit never has its new
+    directory deleted; a commit that fails puts the directory back with the rows; nothing is left beside."""
+    mv = world.load(store)
+    approval, runs = world.made(store, mv, [(1.0, 0.0, 0.5)])
+    res = world.store_result(store, world.result(mv, runs, approval=approval))
+    directory = store.layout.result_dir(res.result_id)
+    step, seen = store._step, []
+
+    def failing_commit(sql, persist):
+        if sql == "COMMIT":
+            seen.append(os.path.exists(directory))
+            raise RuntimeError("commit failed")
+        step(sql, persist)
+
+    monkeypatch.setattr(store, "_step", failing_commit)
+    with pytest.raises(RuntimeError, match="commit failed"):
+        store.delete_result(res.result_id)
+    assert seen == [False], "the directory was still in place at the commit"
+    assert store.find_result(res.result_id) is not None and os.path.isdir(directory)
+    monkeypatch.setattr(store, "_step", step)
+    store.delete_result(res.result_id)
+    assert store.find_result(res.result_id) is None and not os.path.exists(directory)
+    assert os.listdir(store.layout.results) == []
+
+
 # Q11 ---------------------------------------------------------------------------------------------------------
 
 

@@ -14,6 +14,7 @@ import functools
 import json
 import math
 import re
+import threading
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
@@ -64,14 +65,22 @@ _RC: dict[str, Any] = {
 _PANEL_SIZE = (4.0, 3.0)  # inches
 _NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")  # a figure's name: a plain file name, safe in a Markdown link
 _STRIP_Y = -0.05  # the strip's place, in axes coordinates: just below the x axis
+#: Held for the whole of each styled call: ``style.context`` sets matplotlib's process-wide rcParams, so two threads
+#: drawing at once would read each other's, or the user's (architecture.md §8, Threads; record 0073, review round 2).
+#: Reentrant, since a styled function may call another.
+_STYLE_LOCK = threading.RLock()
 
 
 def _styled[F: Callable[..., Any]](fn: F) -> F:
-    """Run ``fn`` under matplotlib's default rcParams (not the user's), then EMA's style (record 0073 item 8)."""
+    """Run ``fn`` under matplotlib's default rcParams (not the user's), then EMA's style (record 0073 item 8).
+
+    The style is applied and restored under ``_STYLE_LOCK``, so a draw in another thread never changes it meanwhile
+    (S10, P4).
+    """
 
     @functools.wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        with matplotlib.style.context(["default", _RC]):
+        with _STYLE_LOCK, matplotlib.style.context(["default", _RC]):
             return fn(*args, **kwargs)
 
     return cast(F, wrapper)

@@ -96,6 +96,7 @@ Each is record 0072's, numbered as there, one line each.
 27. (Review round 1) Upper-case ids read back as stored; `result_directory` checks its id; chunks fit SQLite's
     variable limit; W1 resolves its path; W4 retries a busy statement inside its transaction.
 28. (Review round 1) The run lock's fork caveat: the runner starts processes with `subprocess` or "spawn".
+29. (Review round 2) W6 moves the result's directory aside inside its transaction, deleted after the commit.
 
 ## Notes
 

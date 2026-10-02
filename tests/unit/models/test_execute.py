@@ -5,6 +5,7 @@
 
 import json
 import os
+import select
 from pathlib import Path
 
 import pytest
@@ -254,6 +255,32 @@ def test_a_refused_pidfd_falls_back_to_polling(tmp_path, monkeypatch, error):
     Path(model.spec_path).write_text(json.dumps(text))
     result, _ = run(load_spec(model.spec_path), tmp_path / "slow")
     assert result.kind is FailureKind.TIMEOUT and result.time_s < 2
+
+
+def with_timeout(model, timeout_s: float):
+    text = json.loads(Path(model.spec_path).read_text())
+    text["timeout_s"] = timeout_s
+    Path(model.spec_path).write_text(json.dumps(text))
+    return load_spec(model.spec_path)
+
+
+@pytest.mark.parametrize("wait", ["pidfd", "kqueue"])
+def test_m1_a_timeout_of_centuries_raises_nothing(tmp_path, monkeypatch, wait):
+    """Review round 2 (record 0071; M1, M20): ``poll`` takes whole milliseconds as a C int, and kqueue a timespec, so
+    a ``timeout_s`` past about 24.8 days (here 1e300) overflowed; each wait is capped at 60 s and checked again."""
+    if wait == "pidfd":  # a pidfd that is always readable: each wakeup is early, and only waits again
+
+        def always_readable(pid, flags=0):
+            r, w = os.pipe()
+            os.close(w)
+            return r
+
+        monkeypatch.setattr(os, "pidfd_open", always_readable, raising=False)
+    elif hasattr(os, "pidfd_open") or not hasattr(select, "kqueue"):
+        pytest.skip("kqueue is used only where there is no pidfd")
+    model = with_timeout(command_model(tmp_path, ["sh", "-c", "sleep 0.1; echo y = 2"], env={"PATH": "/bin"}), 1e300)
+    result, _ = run(model, tmp_path)
+    assert result.status is RunStatus.OK and result.predictions["y"] == 2.0 and result.time_s < 5
 
 
 def test_m1_a_number_beyond_a_double_in_predictions_json_is_missing(tmp_path):

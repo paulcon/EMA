@@ -206,3 +206,34 @@ def test_a_figure_name_is_a_plain_file_name(tmp_path, name):
     with pytest.raises(ValueError, match="file name"):
         plotting.save(fig, {"panels": []}, str(tmp_path), name, "")
     assert not list(tmp_path.iterdir())
+
+
+def test_s10_p4_two_threads_drawing_at_once_give_the_single_threaded_bytes(tmp_path):
+    """Review round 2 (record 0073; architecture.md §8, Threads): ``style.context`` sets process-wide rcParams, so
+    EMA's styled draws hold one lock; a figure drawn while another thread draws (the MCP server's two workspaces)
+    has the single-threaded figure's bytes, and the user's rcParams are left as they were."""
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    reference = (tmp_path / "ref").joinpath(draw(tmp_path / "ref").png).read_bytes()
+    before = dict(matplotlib.rcParams)
+    done = threading.Event()
+
+    def drawer():
+        try:
+            return [(tmp_path / f"a{i}").joinpath(draw(tmp_path / f"a{i}").png).read_bytes() for i in range(4)]
+        finally:
+            done.set()
+
+    def styler():  # many short styled calls, entering and leaving the style while the drawer draws
+        _, (ax,) = plotting.new_figure(1)
+        while not done.is_set():
+            plotting.title(ax, "b")
+            plotting.axis(ax, "x", "b", "")
+
+    with ThreadPoolExecutor(2) as pool:
+        drawn, styled = pool.submit(drawer), pool.submit(styler)
+        pngs = drawn.result()
+        styled.result()
+    assert len(pngs) == 4 and all(png == reference for png in pngs)
+    assert {k: v for k, v in matplotlib.rcParams.items() if before[k] != v} == {}

@@ -53,8 +53,12 @@ WORKER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_worker.py")
 START_TIMEOUT_S = 60.0
 #: Bytes of a reply read at a time.
 _READ = 1 << 20
-#: The longest reply line the child may send; a longer one is its death (64 MiB).
+#: The longest reply line the child may send beside its runs (64 MiB); a call's limit adds ``_RUN_VALUE_BYTES`` for
+#: each run's every value (``reply_limit``), and a longer line is the child's death.
 MAX_REPLY_BYTES = 64 << 20
+#: Bytes allowed in a reply for one value of one run, its prediction's name aside: a number (at most 24 characters),
+#: or a reason (the worker's are a sentence; EMA keeps 500 characters of one), with JSON's punctuation.
+_RUN_VALUE_BYTES = 640
 #: Seconds between checks that the child is alive while a reply is awaited: a descendant holding the replies pipe
 #: open would otherwise hide the child's death until the timeout.
 _ALIVE_CHECK_S = 0.5
@@ -111,6 +115,17 @@ def readable(fd: int, timeout_s: float) -> bool:
     poller = select.poll()
     poller.register(fd, select.POLLIN)
     return bool(poller.poll(max(0, int(timeout_s * 1000) + 1)))
+
+
+def reply_limit(n_runs: int, predictions: Sequence[str]) -> int:
+    """Return the longest reply line a call of ``n_runs`` runs may have (M8, M1; record 0071, review round 2).
+
+    ``MAX_REPLY_BYTES``, and for each run ``_RUN_VALUE_BYTES`` per model prediction and one more, with each
+    prediction's name as JSON writes it: a batch call's reply holds every run, so a fixed limit would make the
+    child's death of a correct model's reply past about a million runs.
+    """
+    names = sum(len(json.dumps(name)) for name in predictions)
+    return MAX_REPLY_BYTES + n_runs * ((len(predictions) + 1) * _RUN_VALUE_BYTES + names)
 
 
 def kill_group(proc: subprocess.Popen[bytes]) -> int:
@@ -318,13 +333,15 @@ class Child:
             for fd in fds:
                 os.close(fd)
 
-    def _exchange(self, message: dict[str, Any], timeout_s: float) -> dict[str, Any]:
+    def _exchange(self, message: dict[str, Any], timeout_s: float, limit: int | None = None) -> dict[str, Any]:
         """Send one message and read its reply within ``timeout_s``; any exception (Ctrl-C too) kills the child.
 
         The child's death is seen even when a process it started holds the replies pipe open (it is checked every
-        half second); a reply line longer than ``MAX_REPLY_BYTES`` is the child's death.
+        half second); a reply line longer than ``limit`` bytes (``MAX_REPLY_BYTES`` by default; a call's is
+        ``reply_limit``) is the child's death, seen as soon as it is read: no more than one byte past it is read.
         """
         assert self._proc is not None and self._requests is not None and self._replies is not None
+        limit = MAX_REPLY_BYTES if limit is None else limit
         self._seq += 1
         seq = self._seq
         try:
@@ -335,13 +352,13 @@ class Child:
                 raise _Died(self._death()) from None
             deadline, buffer, searched = time.monotonic() + timeout_s, bytearray(), 0
             while (end := buffer.find(b"\n", searched)) < 0:  # only the new chunk is searched
-                if len(buffer) > MAX_REPLY_BYTES:
-                    raise _Died(f"the child's reply to request {seq} is longer than {MAX_REPLY_BYTES >> 20} MiB")
+                if len(buffer) > limit:  # the chunk just read, with no end of line in it, passed the limit
+                    raise _Died(self._too_long(seq, limit, message))
                 searched, remaining = len(buffer), deadline - time.monotonic()
                 if remaining <= 0:
                     raise _TimedOut()
                 if readable(self._replies, min(remaining, _ALIVE_CHECK_S)):
-                    chunk = os.read(self._replies, _READ)
+                    chunk = os.read(self._replies, min(_READ, limit + 1 - len(buffer)))
                     if not chunk:
                         raise _Died(self._death())
                     buffer += chunk
@@ -358,6 +375,15 @@ class Child:
         except BaseException:
             self.close()
             raise
+
+    def _too_long(self, seq: int, limit: int, message: dict[str, Any]) -> str:
+        """Say that a reply passed its limit; for a batch call, that a smaller ``batch_size`` makes it shorter."""
+        text = f"the child's reply to request {seq} is longer than {limit >> 20} MiB"
+        points = message.get("points")
+        if self.batch and isinstance(points, list):
+            n = len(points)
+            text += f" (a batch of {n} run{'' if n == 1 else 's'}; a smaller batch_size makes a shorter reply)"
+        return text
 
     def _death(self) -> str:
         """Say how the child died (waiting up to 5 s for its exit), and forget it."""
@@ -389,18 +415,19 @@ class Child:
         Outcome
             Each run's model predictions, or why the call failed, and the call's time (not the start's).
         """
-        start = time.perf_counter()
+        start, phase = time.perf_counter(), "couldn't start the child"
         try:
             if self._proc is not None and has_exited(self._proc):
                 self.close()
             if self._proc is None:
                 self._start(env, call_dir, max(timeout_s, START_TIMEOUT_S))
-            start = time.perf_counter()
-            reply = self._exchange({"call_dir": call_dir, "points": [list(p) for p in points]}, timeout_s)
+            start, phase = time.perf_counter(), "couldn't exchange the call with the child"
+            limit = reply_limit(len(points), self.predictions)
+            reply = self._exchange({"call_dir": call_dir, "points": [list(p) for p in points]}, timeout_s, limit)
         except _TimedOut:
             return Outcome(None, timed_out=True, time_s=time.perf_counter() - start)
-        except (_Died, _ImportFailed, OSError) as e:  # OSError: the worker couldn't start (M1)
-            error = f"couldn't start the child: {e.strerror}" if isinstance(e, OSError) else str(e)
+        except (_Died, _ImportFailed, OSError) as e:  # OSError: starting the worker, or a pipe's error (M1)
+            error = f"{phase}: {e.strerror or e}" if isinstance(e, OSError) else str(e)
             traceback = e.traceback if isinstance(e, _ImportFailed) else ""
             return Outcome(None, error=error, traceback=traceback, time_s=time.perf_counter() - start)
         elapsed = time.perf_counter() - start

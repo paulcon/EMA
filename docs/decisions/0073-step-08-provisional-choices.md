@@ -152,6 +152,12 @@ We will, provisionally:
     the distinct runs, "the index"); the report prints `min_defined` nowhere and any other key as `key = value`
     (item 4). Proposed as the rule for steps 09-13, with the spec edits below.
 
+**Review round 2** (a finding left on step 08; fixed with a test)
+
+20. **EMA's styled calls hold one lock** (`figures._STYLE_LOCK`, an `RLock`; S10, P4; `architecture.md` §8,
+    Threads): `style.context` sets process-wide rcParams, so two threads drawing at once gave differing PNGs and
+    could leave EMA's style in the user's rcParams; now each figure's bytes are the single-threaded ones.
+
 ## Deferrals
 
 - **Alt text from the diagnostic** (item 7): a figure's name is its alt text until `Figure` holds one; adding a
