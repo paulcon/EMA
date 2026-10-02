@@ -84,6 +84,8 @@ We will, provisionally:
   U3 (scatter, then the polynomial model), U4 (linear and polynomial), U5 (scatter and polynomial), U6 (scatter), U7
   (scatter after its point run), and the get-started guide from its step 5. Their parameter names are the use
   cases'; a diagnostic that names them otherwise fails there, which is the check working.
+- **Checked on `demo` at 8e236a6** (scatter merged): U1, U6, U7, and U8 pass as written; U3 and the guide run
+  up to the polynomial model.
 - **`failed_runs` at 10⁷ rows** reads each failed run by Q9 (about 1 ms each); building the `RunInfo`s from Q7's
   columns is about 20 lines.
 

@@ -94,3 +94,6 @@ Each also in record 0080, with its reason.
   pass as written; U1 fails only on "a figure per model parameter", which the toy doesn't draw.
 - Deferred: AmbiguousId through the workspace is the store's (tested there); a 10⁷-row `failed_runs` reads each
   failed run by Q9 (about 1 ms each); building the `RunInfo`s from Q7's columns would be about 20 lines.
+- Checked against `demo` at 8e236a6 (steps 07's and 09's fixes, and scatter, merged), in an exported copy with this
+  step's files and shared-file changes applied: the fast tier passes (1741), and the slow contract module runs U1,
+  U6, U7, and U8 as written and passing; U3 and the get-started guide run up to the polynomial model; U2 and U4 skip.
