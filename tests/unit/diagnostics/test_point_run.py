@@ -19,6 +19,7 @@ from ema.diagnostics import base
 from ema.diagnostics.point_run import POINT_RUN_MIN_RUNS, POINT_RUN_REPEATS
 from ema.report import render
 from ema.types.errors import RequestError
+from ema.types.identity import canonical_json
 from ema.types.results import MeasuredNoisy
 from ema.types.runs import FailureKind, RunKey
 from tests.support import diagnostics as sd
@@ -88,6 +89,37 @@ def test_pt6_r4a_has_one_distinct_value_and_no_note(tmp_path):
     """PT6: R4a, 4 repeats: distinct values 1; no "constant" note."""
     _, _, result = evaluate("R4a", tmp_path)
     assert observations(result)["Distinct values"] == 1 and not result.notes
+
+
+@pytest.mark.parametrize(
+    ("id", "kw", "value"),
+    [
+        ("R1", {"params": {"x": {"a": 0.3}, "repeats": 10}}, 7.9),  # np.mean gives 7.900000000000002
+        ("R5", {"params": {"x": {"b": 0.9}}, "prediction": "y"}, 0.81),  # np.mean gives 0.8100000000000002
+    ],
+)
+def test_a_constant_has_its_value_as_mean_and_standard_deviation_0(id, kw, value, tmp_path):
+    """point_run.md, Degenerate cases ("Constant: distinct values 1, standard deviation 0"); PT6; record 0075,
+    Review round 1 (M1): a value with no short binary form, repeated, has the mean that value and the standard
+    deviation 0 exactly, where ``np.mean`` and ``np.std`` round."""
+    _, made, result = evaluate(id, tmp_path, **kw)
+    y = made.runs.values["y"][made.usable("y")]
+    assert len(set(y.tolist())) == 1 and float(np.mean(y)) != y[0]  # the case np.mean rounds
+    found = observations(result)
+    assert found["Replicate 0"] == found["Mean"] == y[0] and abs(y[0] - value) < 1e-15
+    assert found["Standard deviation (ddof 1)"] == 0.0 and found["Distinct values"] == 1
+    assert result.measured_noisy is None and not result.notes
+
+
+def test_a_constant_with_replicate_0_failed_draws_every_point_at_0(tmp_path):
+    """point_run.md, Degenerate cases ("constant, every point at 0"), with replicate 0 failed: the deviations are
+    from the stored mean, which is the value exactly (record 0075, Review round 1, M1)."""
+    case = reference.prepare(POINT_RUN, "R1", params={"repeats": 10})
+    made = sd.batch(case, y=np.full(11, 7.9), failed=np.arange(11) == 0)
+    result = sd.evaluate(case, made, tmp_path)
+    assert observations(result)["Mean"] == 7.9 and observations(result)["Standard deviation (ddof 1)"] == 0.0
+    panel = json.loads((tmp_path / "point_run.json").read_text())["panels"][0]
+    assert [p["deviation"] for p in panel["points"]] == [0.0] * 10
 
 
 @pytest.mark.parametrize(("id", "sigma"), [("R6a", 0.05), ("R6b", 1e-7)])
@@ -225,3 +257,14 @@ def test_the_point_design_is_the_generators():
     assert dict(ident.params) == {"x": {"a": 1.0}, "repeats": 2}
     assert generators.get("point").size(ident, case.spec) == 3 == len(case.design)
     assert case.design.points[0][0] == 1.0
+
+
+def test_negative_zero_is_another_point():
+    """data_model.md §3.4 (a point's hash: exact bits, so -0.0 and 0.0 are different points, as a model may treat
+    them differently, 1/x; P3): x = {b: -0.0} is kept as written, so it is another design and another run than
+    {b: 0.0}; not normalized (record 0075, Review round 1)."""
+    minus = reference.prepare(POINT_RUN, "R5", params={"x": {"b": -0.0}}, prediction="y")
+    plus = reference.prepare(POINT_RUN, "R5", params={"x": {"b": 0.0}}, prediction="y")
+    assert str(minus.request.params["x"]["b"]) == "-0.0" and str(plus.request.params["x"]["b"]) == "0.0"
+    assert canonical_json(minus.identity.canonical()) != canonical_json(plus.identity.canonical())
+    assert reference.batch(minus, "R5").run_id(0) != reference.batch(plus, "R5").run_id(0)

@@ -23,6 +23,7 @@ from ema.diagnostics.base import (
     Name,
     Point,
 )
+from ema.report import render
 from ema.types.design import Design
 from ema.types.errors import NotFound, RequestError
 from ema.types.identity import canonical_json, sha256_hex
@@ -63,6 +64,19 @@ def test_alpha_is_its_decimal_text(value):
 def test_alpha_outside_or_not_a_decimal_is_refused(value):
     with pytest.raises(RequestError, match="alpha"):
         DecimalText(0.0, 1.0).read(value, "alpha")
+
+
+def test_alpha_text_keeps_its_decimal_through_parse():
+    """0047 item 3 ("the JSON form keeps its text"); record 0075 item 4 and Review round 1 (m1): ``parse`` gives
+    ``DecimalText`` the text as written, so a decimal that isn't its double's shortest form stays itself, and padded
+    text is refused, as ``read`` refuses it."""
+    alpha = DiagnosticParameter("alpha", "decimal in (0, 1)", "0.7072", "0.7072", "alpha.", "yes", "0.5",
+                                DecimalText(0.0, 1.0))  # fmt: skip
+    assert alpha.parse("0.70720000000000000001") == "0.70720000000000000001"
+    assert alpha.parse("0.70720") == alpha.parse("7.072e-1") == alpha.parse(0.7072) == "0.7072"
+    for padded in (" 0.7072", "0.7072 ", "\n0.7072"):
+        with pytest.raises(RequestError, match="alpha"):
+            alpha.parse(padded)
 
 
 def test_a_point_reads_numbers_as_doubles():
@@ -301,7 +315,7 @@ def test_s7_at_most_5_reasons_by_count_then_design_order(tmp_path):
         "  1  r2",
         "  1  r4",
         "  2  (2 other reasons)",
-        f'Estimates use the 28 usable runs. `ws.failed_runs("{result.result_id[:12]}")` lists each one.',
+        f'Estimates use the 28 usable runs. ws.failed_runs("{result.result_id[:12]}") lists each one.',
     ]
 
 
@@ -320,12 +334,24 @@ def test_reused_failed_runs_are_noted_and_new_ones_arent(tmp_path):
     failed = np.arange(40) < 4
     reused = sd.evaluate(case, sd.batch(case, failed=failed), tmp_path / "a")
     assert notes_of(reused, "reused_failed") == (
-        "4 of the 40 reused runs had failed before; `retry_failed=True` runs them again."
+        "4 of the 40 reused runs had failed before; retry_failed=True runs them again."
     )
     new = sd.batch(case, failed=failed, new=failed)
     fresh = sd.evaluate(case, new, tmp_path / "b")
     assert "reused_failed" not in [n.code for n in fresh.notes]
     assert (fresh.counts.new, fresh.counts.reused) == (4, 36) and fresh.provenance.approval_id == sd.APPROVAL
+
+
+def test_the_notes_are_plain_text_with_no_markdown(tmp_path):
+    """Record 0073 item 1 (a result's text is plain, the report escapes it); record 0075, Review round 1: the
+    not-usable and reused-failed notes name ws.failed_runs and retry_failed without backticks, so the report shows
+    them as written, not as literal backticks."""
+    case = sd.prepare(sd.NoFigures(Toy()))
+    result = sd.evaluate(case, sd.batch(case, failed=np.arange(40) < 4), tmp_path)
+    texts = [n.text for n in result.notes if n.code in ("not_usable", "reused_failed")]
+    assert len(texts) == 2 and not any("`" in t for t in texts), texts
+    notes = render(result, case.spec).split("## Notes", 1)[1].split("\n## ", 1)[0]
+    assert "`" not in notes and f'ws.failed\\_runs("{result.result_id[:12]}")' in notes, notes
 
 
 def test_too_few_constant_all_failed_and_no_usable_notes(tmp_path):

@@ -126,6 +126,16 @@ Each is record 0075's, numbered as there, one line each.
 23. AR1's layer 3b with optional `(ema.runner) | (ema.approval)` until step 07 merges; reference models excluded
     from Ruff and mypy.
 
+Review round 1:
+
+24. The point run's mean and standard deviation from the deviations from the first usable value: exact for a constant.
+25. `DecimalText` reads text as written (`reads_text`): "0.70720000000000000001" stays itself; " 0.7072" is refused.
+26. C6's skip is `pytest.skip` with a reason, for the point run only (`C6_EXEMPT`); the toy never skips.
+27. C2's kind cell is exactly replicate 0's new kind.
+28. C10's "Of the N runs at the point" for the point run only.
+29. C5 compares the notes' texts without their numbers and ids, beside their codes.
+30. The notes are plain text: `ws.failed_runs("…") lists each one.`, "retry_failed=True runs them again.", no backticks.
+
 ## Notes
 
 - **Built:** `src/ema/diagnostics/{__init__,base,point_run}.py`; `src/ema/reference_models/` (`__init__.py` and
@@ -137,14 +147,22 @@ Each is record 0075's, numbered as there, one line each.
 - **Tests:** 166 fast (the contract 58: 19 checks over the point run and the toy, the meta-test's 19, one more; the
   base 59; the point run 18; the reference models 31) and 1 slow (R5's timeout). The fast tier: 1,306 passed, 5
   skipped, in about 22–24 s on a loaded machine (other steps' agents running); this step's share about 6.5 s.
-- **Size** (code lines without docstrings, comments, or blanks): `ema.diagnostics` 780 (`base.py` 619, `point_run.py`
-  154, `__init__.py` 7) against the roadmap's 500 and §11's "base and precheck ~300": record 0075, Consequences.
+- **Size** (code lines without docstrings, comments, or blanks): `ema.diagnostics` 787 after review round 1 (`base.py` 620,
+  `point_run.py` 160, `__init__.py` 7; 780 before) against the roadmap's 500 and §11's "base and precheck ~300": record 0075, Consequences.
   The reference models: 82 lines of Python and 187 of specs and data, against their 1,000.
 - **v1:** ported `src/ema/testfunctions/library.py`'s `ishigami` and `borehole` (R2, R3), bit-identical to v1 at
   200 points run in `../EMA-v1/.venv`; read `tests/diagnostic_contract.py` (its checks' shape); `truth.py` read, not
   ported.
 - **Deferrals:** PT1's price and rerun, PT4/PT5's store parts, C47's retry, and C52's W5 to step 14; R8 through the
   runner to step 11; merging `demo-08-reports` to the coordinator (the permission system refused the merge here).
+- **Review round 1:** the review's major M1 (the point run's mean and standard deviation of a constant), minors
+  m1, m2, m3, m5, a round-2 minor (backticks in the notes), and the C5 nit fixed with a test each (choices 24–30,
+  record 0075); the tests of M1, m1, and the notes were checked to fail on the first version (m2's, m3's, and m5's are
+  the contract's own assertions; the −0.0 test pins kept behavior). m4 (C11's "no line under an estimates
+  table") recorded as not buildable, and −0.0 kept as its own point (`data_model.md` §3.4), in record 0075. Behavior
+  steps 10–14 see: the not-usable and reused-failed notes' texts lose their backticks; C6 fails, not skips, for a
+  diagnostic other than the point run whose fixture the offset merges; C10 requires "Of the n usable runs"; C5
+  compares the notes' texts; `DecimalText` text is not read as JSON.
 - **For steps 10–13:** see "Adding a diagnostic" above; `tests/support/diagnostics.py` (`prepare`, `batch`,
   `evaluate`, `NoFigures`) and `tests/support/reference.py` (`prepare`, `batch` on a reference model's function)
   build the known-answer tests; keep the contract's time in mind (about 2 s per diagnostic).

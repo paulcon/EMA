@@ -67,8 +67,8 @@ We will, provisionally:
    missing y.", "Most frequent reasons:", at most 5 lines `  count  reason`, failure and missing reasons alike, by
    count and then the first run in design order, then "  k  (m other reasons)", and "Estimates use the u usable
    runs." ("Observations use" for a diagnostic without estimates or below its minimum) with
-   `` `ws.failed_runs("<12 hex digits>")` lists each one.``, 0055); `reused_failed` ("k of the r reused runs had
-   failed before; `retry_failed=True` runs them again.", C47); then one of `all_failed` ("All n runs failed: no
+   `ws.failed_runs("<12 hex digits>") lists each one.`, 0055, plain text, item 30); `reused_failed` ("k of the r
+   reused runs had failed before; retry_failed=True runs them again.", C47); then one of `all_failed` ("All n runs failed: no
    estimates or observations."), `no_usable` (shared.md's text), `too_few` (shared.md's); `constant`
    (shared.md's, the value by `fmt` with units); `measured_noisy`, one per record of this model version and model
    prediction, newest first ("name@12 was measured noisy in y by point run <12> (11 runs at the nominal point |
@@ -104,7 +104,7 @@ We will, provisionally:
     y's units, the rounding the shift itself makes: the point run's fixture spans 2⁻²⁸ of its values, so
     UNITS_RTOL·range is below one ulp there; for every other fixture the floor is far below UNITS_RTOL·range.
 15. **C6 is skipped when the offset merges the fixture's distinct usable values**: contracts.md's exemption of
-    the point run, written as the rule it states.
+    the point run, written as the rule it states (limited to the point run by item 26).
 16. **C7 repeats `compute` at 8 memory offsets** with the heap scrambled (record 0068 item 1): the batch's
     points, replicates, and values placed by `at_offset`, read-only through their bases (the types would
     otherwise copy them back to aligned memory).
@@ -137,6 +137,49 @@ We will, provisionally:
     layers, until step 07 merges (then the parentheses go). `ema.diagnostics` joins AR4's, AR5's, and the
     reference models' source modules. Ruff and mypy exclude `src/ema/reference_models/`.
 
+**Review round 1** (the independent review of step 09; each fixes a finding, with a test)
+
+24. **The point run's mean and standard deviation from the deviations from the first usable value** (M1;
+    `point_run.md`, Degenerate cases: "Constant: distinct values 1, standard deviation 0"): d = y − y[0], mean =
+    y[0] + mean(d), standard deviation = std(d, ddof 1). `np.mean` and `np.std` round for a value with no short
+    binary form (R1 at a = 0.3, 11 runs: mean 7.900000000000002, standard deviation 1.9e-15; R5's y at b = 0.9:
+    0.8100000000000002); from the deviations a constant is exact, and the numbers stay bit for bit under a·y with a
+    a power of 2 (C5). The figure's deviations, when replicate 0 isn't usable, are from the stored mean (P1), so a
+    constant's are all 0. The base has no other mean: the constant test is `==`, and the shared observations are a
+    minimum, a maximum, and their difference over max|y|, each exact for a constant.
+25. **`DecimalText` reads text as written** (m1; 0047 item 3, "the JSON form keeps its text"; item 4): `parse`
+    gives text to a reader whose `reads_text` is True without reading it as JSON first, so
+    "0.70720000000000000001" stays that decimal (it isn't the double 0.7072's shortest text) and " 0.7072" is
+    refused, as `read` refuses it. `reads_text` is an optional class attribute, not part of the `Reader` protocol;
+    the other readers keep "JSON when it is JSON".
+26. **C6's skip** (m2; corrects item 15) is `pytest.skip` with its reason, and only for a diagnostic in the
+    contract's `C6_EXEMPT` (the point run, contracts.md's C6); any other diagnostic whose fixture's distinct values
+    the offset merges fails C6. A test asserts the toy runs C6 without skipping.
+27. **C2's kind cell** (m3) must be exactly replicate 0's run's new kind ("failed (unread)", or "missing"), and the
+    fixture must change it; it had accepted any kind.
+28. **C10's label** (m5): "Of the n usable runs" for every diagnostic but the point run, whose label is "Of the N
+    runs at the point" (the contract's `C10_RUNS_LABEL`); it had accepted either form for every diagnostic.
+29. **C5's "the same notes"** (nit): the notes are compared by code and by text with their numbers and 12-hex-digit
+    ids left out, not by code only. Their values in y's units are not compared: a note prints a number to 4
+    digits (S3), so a·v's text isn't a function of v's, and a `Note` holds no number. The notes with such values
+    (constant, measured noisy) are `evaluate`'s, one code path, tested in `test_base.py`.
+30. **The notes are plain text** (a round-2 finding; record 0073 item 1): `not_usable` ends
+    `ws.failed_runs("<12 hex digits>") lists each one.` and `reused_failed` says "retry_failed=True runs them
+    again.", without the backticks of `shared.md`'s mock, which the report escaped into literal backticks
+    (`` \`ws.failed\_runs(...)\` ``). The mock's text is otherwise kept (the Python call, not the CLI's `ema
+    failed-runs ID`, as the mock writes it); the report escapes `_` and shows the call as written.
+
+Not changed in round 1:
+
+- **C11's negative control "an estimates table with no line under it"** (m4) can't be built as a diagnostic's
+  fault: `EstimateTable.interval` is a required `IntervalInfo`, and the report writes the line from it for every
+  table (step 08's `render`, record 0073 item 4). A toy with `interval=None` fails in `render` with an
+  `AttributeError`, not at the check. The check still asserts one "Variability intervals:" line per table; its
+  other two broken toys (6 digits, "Not confidence intervals.") are in the meta-test. As item 12.
+- **−0.0 in a point** (nit) is kept, not normalized to 0.0: `data_model.md` §3.4 (a point's hash, exact bits:
+  "−0.0 and 0.0 are different points ... a model may treat them differently (1/x)"; P3), and 0061's doubles
+  keep every bit. So x = {b: −0.0} and {b: 0.0} are two designs and two runs; a test pins it.
+
 ## Deferrals
 
 - **PT1's price and rerun, PT4's and PT5's store parts, C47's retry, C52's W5** need the runner and the store:
@@ -152,10 +195,14 @@ We will, provisionally:
 - **`architecture.md` §6:** `DiagnosticParameter.reader` and `info()`, the readers, `DiagnosticBase`, and the
   helpers of item 5; the protocol's read-only declarations; `compute` called with no usable run, and
   `evaluate`'s refusals (item 6); the `"shared"` table's merge (item 7).
-- **`contracts.md`:** the negative controls of C1, C3, C10, C13, C14, C16, and C19 as built (item 12); C2's
-  shift (item 13); C5's floor (item 14); C6's exemption as a rule (item 15).
+- **`contracts.md`:** the negative controls of C1, C3, C10, C13, C14, C16, and C19 as built (item 12); C11's
+  "an estimates table with no line under it" not buildable (Review round 1); C2's shift (item 13); C5's floor
+  (item 14) and its notes compared without their numbers (item 29); C6's exemption as a rule (items 15, 26).
 - **`diagnostics/shared.md`, Notes:** the texts of item 9 (`all_failed`, `reused_failed`, the id in the
-  `failed_runs` line as 12 hex digits); "constant" needs two usable runs (item 8).
+  `failed_runs` line as 12 hex digits); "constant" needs two usable runs (item 8); the mock's note without
+  backticks (item 30).
+- **`point_run.md`, Computation:** the mean and standard deviation from the deviations from the first usable
+  value (item 24).
 - **`reference_models.md`:** the model names, `space.json` and `space(id)` (items 19–21).
 
 ## Alternatives considered
@@ -171,8 +218,8 @@ We will, provisionally:
 
 ## Consequences
 
-- **Size:** `ema.diagnostics` 780 code lines (no docstrings, comments, or blanks): `base.py` 619 against §11's
-  "base and precheck ~300", `point_run.py` 154 (§11: 150–400 each). The base's overrun is the readers (about 95,
+- **Size:** `ema.diagnostics` 787 code lines (no docstrings, comments, or blanks; 780 before review round 1):
+  `base.py` 620 against §11's "base and precheck ~300", `point_run.py` 160 (§11: 150–400 each). The base's overrun is the readers (about 95,
   item 3), the read-only protocol (about 45), and the request, identity, description, and provenance helpers
   (about 110) that the workspace's estimate counted; step 14 shrinks by as much. The reference models: 82 code
   lines of Python and 187 lines of specs, spaces, template, and table, against their 1,000.

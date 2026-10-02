@@ -55,6 +55,11 @@ D20_SECONDS = 60.0
 #: Under y + b, a number in y's units can't be closer than the rounding the shift itself makes: a few units in the
 #: last place of |b| + max|y| (record 0075 item 14). Far below UNITS_RTOL·range but for the point run's fixture.
 SHIFT_ULPS = 16
+#: C6's one exemption (contracts.md, C6; 0061): the point run's fixture replicates differ in their last bits, which
+#: the offset merges; C5 still holds for it. Any other diagnostic whose values the offset merges fails C6.
+C6_EXEMPT = ("point_run",)
+#: C10's other label form, "Of the n runs at the point" (contracts.md, C10): the point run's only.
+C10_RUNS_LABEL = ("point_run",)
 
 KINDS = [FailureKind.ERROR, FailureKind.TIMEOUT, FailureKind.UNREAD]
 REASONS = [f"exited with code {i}" for i in range(1, 8)]
@@ -117,8 +122,25 @@ def codes(result: DiagnosticResult) -> list[str]:
     return [n.code for n in result.notes]
 
 
+#: A number in a note's text, or a 12-hex-digit id (contracts.md, C5: "the same notes").
+_NOTE_VALUE = re.compile(r"\b[0-9a-f]{12}\b|-?\d+(?:\.\d+)?(?:e[+-]\d+)?")
+
+
+def same_notes(result: DiagnosticResult) -> list[tuple[str, str]]:
+    """Each note's code and its text with its numbers and ids left out: C5's "the same notes" (record 0075, Review
+    round 1: a number in a note is printed to 4 digits, so its value in y's units isn't compared here)."""
+    return [(n.code, _NOTE_VALUE.sub("#", n.text)) for n in result.notes]
+
+
 def usable_y(run_batch: RunBatch, prediction: str = "y") -> np.ndarray:
     return run_batch.runs.values[prediction][run_batch.usable(prediction)]
+
+
+def kind_text(run_batch: RunBatch, row: int, prediction: str = "y") -> str | None:
+    """A row's run as a cell that reports its kind shows it (point_run.md): "failed (error)", "missing", or None."""
+    if run_batch.runs.status[row] == RunStatus.FAILED.code:
+        return f"failed ({FailureKind.from_code(int(run_batch.runs.kind[row])).value})"  # type: ignore[union-attr]
+    return None if run_batch.usable(prediction)[row] else "missing"
 
 
 def expected(value: float, transform: Transform, a: float, b: float) -> float | None:
@@ -254,13 +276,13 @@ def check_partial_failures(diagnostic: Any, tmp_path: Path) -> None:
         assert_transformed(diagnostic, shifted, first, 1.0, shift, tol)
         if name != "random":
             continue  # the runs that aren't usable changed, on one mask: four more evaluations each
-        _, _other, second = run(diagnostic, tmp_path, failed=mask, kinds=KINDS[::-1], reasons=REASONS[3:] + ["x"])
+        _, other, second = run(diagnostic, tmp_path, failed=mask, kinds=KINDS[::-1], reasons=REASONS[3:] + ["x"])
         assert numbers(second) == numbers(first), f"{name}: a failed run's kind or reason moved a number"
-        for table in second.observations:
-            for row in table.rows:
-                for o in row:
-                    if o.key == "kind":
-                        assert any(k.value in str(o.value) for k in KINDS[::-1]) or o.value == "missing"
+        shown = [o.value for t in second.observations for row in t.rows for o in row if o.key == "kind"]
+        if shown:  # the point run's Replicate 0 row (point_run.md): its run's new kind, exactly (record 0075, m3)
+            row0 = int(np.flatnonzero(other.design.replicates == 0)[0])
+            assert kind_text(made, row0) != kind_text(other, row0), "the fixture didn't change replicate 0's kind"
+            assert shown == [kind_text(other, row0)], f"{name}: {shown}, not replicate 0's new kind"
         _, _, missing = run(diagnostic, tmp_path, missing_y=mask)
         assert numbers(missing) == numbers(first), f"{name}: an ok run missing y moved a number"
         _, _, other_z = run(diagnostic, tmp_path, missing_y=mask, z=lambda c: 1000.0 * c.f() + 5.0)
@@ -312,12 +334,12 @@ def check_units(diagnostic: Any, tmp_path: Path) -> None:
     y = case.f()
     for a in UNITS_SCALES:
         _, _, got = run(diagnostic, tmp_path, y=a * y)
-        assert codes(got) == codes(ref) and got.counts == ref.counts, f"a = {a}: other notes or counts"
+        assert same_notes(got) == same_notes(ref) and got.counts == ref.counts, f"a = {a}: other notes or counts"
         assert_transformed(diagnostic, got, ref, a, 0.0, exact)
     usable = usable_y(made)
     shift = 3.0 * float(np.max(np.abs(usable)))
     _, _, got = run(diagnostic, tmp_path, y=y + shift)
-    assert codes(got) == codes(ref) and got.counts == ref.counts, "a shift changed the notes or counts"
+    assert same_notes(got) == same_notes(ref) and got.counts == ref.counts, "a shift changed the notes or counts"
     tol = shift_tolerance(1.0, shift, float(np.ptp(usable)), float(np.max(np.abs(usable))))
     assert_transformed(diagnostic, got, ref, 1.0, shift, tol)
 
@@ -331,7 +353,8 @@ def check_large_offset(diagnostic: Any, tmp_path: Path) -> None:
     offset = 1e6 + 1e-3 * y
     usable = made.usable("y")
     if len(np.unique(offset[usable])) < len(np.unique(y[usable])):
-        return  # the offset merges the fixture's values: C5 still holds (contracts.md, C6)
+        assert diagnostic.name in C6_EXEMPT, f"{diagnostic.name}'s fixture: the offset merges its distinct values"
+        pytest.skip(f"C6: the offset merges {diagnostic.name}'s fixture's distinct values (contracts.md, C6; 0061)")
     _, _, got = run(diagnostic, tmp_path, y=offset)
     assert "constant" not in codes(got)
     y_range = float(np.ptp(offset[usable]))
@@ -411,7 +434,10 @@ def check_shared_observations(diagnostic: Any, tmp_path: Path) -> None:
         y = usable_y(made)
         table = result.observations[0]
         n = result.counts.usable
-        assert table.key == "shared" and re.match(rf"Of the ({n}|{result.counts.runs}) ", table.title), table.title
+        label = (
+            rf"Of the {result.counts.runs} runs at the point" if diagnostic.name in C10_RUNS_LABEL else rf"Of the {n} "
+        )
+        assert table.key == "shared" and re.match(label, table.title), table.title
         rows = {row[0].key: row[0].value for row in table.rows}
         top = float(np.max(np.abs(y)))
         assert rows.get("min") == float(np.min(y)) and rows.get("max") == float(np.max(y)), rows
@@ -884,3 +910,11 @@ def test_every_check_fails_on_its_broken_toy(check: str, tmp_path: Path) -> None
 
 def test_the_toy_is_not_registered() -> None:
     assert "toy" not in base.names()
+
+
+def test_the_toy_never_skips_c6(tmp_path: Path) -> None:
+    """C6's skip is the point run's exemption only (record 0075, Review round 1, m2): the toy runs the check."""
+    try:
+        check_large_offset(Toy(), tmp_path)
+    except pytest.skip.Exception as skipped:
+        raise AssertionError(f"the toy skipped C6: {skipped}") from None

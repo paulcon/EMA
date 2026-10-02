@@ -128,11 +128,11 @@ class PointRun(DiagnosticBase):
             first = Observation("replicate_0", "Replicate 0", float(y[row0]), units)
         else:
             first = Observation("kind", "Replicate 0", _kind(batch, row0), "")
-        std: float | str = float(np.std(values, ddof=1)) if len(values) >= 2 else "none"
+        mean, std = _moments(values)
         distinct = len(np.unique(values))
         rows = (
             (first,),
-            (Observation("mean", "Mean", float(np.mean(values)), units),),
+            (Observation("mean", "Mean", mean, units),),
             (Observation("std", "Standard deviation (ddof 1)", std, units if isinstance(std, float) else ""),),
             (Observation("distinct", "Distinct values", distinct, ""),),
         )
@@ -157,8 +157,8 @@ class PointRun(DiagnosticBase):
         fig, (ax,) = new_figure(1)
         if usable[row0]:
             base, of = float(y[row0]), f"{p}(replicate 0)"
-        else:
-            base, of = (float(np.mean(y[usable])) if usable.any() else 0.0), "the mean of the usable runs"
+        else:  # the stored mean (P1), so a constant y's deviations are exactly 0
+            base, of = _stored_mean(result) if usable.any() else 0.0, "the mean of the usable runs"
         deviation = y[usable] - base
         points(ax, reps[usable], deviation, joined=True)
         hline(ax, 0.0)
@@ -179,6 +179,23 @@ class PointRun(DiagnosticBase):
         caption = f"{p} - {of} against the replicate number, 0 to {last}."
         card = {"panels": [panel], "deviation_from": base if usable.any() else None}
         return (save(fig, card, out_dir, "point_run", caption),)
+
+
+def _moments(values: np.ndarray) -> tuple[float, float | str]:
+    """Return the mean and the standard deviation (ddof 1, "none" below 2 values), from the deviations from values[0].
+
+    Exact for a constant: mean values[0], standard deviation 0, where ``np.mean`` and ``np.std`` round (7.9 ten times
+    has the mean 7.900000000000002); and bit for bit under y -> a·y with a a power of 2 (point_run.md, Degenerate
+    cases; C5; record 0075, Review round 1).
+    """
+    deviations = values - values[0]
+    mean = float(values[0] + np.mean(deviations))
+    return mean, float(np.std(deviations, ddof=1)) if len(values) >= 2 else "none"
+
+
+def _stored_mean(result: DiagnosticResult) -> float:
+    """Return the result's Mean observation."""
+    return next(float(o.value) for t in result.observations for row in t.rows for o in row if o.key == "mean")
 
 
 def _kind(batch: RunBatch, row: int) -> str:

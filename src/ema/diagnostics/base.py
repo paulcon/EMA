@@ -98,7 +98,12 @@ class DecimalText:
 
     A float is read as the decimal its ``repr`` writes (0.7072 is "0.7072"); text as the decimal it writes, with
     trailing zeros and the exponent removed ("7.0720e-1" is "0.7072"); so a float and its text are one value.
+    ``parse`` gives it text as written, not read as JSON first: text keeps its decimal (0047 item 3), so
+    "0.70720000000000000001" isn't the double 0.7072, and " 0.7072" is refused (``reads_text``).
     """
+
+    #: ``DiagnosticParameter.parse`` passes text to ``read`` as written (record 0075, Review round 1).
+    reads_text: ClassVar[bool] = True
 
     lo: float
     hi: float
@@ -238,14 +243,15 @@ class DiagnosticParameter:
         r"""Read a value from Python, the CLI's text, or MCP's JSON into its canonical form (§7; C55).
 
         Text is read as JSON when it is JSON ("3", "{\\"a\\": 1}"), and as a bare string otherwise ("random"), as
-        the CLI's ``--param k=v`` gives it; every form then goes through the reader.
+        the CLI's ``--param k=v`` gives it; every form then goes through the reader. A reader whose ``reads_text``
+        is True (``DecimalText``) gets text as written.
 
         Raises
         ------
         RequestError
             Naming the diagnostic parameter, for a value that isn't valid.
         """
-        if isinstance(value, str):
+        if isinstance(value, str) and not getattr(self.reader, "reads_text", False):
             try:
                 value = json.loads(value)
             except ValueError:
@@ -897,7 +903,7 @@ def precheck(
         k = int(not_usable.sum())
         lines = [f"{k} of {n_runs} runs {'is' if k == 1 else 'are'} not usable for {p}: {', '.join(parts)}."]
         lines += ["Most frequent reasons:", *_reasons(batch, p, firsts, not_usable)]
-        listed = f'`ws.failed_runs("{result_id[:12]}")` lists each one.'
+        listed = f'ws.failed_runs("{result_id[:12]}") lists each one.'  # plain text, no Markdown (0073 item 1)
         if n_usable:
             what = "Estimates" if diagnostic.has_estimates and estimates_allowed else "Observations"
             listed = f"{what} use the {n_usable} usable runs. {listed}"
@@ -909,7 +915,7 @@ def precheck(
             Note(
                 "reused_failed",
                 f"{reused_failed} of the {counts.reused} reused runs had failed before; "
-                "`retry_failed=True` runs them again.",
+                "retry_failed=True runs them again.",
             )
         )
     name = diagnostic.name.replace("_", " ")
