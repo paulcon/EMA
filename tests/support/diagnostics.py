@@ -157,12 +157,17 @@ def batch(
     reasons = list(reasons or ["exited with code 3"])
     keys = [RunKey.make(case.model_version_id, design.points[i], int(design.replicates[i]), 0) for i in range(n)]
     ids = [k.run_id for k in keys]
+    # A run in several rows (coordinate lines' shared anchor, record 0077) is one run: failed, or missing y, when any
+    # of its rows is masked, with one kind and reason, the i-th counted by its first row.
+    _, first, inverse = np.unique(np.array(ids), return_index=True, return_inverse=True)
+    failed = np.bincount(inverse, weights=failed, minlength=len(first))[inverse] > 0
+    missing_y = np.bincount(inverse, weights=missing_y, minlength=len(first))[inverse] > 0
     status = np.where(failed, RunStatus.FAILED.code, RunStatus.OK.code)
     kind = np.full(n, -1)
     reason_of: dict[str, str] = {}
-    for i, row in enumerate(np.flatnonzero(failed)):
-        kind[row] = kinds[i % len(kinds)].code
-        reason_of[ids[row]] = reasons[i % len(reasons)]
+    for i, run in enumerate(sorted({int(inverse[r]) for r in np.flatnonzero(failed)}, key=lambda r: first[r])):
+        kind[inverse == run] = kinds[i % len(kinds)].code
+        reason_of[ids[first[run]]] = reasons[i % len(reasons)]
     y = np.where(failed | missing_y, np.nan, y)
     if (missing_y & np.isnan(z)).any():
         z = np.where(missing_y & np.isnan(z), fy() + 1.0, z)
