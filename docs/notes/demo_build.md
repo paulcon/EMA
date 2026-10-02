@@ -75,3 +75,23 @@ Each wave's review rounds: the findings (counted by severity), what was fixed, a
   arithmetic" in method only); m1, m3, m4, m5, m8 and every nit fixed; m2 fixed in convergent, the rest handed
   to step 09; m6 fixed for coordinate lines' 0051 check, a block's line segments deferred (1–2 h). Round 2
   review started.
+- **Fixing round 1** for 02 (2840bbe), 03 (22b8781), and T (277752f): every blocker, major, and minor fixed but
+  the size budget (the coordinator's); 03's majors ruled as above. Merged on `demo-wave2` (ea087eb), with
+  conflicts in `identity.py` (both sides kept) and AR1's layers resolved; 1,090 tests pass, every check green.
+  Round 2 review of the merged wave started.
+
+### Wave 3
+
+- Started from `demo-wave2` (ea087eb): steps 04 and 05 together (`demo-04-models`), 06 (`demo-06-store`), 08
+  (`demo-08-reports`).
+- **Wave 2, review round 2** (merged, ea087eb): 0 blockers, 0 major, 4 minor, 6 nits; the merge lost nothing; the
+  column forms, the cross-checks (point runs, all-failed results, repeated runs, replays), and 03's refusals
+  verified. Wave 2 done. Carried forward: m1 (a result's own measured-noisy `made_at`) ruled for step 06 (None
+  inside a result; the table keeps it); m3 (library calls such as `np.cov`, `pearsonr` vary with alignment too)
+  goes into step 09's diagnostic contract as a whole-`compute` alignment check, with more banned names; m2 (a
+  caller's earlier writable view) documented as a limit; m4 the size budget record (the coordinator's).
+- **Step 01, review round 2** (e148069): 0 blockers, 0 major, 3 minor, 3 nits; convergent's sizes against an
+  independent high-precision reference on about 70,000 requests (adversarial near-integers included): 0
+  mismatches; every meta-test pinned to its toy's reason. Step 01 done. Minors carried to a cleanup pass: an
+  alpha text with a huge exponent stalls the request; the float path's precision and the exact refinement
+  untested.
