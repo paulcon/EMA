@@ -242,3 +242,5 @@ State lives in git and on disk; nothing is only in the conversation.
 - **Step 13** built and merged (the polynomial model; the mock matched with zero differences; C29's deferred
   clause closed). All six diagnostics are now on `demo`. C18 at d = 20 missed its 60 s under load averages of
   20–150 (134 s alone); to re-time on a quiet machine. Review round 1 started.
+- **All use cases on merged `demo`** (edf68e3): `pytest --slow tests/contracts/workspace.py`: 28 passed, 0
+  skipped (U1–U8, the get-started guide, C54 over 15 CLI forms).
