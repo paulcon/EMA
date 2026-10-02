@@ -33,6 +33,13 @@ The public names of the modules that exist so far (`architecture.md`), one page 
    ema.types.results
    ema.types.requests
    ema.types.summaries
+   ema.numerics.basis
+   ema.numerics.gram
+   ema.numerics.fitting
+   ema.numerics.sobol
+   ema.numerics.stats
+   ema.numerics.intervals
+   ema.numerics.tolerance
    ema.designs.samplers
    ema.designs.generators
    ema.designs.point
