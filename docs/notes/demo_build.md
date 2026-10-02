@@ -143,3 +143,14 @@ State lives in git and on disk; nothing is only in the conversation.
    import contracts (keep both sides) and `docs/index.md` (keep both blocks).
 4. Then continue the waves table: wave 5 (diagnostics 10–13, in parallel on top of 09), 6 (workspace), 7 (MCP,
    CLI), 8 (demo). Agents follow `docs/notes/demo_agent_brief.md`.
+- **Step 06, fixing round 1** (d9affd4): both majors (the directory race: rename-only under BEGIN IMMEDIATE,
+  4-process test; an approval tied to one result of its own request with every approved run used, three new
+  broken toys) and every minor fixed; `current_keys` added for the runner. Round 2 review comes with wave 3's
+  merged review.
+- **Step 08, fixing round 1** (c895bec): the blocker, the three majors, and every minor fixed, each test shown
+  failing on the old code; `lines_through_anchor` shared by the generator and the report. Round 2 with wave 3's
+  merged review.
+- **Steps 04+05, review round 1** (3cc811a): 0 blockers, 2 major, 6 minor, 11 nits; the environment (T2), stdout
+  (T9), exact doubles, malicious replies, and the v1 port verified; the contract 8 of 8 runs green under load.
+  Major: a Ctrl-C landing inside `Popen` leaked the program (21 of 40 tries); `pidfd_open` without a fallback on
+  old Linux. Fixing round 1 started.
