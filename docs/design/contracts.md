@@ -1,8 +1,8 @@
 # Contracts and degenerate cases
 
 **Status:** accepted; C46–C52 and C56 cite `data_model.md`'s invariants (0054, 0055); C53–C55 accepted with the
-guides (0060). **Updated:** 2026-10-01 (0054, 0055, 0056, 0057, 0059, 0060, 0061, 0062, 0063). **Depends on:** P1–P7; `scope.md`;
-`model_interface.md` (M1–M21), `designs.md` (G1–G17), `diagnostics/shared.md` (S1–S10) and the six diagnostic
+guides (0060). **Updated:** 2026-10-01 (0054, 0055, 0056, 0057, 0059, 0060, 0061, 0062, 0063, 0065). **Depends on:** P1–P7; `scope.md`;
+`model_interface.md` (M1–M21), `designs.md` (G1–G18), `diagnostics/shared.md` (S1–S10) and the six diagnostic
 specs, `uncertainty.md` (V1–V7); records 0008, 0010, 0011, 0015–0019, 0022, 0025–0030, 0032–0043, 0045–0048, 0051,
 0052, 0054, 0055.
 
@@ -142,7 +142,7 @@ keyed by generator name in that module; a generator is called only with a design
 | C24 | G5, and no array is allocated before the refusal. | G5 | `check_too_large` | allocates, then checks |
 | C25 | G6. | G6 | `check_blocks` | reseeds each block |
 | C26 | G16. | G16 | `check_column_order` | columns in the space's order |
-| C27 | G15, for a generator that takes a space; and the space is refused before building, naming, for a limit, the limit (M6). | G15, M6 | `check_bad_space` | builds before validating |
+| C27 | G15, for a generator that takes a space, and G18; and the space is refused before building, naming, for a limit, the limit (M6). | G15, G18, M6 | `check_bad_space` | builds before validating |
 
 ## Sampler, basis, and interval-method contracts
 

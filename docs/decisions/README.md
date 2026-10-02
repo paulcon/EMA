@@ -33,7 +33,7 @@ Write one when a choice:
 | 0005 | Call the region a design samples the model parameter space, and make it part of the design | accepted | 2026-09-29 |
 | 0006 | Make the diagnostic evaluation, with its report, the unit of work | accepted; its approval's scope amended by 0049 (the test run) | 2026-09-29 |
 | 0007 | Choose the principles | accepted; P8 superseded by 0008 | 2026-09-29 |
-| 0008 | Drop P8; check glossary words only in names and generated text | accepted; its generated-text list amended by 0042 | 2026-09-29 |
+| 0008 | Drop P8; check glossary words only in names and generated text | accepted; its generated-text list amended by 0042 and 0065 | 2026-09-29 |
 | 0009 | Call the models with known answers reference models | accepted | 2026-09-29 |
 | 0010 | Reuse failed runs unless the user asks to retry them | accepted; its name `estimate` amended by 0056 (`price`) | 2026-09-29 |
 | 0011 | Let the point run repeat a deterministic model, to measure its noise | accepted | 2026-09-29 |
@@ -90,3 +90,4 @@ Write one when a choice:
 | 0062 | Compare golden points across machines in unit coordinates, replay from the stored points, and settle five details for step 01 | accepted; item 2 amended, and item 5's rounding refined, by 0063 | 2026-10-01 |
 | 0063 | Store a design's structure with its result, check a rebuilt design per range, and pin `duration()`'s edges | accepted | 2026-10-01 |
 | 0064 | Raise the source-line budget to 8,300 | accepted | 2026-10-01 |
+| 0065 | Add `unregister` to every registry, refuse malformed design requests, check four more words, and settle a given line's anchor and direction | accepted | 2026-10-01 |

@@ -4,8 +4,9 @@
 0040; the design's identity by 0046; the maps, the order of a line's points, and alpha by 0047; the point
 design's space by 0049; the anchor's refusal by 0051; asks trimmed by 0052; the map back, golden points across
 machines, and generators called with an identity by 0061; golden points in unit coordinates, the sampler version's
-refusal, and given lines' fixed coordinates by 0062; the structure kept with the result by 0063). **Depends on:** OD-13 (0032);
-records 0005, 0012, 0013, 0023, 0024, 0033.
+refusal, and given lines' fixed coordinates by 0062; the structure kept with the result by 0063; malformed
+requests refused (G18), and a given line's anchor and direction, by 0065). **Depends on:** OD-13 (0032); records
+0005, 0012, 0013, 0023, 0024, 0033.
 
 > The design generators in v2.0, from `../notes/v1/ema-redesign.md` and scope's Designs row (point, uniform,
 > convergent, and lines: coordinate, random, or given; 0012). For each: what the user provides, the points it
@@ -71,6 +72,17 @@ at that value.
   generator or sampler version is refused, naming both (`RequestError`; 0061, 0062). Log ranges use numpy's
   `log` and `exp` (0062). The design contract's inputs (seeded or not, the nesting claimed,
   an example identity, one over the cap) are a table keyed by generator name in `tests/contracts/design.py`.
+- **Malformed requests are refused** (0065), before building, with `RequestError` naming the parameter (G18):
+  - a generator's parameters outside its own floors: uniform's `n` and random lines' `m` integers ≥ 1; lines'
+    `n` ≥ 2 (G14); a point's `repeats` ≥ 0; convergent's `n_min` ≥ 1 and `level` ≥ 0; the seed an integer ≥ 0;
+    a bool or a non-integral number where an integer is required. A diagnostic's own floors (lines' and
+    coordinate lines' n ≥ 7) are its spec's;
+  - in a space, a point's `x`, an anchor, or a direction, a value that isn't a finite number (NaN, ±inf, a
+    bool, a string), checked before the value becomes a double (0061);
+  - a malformed space: a list that isn't two numbers, a `scale` other than `linear` or `log`, a range's object
+    with a key other than `range` and `scale`;
+  - an anchor naming a name that isn't a model parameter; an empty list of given lines;
+  - a convergent design whose sampler's 1/r isn't an integer (Convergent).
 - **Size:** every generator computes its size in closed form, from the request alone, before building. A
   design of more than 10,000,000 points is refused then, with `DesignTooLarge` naming the size and the cap.
   At the cap, a design of 20 model parameters is 1.6 GB of points, and pricing hashes every point.
@@ -172,10 +184,12 @@ Shared by given, coordinate, and random lines (0012):
 an anchor and a direction.
 
 - **The anchor** is in model parameter units, a partial mapping; unnamed varied model parameters are at the
-  space's center, held ones at their held values. It must be inside the space. The anchor is on the line, but
-  is one of its points only if it falls on the grid t_j.
+  space's center in unit coordinates (z = 0; the geometric center on a log range: 1 on [10⁻⁶, 10⁶], 0065), held
+  ones at their held values. It must be inside the space, and may not name a name that isn't a model parameter.
+  The anchor is on the line, but is one of its points only if it falls on the grid t_j.
 - **The direction** is in unit coordinates (`{"k": 1, "q": -0.5}`); unnamed components are 0. It must be
-  nonzero, and may not name a held model parameter or a name that isn't a model parameter.
+  nonzero, and may not name a held model parameter or a name that isn't a model parameter. It is recorded as
+  given, not normalized (0065); a random line's is its normalized draw. At least one line is given.
 - **Fixed coordinates** (0062): a varied model parameter whose direction component is 0 keeps the anchor's
   value on every point of the line, bit for bit, as coordinate lines' other coordinates do; it is not mapped
   back and forth.
@@ -250,7 +264,8 @@ values.
     1.99947, so exactly the error factor asked for). alpha = 0.7071, or even 0.70710678, is just below 1/√2,
     and gives 18, 37, 73, 145.
 - **Refused** before building: alpha outside (0, 1), sizes that aren't strictly increasing (n_min = 2, alpha =
-  0.95: 2, 3, 3), and a sampler that isn't nested (Samplers). The report shows alpha, r, and the sizes.
+  0.95: 2, 3, 3), a sampler that isn't nested (Samplers), and a sampler whose 1/r isn't an integer, until its
+  record brings a rounding rule (0065). The report shows alpha, r, and the sizes.
 
 ## Requirements
 
@@ -269,10 +284,11 @@ values.
 | G11 | A line of 2n − 1 points contains the line of n points, bit for bit. | n = 17 and 33, for each kind of line. |
 | G12 | With n odd, the coordinate lines along which the anchor is at the center share the anchor exactly; the other lines, or all of them when n is even, share no point. | 6 model parameters, n = 17: 102 rows, 97 distinct points; the anchor off center in one model parameter: 98 distinct; in all six: 102; n = 16: 96 rows, 96 distinct; an anchor at a range's end, or on another grid point of its line: refused, naming the model parameter (0051). |
 | G13 | Random lines: the first m lines of m + 1 are the m-line design; line j made alone equals line j of the whole. | m = 5 and 6, seed 1; line 3 alone. |
-| G14 | A line request is refused, before building, for an anchor outside the space (including a nominal value outside its range, for coordinate lines), a zero direction, a direction naming a held model parameter or an unknown name, or n < 2. | One request for each. |
-| G15 | A space is refused, before any run, for a name that isn't a model parameter, lo ≥ hi, a log range with lo ≤ 0, or a range end or held value outside the limits, naming the model parameter (M6). | One space for each; [0, 10] with `gt: 0` refused, [1e-6, 10] accepted. |
+| G14 | A line request is refused, before building, for an anchor outside the space (including a nominal value outside its range, for coordinate lines) or naming an unknown name, a zero direction, a direction naming a held model parameter or an unknown name, an empty list of given lines, or n < 2 (0065). | One request for each. |
+| G15 | A space is refused, before any run, for a name that isn't a model parameter, lo ≥ hi, a log range with lo ≤ 0, a range end or held value outside the limits or not a finite number, or a malformed form, naming the model parameter (M6, 0065). | One space for each; [0, 10] with `gt: 0` refused, [1e-6, 10] accepted; NaN, ±inf, `true`, and `"1"` as a range end or held value; a list of three; `"scale": "ln"`; an extra key. |
 | G16 | A design's columns follow the model spec's order, whatever order the space names them in. | The same space with its names in two orders: identical points. |
 | G17 | A sampler other than `random` is refused as coming later; a sampler registered in the tests works with uniform, and convergent refuses it when it isn't nested. | `sampler="sobol"`; a fake nested sampler and a fake non-nested one. |
+| G18 | A generator refuses, before building, parameters outside its floors (uniform's `n` and random lines' `m` ≥ 1, a point's `repeats` ≥ 0, convergent's `n_min` ≥ 1 and `level` ≥ 0, a seed ≥ 0, integers where integers are required), a point's `x`, anchor, or direction value that isn't a finite number, and a convergent sampler whose 1/r isn't an integer, with `RequestError` naming the parameter (0065). | One request for each: `n = 0`, `m = 0`, `repeats = -1`, `level = -1`, `seed = -1`, `n = true`, `n = 2.5`; `x = {"k": NaN}`; a fake nested sampler with r = 2/3. A given line whose anchor leaves a log-range model parameter unnamed, with direction component 0 there: that coordinate is the range's geometric center (the map at u = ½) on every point; a direction (1, 1) is recorded as (1, 1). |
 
 ## What this spec asks of other documents
 

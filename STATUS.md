@@ -5,8 +5,10 @@
 ## Now
 
 - Writing the design documents by hand (`TODO.md`): steps 1–13 done.
-- "Before the first line of code" (`TODO.md`): the specs checked against each other, and the contradictions
-  resolved (records 0061–0064). Next: the first plan.
+- "Before the first line of code" (`TODO.md`) done: the specs checked against each other, and the contradictions
+  resolved (records 0061–0064). The first plan written: `docs/plans/01-scaffolding-and-designs.md`
+  (approved; its six questions answered, four of them as record 0065, accepted and applied); a draft
+  order of the later steps in `docs/notes/build_roadmap.md`.
 
 ## Done
 
@@ -79,18 +81,24 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   range; `duration()`'s edges), and 0064 (the source-line budget raised to 8,300; `architecture.md` §11 about
   8,200), applied to the specs and guides; "amended by" marks on 0006, 0010, 0017, 0028, 0031, 0035, 0036,
   0042, 0044, 0049, 0056, 0058, 0061, and 0062.
+- 2026-10-01: plan 01 written (`docs/plans/01-scaffolding-and-designs.md`), with a draft roadmap of the later
+  build steps (`docs/notes/build_roadmap.md`), after three independent reviews (22, 17, then 8 findings, all
+  fixed); its questions answered by the owner; record 0065 (`unregister` in every registry; malformed design
+  requests refused, G18; four more words in the terminology test; a given line's anchor at the geometric center
+  and its direction as given), applied to `architecture.md`, `designs.md`, `contracts.md`, the glossary, and
+  0008's status.
 
 ## Next
 
-- "Before the first line of code" (`TODO.md`): the first plan (`docs/plans/01-…`): the scaffolding (0059),
-  and probably `ema.types` and the design generators, with their contracts.
-- For the first plan of `ema.numerics`: the coordinate lines' Lanczos basis must be the same bit for bit on
-  every call (C7). With numpy on Accelerate (this Mac), the matrix products in its reorthogonalization gave two
-  different bases in 50 calls in one process (step 11's round 3 review). The same exposure reaches the linear
-  and polynomial models' QR fits, their bootstrap refits, and the Gram coefficients' `Q.T @ y`
-  (`docs/notes/consistency_review_2026-10-01_before_code.md`, D). Measure `qr`, `lstsq`, the Lanczos process,
-  and `Q.T @ y` at the polynomial model's size (50 calls, in one process and across processes), and propose a
-  record for any that varies. Building the basis from the exact Gram basis would contradict
+- Build step 01 (`docs/plans/01-scaffolding-and-designs.md`: the scaffolding, 0059; the parts of `ema.types`
+  designs need; `ema.designs`; C20–C28; G1–G18) on `build-01-scaffolding-and-designs`, stopping at Review A.
+- For the first plan of `ema.numerics` (roadmap step 02): the coordinate lines' Lanczos basis must be the same
+  bit for bit on every call (C7). With numpy on Accelerate (this Mac), the matrix products in its
+  reorthogonalization gave two different bases in 50 calls in one process (step 11's round 3 review). The same
+  exposure reaches the linear and polynomial models' QR fits, their bootstrap refits, and the Gram coefficients'
+  `Q.T @ y` (`docs/notes/consistency_review_2026-10-01_before_code.md`, D). Measure `qr`, `lstsq`, the Lanczos
+  process, and `Q.T @ y` at the polynomial model's size (50 calls, in one process and across processes), and
+  propose a record for any that varies. Building the basis from the exact Gram basis would contradict
   `coordinate_lines.md` ("computed by the Lanczos process") and needs a record too.
 
 ## Specs

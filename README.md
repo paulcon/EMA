@@ -68,7 +68,7 @@ docs/design/
   export.md                   the export's files and their read-back (0050)
   reference_models.md         R1…, their truths, and an index of expected answers (0052)
 docs/decisions/               README.md (how, and the index), 0000-template.md, 0001…, 0002…
-docs/plans/                   README.md, _template.md
+docs/plans/                   README.md, _template.md, 01-scaffolding-and-designs.md
 docs/guides/                  get_started.md, add_a_model.md, run_a_diagnostic.md, add_a_diagnostic.md (outlines)
 docs/checks/                  step 11's scripts for the expected answers, and their outputs
 docs/notes/
@@ -76,5 +76,6 @@ docs/notes/
   adding_a_use_case.md        how to add a use case, with a template
   adding_a_reference_model.md how to add a reference model, what it can be used for, a template
   consistency_review_*.md     consistency reviews of the design documents, and what came of them
+  build_roadmap.md            a draft order of the build steps after plan 01
   v1/                         v1's working notes and the lessons learned (not maintained)
 ```

@@ -1,8 +1,8 @@
 # Architecture: packages, layers, and modules
 
 **Status:** accepted (TODO step 9; 0056). **Updated:** 2026-10-01 (0057: the trust rules placed; 0059: the tooling;
-0060: the guides; 0061: generators called with an identity, `ema.cli` over `ema.mcp`, the stderr tail, `remove_tree`; 0062: replays from stored points, `GOLDEN_UNIT_TOL`; 0063: `DesignStructure` in the provenance; 0064: §11's estimates). **Depends on:** P1–P7; `scope.md`; `use_cases.md` (U1–U9); `model_interface.md` (M1–M21);
-`designs.md` (G1–G17); `diagnostics/shared.md` (S1–S10) and the six diagnostic specs; `uncertainty.md` (V1–V7);
+0060: the guides; 0061: generators called with an identity, `ema.cli` over `ema.mcp`, the stderr tail, `remove_tree`; 0062: replays from stored points, `GOLDEN_UNIT_TOL`; 0063: `DesignStructure` in the provenance; 0064: §11's estimates; 0065: `unregister`, G18, a given line's direction). **Depends on:** P1–P7; `scope.md`; `use_cases.md` (U1–U9); `model_interface.md` (M1–M21);
+`designs.md` (G1–G18); `diagnostics/shared.md` (S1–S10) and the six diagnostic specs; `uncertainty.md` (V1–V7);
 `contracts.md` (C1–C56); `data_model.md` (Q1–Q12, W1–W6, I1–I12; Q13–Q15 added by 0056); `export.md` (E1–E7);
 records 0005, 0008, 0010, 0015–0022, 0024–0030, 0032–0036, 0040, 0041, 0046, 0047, 0049, 0050, 0053–0055, 0057;
 `trust.md` (T1–T10). Rewritten from the specs' "Architecture (step 9)" asks and the consistency review's "Step 9
@@ -400,7 +400,8 @@ class DesignIdentity:
 @dataclass(frozen=True)
 class Line:
     anchor: tuple[float, ...]                 # model parameter units
-    direction: tuple[float, ...]              # unit coordinates
+    direction: tuple[float, ...]              # unit coordinates, one per varied model parameter; a given
+                                              # line's as the user gave it, a random line's normalized (0065)
     ends: tuple[tuple[float, ...], tuple[float, ...]]
     rows: tuple[int, int]                     # its rows [start, stop) in the design
 
@@ -801,7 +802,7 @@ Each error carries `retryable` as a class attribute, so the interfaces can say w
 |---|---|---|
 | `EMAError` | the base of every error EMA raises on purpose | |
 | `SpecError` | a model spec doesn't validate (field named) | no |
-| `RequestError` | a space, a diagnostic parameter, or a design's identity is refused (G14, G15, M6) | no |
+| `RequestError` | a space, a diagnostic parameter, or a design's identity is refused (G14, G15, G18, M6) | no |
 | `DesignTooLarge` (a `RequestError`) | the size is over `MAX_DESIGN_POINTS` (G5) | no |
 | `ApprovalDeclined` | the answer was no, or none came; nothing ran | yes |
 | `CannotAsk` (an `ApprovalDeclined`) | `approve=None` or `confirm=None`: nobody can be asked (an MCP client without elicitation); nothing asked or recorded | no |
@@ -821,9 +822,11 @@ Pure functions of arrays (AR2). Every random draw takes a seed, or a `np.random.
 
 ### The four interfaces kept as seams
 
-Each has a registry (`register`, `get`, `names`), its v2.0 implementation, and a fake registered in the tests
-through the same `register`, removed by a fixture: no monkeypatching (C19, C28–C30). `register` refuses a name
-already taken; a fixture that registers a second version of a generator (C51) removes the first and restores it. A name with no
+Each has a registry (`register`, `get`, `names`, `unregister`), its v2.0 implementation, and a fake registered in
+the tests through the same `register`, removed by a fixture with `unregister`: no monkeypatching (C19, C28–C30).
+`register` refuses a name already taken, and `unregister` a name not registered; a fixture that registers a
+second version of a generator (C51) unregisters the first, and restores it afterwards (0065). Nothing in `ema`
+calls `unregister`; the output parsers' and the diagnostics' registries (§5, §6) have it too. A name with no
 implementation is refused with "<kind> X comes in a later version" (`designs.md`, `polynomial_model.md`).
 There are no plugin entry points in v2.0; adding them later is about 30 lines, on these registries.
 
@@ -886,20 +889,20 @@ class IntervalMethod(Protocol):
 
 | Module | Public names | From |
 |---|---|---|
-| `basis.py` | `Basis`, `register`, `get`, `names`, `TotalDegree` (Legendre) | `polynomial_model.md`; v1's `core/legendre.py`, ported after re-review |
+| `basis.py` | `Basis`, `register`, `get`, `names`, `unregister`, `TotalDegree` (Legendre) | `polynomial_model.md`; v1's `core/legendre.py`, ported after re-review |
 | `gram.py` | `gram_coefficients(y) -> np.ndarray` (c_k of evenly spaced samples); `tail(c) -> np.ndarray` (T(k)); `degrees_above_floor(T, floor) -> int` (k*); `decay_rate(T, k_star, min_degrees) -> tuple[float, float] \| None` (rate and intercept, or none) | `coordinate_lines.md`, `lines.md` (0038) |
 | `fitting.py` | `Fit` (coefficients, residuals, rank, leverages); `least_squares(A, y) -> Fit`, `rank(A) -> int` (0051's rule), `press(A, y, fit) -> float`, `r2`, `relative_residual` | `linear_model.md`, `polynomial_model.md`; no k-fold cross-validation |
 | `sobol.py` | `sobol_indices(coef, terms) -> (first, total)`, `degree_energy(coef, terms)` (√E_k) | `polynomial_model.md` |
 | `stats.py` | `rank_correlation(x, y)`, `binned_index(x, y, bins)` | `scatter.md` |
-| `intervals.py` | `Estimator`, `Interval`, `IntervalMethod`, `register`, `get`, `names`, `Bootstrap`; `BOOTSTRAP_RESAMPLES`, `BOOTSTRAP_PERCENTILES`, `BOOTSTRAP_MIN_DEFINED` | `uncertainty.md`; no `convergence_interval` (0040) |
+| `intervals.py` | `Estimator`, `Interval`, `IntervalMethod`, `register`, `get`, `names`, `unregister`, `Bootstrap`; `BOOTSTRAP_RESAMPLES`, `BOOTSTRAP_PERCENTILES`, `BOOTSTRAP_MIN_DEFINED` | `uncertainty.md`; no `convergence_interval` (0040) |
 | `tolerance.py` | `tolerance(values, rel) -> float`: `rel` × the range of the values (P6's one function) | P6 |
 
 ### `ema.designs`
 
 | Module | Public names | From |
 |---|---|---|
-| `samplers.py` | `Sampler`, `register`, `get`, `names`, `Random` | `designs.md`, Samplers (0032) |
-| `generators.py` | `DesignGenerator`, `register`, `get`, `names`, `MAX_DESIGN_POINTS` | `designs.md`, Shared rules |
+| `samplers.py` | `Sampler`, `register`, `get`, `names`, `unregister`, `Random` | `designs.md`, Samplers (0032) |
+| `generators.py` | `DesignGenerator`, `register`, `get`, `names`, `unregister`, `MAX_DESIGN_POINTS`, `GOLDEN_UNIT_TOL` | `designs.md`, Shared rules |
 | `point.py` | `Point`: `x`, `repeats` | Point (0011, 0049) |
 | `uniform.py` | `Uniform`: `n` | Uniform |
 | `convergent.py` | `Convergent`: `n_min`, `alpha` (its decimal string, read with `decimal_fraction`), `level`; sizes ⌈n_min·alpha^(−l/r)⌉ in exact arithmetic | Convergent (0047) |
@@ -994,6 +997,7 @@ class OutputParser(Protocol):
 def register(p: OutputParser) -> None: ...
 def get(kind: str) -> OutputParser: ...
 def names() -> tuple[str, ...]: ...
+def unregister(kind: str) -> None: ...      # tests only (0065)
 ```
 
 `sandbox.py` and `_worker.py` hold the isolated child: one long-lived child per model version, JSON (or
@@ -1232,6 +1236,7 @@ def evaluate(diagnostic: Diagnostic, batch: RunBatch, ctx: AnalysisContext,
 def register(d: Diagnostic) -> None: ...
 def get(name: str) -> Diagnostic: ...
 def names() -> tuple[str, ...]: ...
+def unregister(name: str) -> None: ...      # tests only (0065)
 ```
 
 | Module | Diagnostic | Design | Numbers | Interval method |

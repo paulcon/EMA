@@ -1,7 +1,7 @@
 # Glossary
 
 **Status:** accepted. **Updated:** 2026-10-01 (records 0022–0024, 0031, 0033, 0034, 0039, 0041–0043, 0049,
-0050, 0055, 0057, 0061).
+0050, 0055, 0057, 0061, 0065).
 
 > One word per idea, in your nomenclature, linked to the standard terms so readers (and the agent) can
 > connect them. The code, the docs, and the messages use these words. The Avoid column is advice for prose,
@@ -11,7 +11,8 @@
 > CLI commands and flags, data card keys) and the text EMA generates for users (report templates, golden
 > reports, figure labels, CLI and error messages), for a short list of words that are always wrong there:
 > - in identifiers: `qoi`, `box`, `DiagnosticRun`;
-> - in generated text: "confidence interval", "CI", "credible interval", "error bar", "QoI", "box"; except
+> - in generated text: "confidence interval", "CI", "credible interval", "error bar", "QoI", "box", "analyst",
+>   "user code", "model code", "model program" (0065); except
 >   "confidence interval" in the one sentence each report with estimates opens its Estimates section with
 >   (`EXPLAIN_INTERVALS`, `diagnostics/shared.md`; 0042).
 >
