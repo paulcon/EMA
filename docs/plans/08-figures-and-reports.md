@@ -140,6 +140,7 @@ Each is record 0073's, numbered as there, one line each.
 17. Review round 1: GitHub's autolinks and emoji accepted.
 18. Review round 1: the size overrun, 697 against 540, proposed as §11's 700 and the diagnostics' 1,850.
 19. Review round 1: `IntervalInfo.settings`' keys (`seed`, `distinct`) as the diagnostics' convention.
+20. Review round 2: one lock (`figures._STYLE_LOCK`) held for each styled call, so threads drawing at once agree.
 
 ## Notes
 

@@ -1388,18 +1388,37 @@ class Store:
         Runs and approvals are kept, so the result replays from its provenance (C51, U8). Tests only: no public
         name in v2.0 (0056).
 
+        The directory is moved aside inside the transaction that deletes the rows, as ``_put_in_place`` moves one
+        under the same lock, and the moved copy deleted after the commit: a W5 of the same result that follows
+        never has its new directory deleted (record 0072, review round 2). A commit that fails puts it back.
+
         Raises
         ------
         NotFound
             For an unknown result.
         """
-        with self._write() as c:
-            rid = self._require_result(result_id)
-            for table in ("measured_noisy", "result_runs", "results"):
-                c.execute(f"DELETE FROM {table} WHERE result_id = ?", (rid,))
-        directory = self.layout.result_dir(rid.hex())
-        if os.path.isdir(directory):
-            shutil.rmtree(directory)
+        aside: str | None = None
+        committed = False
+        try:
+            with self._write() as c:
+                rid = self._require_result(result_id)
+                for table in ("measured_noisy", "result_runs", "results"):
+                    c.execute(f"DELETE FROM {table} WHERE result_id = ?", (rid,))
+                directory = self.layout.result_dir(rid.hex())
+                if os.path.isdir(directory):
+                    aside = tempfile.mkdtemp(prefix=f".{rid.hex()[:12]}-old-", dir=self.layout.results)
+                    os.rename(directory, os.path.join(aside, "old"))
+            committed = True
+        finally:
+            if aside is not None:
+                old = os.path.join(aside, "old")
+                if not committed and os.path.lexists(old):
+                    try:
+                        os.rename(old, directory)
+                    except OSError:
+                        pass  # left aside rather than deleted: the rows weren't
+                if committed or not os.path.lexists(old):
+                    shutil.rmtree(aside, ignore_errors=True)
 
     # -- Q11: ids ------------------------------------------------------------------------------------------------
 

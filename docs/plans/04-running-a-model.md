@@ -179,6 +179,9 @@ Review round 1 (record 0071, items 36–50):
   parsers,files}.py` (one or more per finding, each failing before the fix). Signatures step 07 uses are
   unchanged; `Outcome` gained `time_s` (with a default), `read_inside` a `last` keyword, and `sandbox.py` the
   public `InterruptHeld`, `has_exited`, `kill_group`, `readable`, `MAX_REPLY_BYTES`.
+- **Review round 2** (record 0071, items 51–53): a call's reply limit grows with its runs (`reply_limit`), naming
+  `batch_size` when passed; no wait for a program's exit is longer than 60 s (a month's `timeout_s` overflowed
+  `poll`); a reply is read at most a byte past its limit; an `OSError` in a call's exchange isn't called a start.
 - **Size after review round 1:** `ema.models` about 1,341 code lines, over §11's 1,323 by about 18; proposed in
   record 0071 (Questions), not settled here. Fast tier about 26.5 s on this machine (shared).
 - **Reviewer, look hardest at:** the child's lifecycle under Ctrl-C and timeouts (`sandbox.Child._exchange`,

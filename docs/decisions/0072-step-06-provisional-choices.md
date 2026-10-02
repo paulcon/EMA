@@ -141,6 +141,12 @@ We will, provisionally:
     description and keeps it held; the descriptor is non-inheritable, so the runner starts model processes with
     `subprocess` or `multiprocessing`'s "spawn", never "fork".
 
+**Review round 2** (a nit left on step 06; fixed with a test)
+
+29. **W6 moves the result's directory aside inside its transaction**, as `_put_in_place` does under the same lock,
+    and deletes the moved copy after the commit (a failed commit puts it back): a W5 of the same result that
+    follows never has its new directory deleted.
+
 ## Deferrals
 
 - **§6's timing test, pricing a 10⁶-point design against 10⁶ stored runs in under 10 s,** is step 07's: it

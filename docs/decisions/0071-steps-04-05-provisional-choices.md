@@ -182,6 +182,16 @@ We will, provisionally:
 50. **AR4 lists `ema.models.collect`,** with `exclude_type_checking_imports = true` (import-linter), so its
     `TYPE_CHECKING` import of `ExecutedCall` is left out and a run-time import of `execute` would break AR4.
 
+**Review round 2** (the findings left on steps 04 and 05; each has a test in `tests/unit/models/`)
+
+51. **A call's reply limit grows with the call** (M8, M1, G5; amends item 39's fixed 64 MiB): `sandbox.reply_limit`
+    is 64 MiB plus, per run, 640 bytes for each model prediction and one more, with each name as JSON writes it, so
+    a correct batch reply of 10^7 runs is never the child's death; past it, the reason names `batch_size`.
+52. **No wait for a program's exit is longer than 60 s** (`execute._MAX_WAIT_S`; M1, M20): a `timeout_s` past
+    about 24.8 days overflowed `poll`'s C int (and kqueue's timespec) and raised; each wakeup checks again.
+53. **Nits:** a reply line is read no more than one byte past its limit and refused as soon as it passes it; an
+    `OSError` during a call's exchange says "couldn't exchange the call with the child", not "couldn't start".
+
 ## Deferrals
 
 - **C37's sizing** (no call over `batch_size`, or over what remains approved) and its negative control: the
@@ -217,6 +227,7 @@ We will, provisionally:
 - **`architecture.md` §5 (review round 1):** `sandbox.py`'s `InterruptHeld`, `has_exited`, `kill_group`,
   `readable`, `MAX_REPLY_BYTES`, and `Outcome.time_s`; `read_inside`'s `last`; AR4's sources with `collect` and
   `exclude_type_checking_imports`.
+- **`architecture.md` §5 (review round 2):** `sandbox.py`'s `reply_limit`.
 - **`model_interface.md`:** A run: a batch call's listed files are in its batch directory; Command line: a
   program's process group is killed at its exit (if item 3 is kept). **M20, proposed:** "A command runs without
   a shell, in its own process group, which a timeout, Ctrl-C (also while the program starts), or the program's

@@ -433,3 +433,93 @@ def test_p3_only_the_models_own_modules_are_compiled_from_source(tmp_path, proce
     monkeypatch.syspath_prepend(str((tmp_path / "m" / "vendor").resolve()))
     run, _ = run_once(spec_path, tmp_path, processes)
     assert run.status is RunStatus.OK and run.predictions["y"] == 4.0, run
+
+
+class TestReplyLimit:
+    """Review round 2 (record 0071; M8, M1, G5): a batch call's reply holds every run, so its limit grows with the
+    call; a correct vectorized model's reply is never the child's death."""
+
+    def test_the_limit_grows_with_the_runs_and_the_predictions(self):
+        base = sandbox.MAX_REPLY_BYTES
+        assert sandbox.reply_limit(0, ("y",)) == base
+        assert sandbox.reply_limit(1, ("y",)) == base + 2 * 640 + len('"y"')
+        assert sandbox.reply_limit(10**6, ("y",)) - base == 10**6 * (sandbox.reply_limit(1, ("y",)) - base)
+        assert sandbox.reply_limit(10, ("y", "z")) - base == 10 * (3 * 640 + 6)
+
+    @pytest.mark.parametrize("names", [("y",), tuple(f"prediction_{i:02d}" for i in range(10))])
+    def test_a_runs_longest_reply_fits_its_share(self, names):
+        """Each run's share holds its longest entry as the worker writes it: every value a 500-character reason, or
+        the longest double JSON writes; 10**7 such runs fit their call's limit without the 64 MiB beside them."""
+        reason = "r" * 500
+        runs = [{"predictions": {}, "missing": {n: reason for n in names}},
+                {"predictions": {n: -2.2250738585072014e-308 for n in names}, "missing": {}}]  # fmt: skip
+        share = sandbox.reply_limit(1, names) - sandbox.MAX_REPLY_BYTES
+        assert all(len(json.dumps(run, allow_nan=False)) + 2 <= share for run in runs)  # ", " between runs
+
+    def test_a_batch_reply_past_the_fixed_limit_is_read(self, tmp_path, monkeypatch):
+        """With the fixed part at 64 KiB, a batch of 5000 runs (a reply of about 250 KiB) is read, not a death."""
+        monkeypatch.setattr(sandbox, "MAX_REPLY_BYTES", 64 << 10)
+        write_model(tmp_path / "m", "import numpy as np\ndef f(X):\n    return np.asarray(X)[:, 0] / 3.0\n")
+        child = sandbox.Child(str(tmp_path / "m"), "model.py:f", True, ("a",), ("y",))
+        (tmp_path / "call").mkdir()
+        try:
+            outcome = child.call(str(tmp_path / "call"), [(float(i),) for i in range(5000)], dict(os.environ), 10)
+        finally:
+            child.close()
+        assert outcome.error is None and outcome.runs is not None and len(outcome.runs) == 5000
+        assert outcome.runs[4999]["predictions"]["y"] == 4999 / 3.0
+
+    def test_a_batch_reply_past_its_limit_names_batch_size(self, tmp_path, monkeypatch):
+        """Past the call's limit, the child's death says a smaller ``batch_size`` makes a shorter reply; the line
+        is read no more than a byte past the limit (review round 2, NIT-2)."""
+        monkeypatch.setattr(sandbox, "MAX_REPLY_BYTES", 1 << 20)
+        source = forged(b"x" * (3 << 20)).replace("def f(a):", "def f(X):")
+        write_model(tmp_path / "m", source)
+        child = sandbox.Child(str(tmp_path / "m"), "model.py:f", True, ("a",), ("y",))
+        (tmp_path / "call").mkdir()
+        reads = []
+        real_read = os.read
+
+        def counting_read(fd, n):
+            chunk = real_read(fd, n)
+            reads.append(len(chunk))
+            return chunk
+
+        monkeypatch.setattr(sandbox.os, "read", counting_read)
+        try:
+            outcome = child.call(str(tmp_path / "call"), [(1.0,), (2.0,)], dict(os.environ), 10)
+        finally:
+            child.close()
+        assert outcome.error == (
+            "the child's reply to request 2 is longer than 1 MiB "
+            "(a batch of 2 runs; a smaller batch_size makes a shorter reply)"
+        )
+        assert sum(reads) <= sandbox.reply_limit(2, ("y",)) + 1 + 1000  # the start's reply aside
+
+
+def test_an_error_on_the_pipe_during_a_call_is_not_called_a_start(tmp_path, monkeypatch):
+    """Review round 2 (NIT-2): an OSError while the call is exchanged says so; only one while the worker starts
+    says it couldn't start."""
+    write_model(tmp_path / "m", "def f(a):\n    return a\n")
+    child = sandbox.Child(str(tmp_path / "m"), "model.py:f", False, ("a",), ("y",))
+    (tmp_path / "call").mkdir()
+    try:
+        assert child.call(str(tmp_path / "call"), [(1.0,)], dict(os.environ), 10).error is None
+
+        def broken(fd, n):
+            raise OSError(5, "Input/output error")
+
+        monkeypatch.setattr(sandbox.os, "read", broken)
+        outcome = child.call(str(tmp_path / "call"), [(1.0,)], dict(os.environ), 10)
+        assert outcome.error == "couldn't exchange the call with the child: Input/output error"
+        assert child.pid is None, "the child was kept after the pipe's error"
+        monkeypatch.undo()
+
+        def refused(*args, **kwargs):
+            raise OSError(13, "Permission denied")
+
+        monkeypatch.setattr(sandbox.subprocess, "Popen", refused)
+        outcome = child.call(str(tmp_path / "call"), [(1.0,)], dict(os.environ), 10)
+        assert outcome.error == "couldn't start the child: Permission denied"
+    finally:
+        child.close()
