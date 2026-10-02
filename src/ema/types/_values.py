@@ -18,16 +18,24 @@ def is_number(value: Any) -> bool:
     return isinstance(value, (int, float, np.integer, np.floating)) and not isinstance(value, (bool, np.bool_))
 
 
+def _finite(value: Any) -> bool:
+    """Tell whether a number is finite as a double; an integer too large for one isn't (0069, review item 7)."""
+    try:
+        return math.isfinite(float(value))
+    except OverflowError:
+        return False
+
+
 def as_double(value: Any, what: str, error: type[EMAError] = RequestError) -> float:
     """Return ``value`` as a double; raise ``error`` naming ``what`` when it isn't a finite number."""
-    if not is_number(value) or not math.isfinite(float(value)):
+    if not is_number(value) or not _finite(value):
         raise error(f"{what}: {value!r} is not a finite number")
     return float(value)
 
 
 def as_int(value: Any, what: str, minimum: int, error: type[EMAError] = RequestError) -> int:
     """Return ``value`` as an integer >= ``minimum``; raise ``error`` naming ``what`` otherwise."""
-    if is_number(value) and math.isfinite(float(value)) and float(value) == int(value):
+    if is_number(value) and _finite(value) and float(value) == int(value):
         number = int(value)
         if number >= minimum:
             return number

@@ -1,0 +1,9 @@
+{
+  "name": "imports",
+  "description": "a function file whose imports resolve to unlisted files",
+  "interface": "python_function",
+  "function": "model.py:f",
+  "files": ["listed.py"],
+  "parameters": [{"name": "a", "units": "", "nominal": 1.0, "description": "a"}],
+  "predictions": [{"name": "y", "units": "", "description": "a"}]
+}

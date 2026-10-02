@@ -35,8 +35,11 @@ from ema.types.identity import (
     reuse_key,
     run_id,
     sha256_hex,
+    version_hash,
 )
 from ema.types.model import (
+    CREDENTIAL_WORDS,
+    EMA_FILE_NAMES,
     CommandLine,
     CsvParser,
     FileEntry,
@@ -50,6 +53,8 @@ from ema.types.model import (
     PredictionSpec,
     PythonFunction,
     RegexParser,
+    hidden_character,
+    is_credentials_file,
 )
 from ema.types.requests import (
     ApprovalRequest,
@@ -90,6 +95,8 @@ from ema.types.summaries import (
 from ema.types.text import duration, fmt, parse_timestamp, timestamp_text
 
 __all__ = [
+    "CREDENTIAL_WORDS",
+    "EMA_FILE_NAMES",
     "AmbiguousId",
     "ApprovalDeclined",
     "CannotAsk",
@@ -130,11 +137,14 @@ __all__ = [
     "decimal_fraction",
     "duration",
     "fmt",
+    "hidden_character",
+    "is_credentials_file",
     "model_version_label",
     "point_hash",
     "run_id",
     "sha256_hex",
     "spawned",
+    "version_hash",
 ]
 
 __all__ += [

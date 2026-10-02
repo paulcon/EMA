@@ -100,6 +100,7 @@ include_external_packages = true
 name = "AR1 One-way layers"
 type = "layers"
 layers = [
+    "ema.models",
     "ema.numerics | ema.designs",
     "ema.types",
 ]
@@ -133,6 +134,8 @@ source_modules = [
     "ema.types",
     "ema.numerics",
     "ema.designs",
+    "ema.models.spec",
+    "ema.models.files",
 ]
 forbidden_modules = [
     "ema.models.execute",
@@ -146,6 +149,7 @@ source_modules = [
     "ema.types",
     "ema.numerics",
     "ema.designs",
+    "ema.models",
 ]
 forbidden_modules = [
     "sqlite3",
@@ -176,6 +180,7 @@ source_modules = [
     "ema.types",
     "ema.numerics",
     "ema.designs",
+    "ema.models",
 ]
 forbidden_modules = [
     "ema.reference_models",

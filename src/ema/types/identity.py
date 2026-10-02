@@ -1,7 +1,7 @@
 """Canonical encodings, hashes, and ids: every rule of data_model.md §3.4 in one place (architecture.md §3).
 
-The model version's hash, the approval id, and the reuse key come with the steps that first use them (model
-loading, the runner, the workspace).
+The model version's hash came with model loading (step 03); the approval id and the reuse key come with the steps
+that first use them (the runner, the workspace).
 """
 
 import hashlib
@@ -18,6 +18,7 @@ import numpy as np
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
+    from ema.types.model import ModelSpec
     from ema.types.requests import Request, TestRunRequest
 
 _HEX_ID = re.compile(r"[0-9a-f]{64}")
@@ -334,3 +335,27 @@ def reuse_key(
         "versions": dict(versions),
     }
     return canonical_json(key)
+
+
+def version_hash(spec: "ModelSpec", files: Sequence[TrackedFile]) -> str:
+    """Return a model version's id (data_model.md §3.4; M3, 0029).
+
+    The SHA-256 of the canonical JSON of ``{"spec": …, "files": […]}``: the spec as ``versioned_json`` writes it
+    (every field, each default filled in, without its location, ``keep``, ``batch_size``, and ``timeout_s``), and
+    each tracked file as ``[relative path, sha256 of its contents, shared]``, sorted by path. The digests are
+    given: reading and hashing the files is ``ema.models``'s (architecture.md §1).
+
+    Parameters
+    ----------
+    spec
+        The model spec.
+    files
+        Its tracked files: the Python function's file, the input deck templates, and the listed files.
+
+    Returns
+    -------
+    str
+        64 hex digits.
+    """
+    tracked = [[f.path, f.sha256, f.shared] for f in sorted(files, key=lambda f: f.path)]
+    return sha256_hex(canonical_json({"spec": json.loads(spec.versioned_json()), "files": tracked}))

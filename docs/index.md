@@ -46,4 +46,6 @@ The public names of the modules that exist so far (`architecture.md`), one page 
    ema.designs.uniform
    ema.designs.convergent
    ema.designs.lines
+   ema.models.spec
+   ema.models.files
 ```

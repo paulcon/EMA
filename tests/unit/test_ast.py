@@ -1,7 +1,7 @@
 """What import-linter can't express (architecture.md §10): AR7, no module in ``ema`` imports the root package.
 
-AR3's part (``ema.cli`` imports ``ema.mcp`` only in its ``mcp`` command) and ``ema/models/__init__.py`` not
-importing ``execute`` (AR4) are added with those packages.
+``ema/models/__init__.py`` doesn't import ``execute`` (AR4), so the package's re-exports can't bypass it. AR3's part
+(``ema.cli`` imports ``ema.mcp`` only in its ``mcp`` command) is added with those packages.
 """
 
 import ast
@@ -65,3 +65,27 @@ def test_the_scan_sees_relative_and_absolute_root_imports(tmp_path):
     finally:
         SOURCE = saved
     assert found == ["ema", "ema", "ema", "ema.types"]
+
+
+def execute_imports(source: str) -> list[str]:
+    """The imports in ``source`` that name a module called ``execute``, absolute or relative."""
+    names = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            names += [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            module = "." * node.level + (node.module or "")
+            names += [module] + [f"{module}.{alias.name}" for alias in node.names]
+    return [n for n in names if "execute" in n.replace("..", ".").split(".")]
+
+
+def test_ar4_the_models_package_does_not_import_execute():
+    assert not execute_imports((SOURCE / "models" / "__init__.py").read_text(encoding="utf-8"))
+
+
+def test_the_execute_scan_sees_each_form():
+    """A negative control for the scan itself."""
+    for source in ("from . import execute", "from .execute import x", "import ema.models.execute",
+                   "from ema.models import execute as e"):  # fmt: skip
+        assert execute_imports(source), source
+    assert not execute_imports("from ema.models.spec import load_spec\nimport executor")
