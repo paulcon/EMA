@@ -6,11 +6,14 @@ in-memory streams, or a real ``python -m ema.mcp`` subprocess over stdio, on mil
 import asyncio
 import base64
 import json
+import math
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -20,9 +23,9 @@ from mcp import Client
 
 import ema.reference_models
 from ema.mcp import server as mcp_server
-from ema.mcp.server import ELICITATION_TIMEOUT_S, TOOLS, EmaServer, Stopped, _Call, tool_list
+from ema.mcp.server import ELICITATION_TIMEOUT_S, TOOLS, EmaServer, _Call, tool_list
 from ema.store import Store
-from ema.types.errors import PathRefused
+from ema.types.errors import PathRefused, Stopped
 from ema.types.requests import Progress
 from ema.workspace import open_workspace
 from tests.support.mcp import Elicited, StdioPeer, envelope, scripted
@@ -437,8 +440,7 @@ def test_a_cancelled_call_stops_at_its_next_progress_and_its_question_is_a_no():
         c.cancel()
         with pytest.raises(Stopped):
             c.progress(Progress.of_runs(1, 3))
-        with pytest.raises(Stopped):
-            c.approver(SimpleNamespace(text="a question"))  # type: ignore[misc, arg-type]
+        assert c.approver(SimpleNamespace(text="a question")) is False  # type: ignore[misc, arg-type]
     finally:
         loop.call_soon_threadsafe(loop.stop)
         thread.join()
@@ -484,3 +486,233 @@ def test_stdio_carries_only_protocol_messages_with_a_model_that_prints(tmp_path)
     assert len(peer.elicited) == 3 and code == 0
     assert any(n["method"] == "notifications/progress" and n["params"]["progressToken"] == "p1" for n in peer.notes)
     assert run["data"]["counts"]["usable"] == 3
+
+
+# -- review round 1 (record 0081, Review round 1) -----------------------------------------------------------------
+
+
+def test_save_model_loads_a_hand_written_spec_with_the_same_spec(server, root):
+    """Ruling A (T6; U9): ``save_model`` with a reference model's own hand-written ``model.json`` (as its text, or as
+    an object) asks "already saved, unchanged: load it?" with the file's text, loads it after the yes, and leaves
+    the file unchanged byte for byte; a different spec at the path is refused before asking."""
+    spec_path = copy_reference("R3", root / "more")
+    original = spec_path.read_bytes()
+    asked = Elicited()
+
+    async def script(client: Client) -> Any:
+        text, path = original.decode(), "more/r3/model.json"
+        return [
+            await call(client, "propose_model", spec=text, path="more/r3/model.json"),
+            await call(client, "save_model", spec=text, path="more/r3/model.json"),
+            await call(client, "save_model", spec=json.loads(text), path="more/r3/model.json"),
+            await call(client, "save_model", spec={**json.loads(text), "description": "other"}, path=path),
+        ]
+
+    proposed, saved, again, other = scripted(server, script, elicit=asked)
+    assert proposed["ok"] and proposed["data"]["spec_text"].encode() == original
+    assert saved["ok"] and saved["text"].startswith("Loaded r3@") and again["ok"]
+    assert len(asked.messages) == 2 and all("already saved, unchanged: load it?" in m for m in asked.messages)
+    assert original.decode() in asked.messages[0]
+    assert not other["ok"] and "another spec" in other["error"]["message"]
+    assert spec_path.read_bytes() == original
+
+
+def test_accept_on_the_form_is_a_yes_by_its_default(server, root):
+    """Ruling B (record 0081 item 6, amended): the form's ``approve`` is checked by default, so Accept with the field
+    left out is a yes; ``approve`` false, or not a boolean, is a no."""
+    schemas: list[Any] = []
+
+    class Seen(Elicited):
+        async def __call__(self, context: Any, params: Any) -> Any:
+            schemas.append(params.requested_schema)
+            return await super().__call__(context, params)
+
+    async def script(client: Client) -> Any:
+        return await call(client, "run_diagnostic", model="ishigami", diagnostic="point_run", params={"repeats": 1})
+
+    for content, yes in (({"approve": "true"}, False), ({"approve": False}, False), ({}, True)):
+        e = scripted(server, script, elicit=Seen(content=content))
+        assert e["ok"] is yes, (content, e)
+    assert schemas[0]["properties"]["approve"]["default"] is True and schemas[0]["required"] == ["approve"]
+
+
+def test_params_naming_a_tools_own_argument_is_a_request_error(server, root):
+    """m2: ``params`` naming ``space``, ``model``, ``diagnostic``, ``self``, ``prediction``, ``retry_failed``,
+    ``approve``, or ``on_progress`` is an EMA error envelope saying where it goes, never a ``TypeError``; n5:
+    ``results`` with an id and a filter is refused, as the CLI refuses it."""
+    names = ("space", "model", "diagnostic", "self", "prediction", "retry_failed", "approve", "on_progress")
+
+    async def script(client: Client) -> Any:
+        out = []
+        for tool in ("price", "run_diagnostic"):
+            for name in names:
+                out.append(await call(client, tool, model="ishigami", diagnostic="point_run", params={name: 1}))
+        out.append(await call(client, "results", id="abcd", model="ishigami"))
+        return out
+
+    *got, both = scripted(server, script, elicit=Elicited())
+    for e, name in zip(got, names * 2, strict=True):
+        message = e["error"]["message"]
+        assert not e["ok"] and message.startswith(f"{name} isn't a diagnostic parameter"), message
+        assert "TypeError" not in message and "unexpectedly" not in message
+    assert "it goes in the tool's own `space` argument, not in params" in got[0]["text"]
+    assert not both["ok"] and "not both" in both["error"]["message"]
+    assert runs_in(root) == 0
+
+
+def test_a_cancel_landing_before_the_question_is_waited_on_is_not_lost():
+    """n1: a cancel that lands after the check but before the question's future is kept still stops the call at
+    once (``_waiting`` is set before ``cancelled`` is checked again); the question is a no."""
+
+    class Late(threading.Event):
+        checks = 0
+
+        def is_set(self) -> bool:
+            Late.checks += 1
+            return Late.checks > 1  # the first check sees no cancel; it lands just after
+
+    loop = asyncio.new_event_loop()
+    thread = threading.Thread(target=loop.run_forever, daemon=True)
+    thread.start()
+    try:
+        c = _Call(ctx=None, loop=loop, can_ask=True)  # type: ignore[arg-type]
+        c.cancelled = Late()
+        with pytest.raises(Stopped):
+            c._on_loop(asyncio.sleep(3600), timeout=5)
+        Late.checks = 0
+        assert c._ask(SimpleNamespace(text="q")) is False  # type: ignore[arg-type]
+        asyncio.run_coroutine_threadsafe(asyncio.sleep(0.05), loop).result()  # the cancelled tasks end
+    finally:
+        loop.call_soon_threadsafe(loop.stop)
+        thread.join()
+        loop.close()
+
+
+def test_a_queued_call_cancelled_at_disconnect_records_nothing(server, root):
+    """n2 (T3: only questions asked are recorded): a call cancelled before it starts never calls the workspace."""
+    c = _Call(ctx=None, loop=None, can_ask=True)  # type: ignore[arg-type]
+    c.cancel()
+    arguments = {"model": "ishigami", "diagnostic": "point_run"}
+    e = server._writer.submit(server._dispatch, server._write_ws, "run_diagnostic", arguments, c).result()
+    assert not e["ok"] and e["error"]["message"].startswith("stopped")
+    with Store.open(root / "ema_workspace") as store:
+        assert store.approvals() == ()
+
+
+def test_plain_refuses_a_non_finite_number():
+    """n6 (P1, C55): EMA's types hold finite numbers only; a non-finite one is an error, never null or text."""
+    for bad in (math.nan, math.inf, -math.inf):
+        with pytest.raises(ValueError, match="non-finite"):
+            mcp_server._plain({"x": [bad]})
+
+
+SLOW = "import time\n\n\ndef f(x):\n    time.sleep(0.3)\n    return 2.0 * x\n"
+
+
+def _children(pid: int) -> list[int]:
+    found = subprocess.run(["pgrep", "-P", str(pid)], capture_output=True, text=True, check=False).stdout
+    return [int(p) for p in found.split()]
+
+
+def _gone(pids: list[int], timeout: float = 10) -> bool:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        alive = []
+        for p in pids:
+            try:
+                os.kill(p, 0)
+                alive.append(p)
+            except ProcessLookupError:
+                pass
+        if not alive:
+            return True
+        time.sleep(0.1)
+    return False
+
+
+def test_stdio_a_call_cancelled_during_its_form_runs_nothing(root):
+    """m4 (P3; T4): a call cancelled while its form is shown runs nothing, even after a late yes; its question is
+    recorded as a no, and the server goes on answering."""
+    peer = StdioPeer(root, hold=True)
+    try:
+        peer.initialize()
+        arguments = {"model": "ishigami", "diagnostic": "scatter", "space": PI, "params": {"n": 7, "seed": 9}}
+        rid = peer.start("tools/call", peer.tool_params("run_diagnostic", arguments))
+        peer.pump(lambda: peer.held, 60)
+        peer.send({"jsonrpc": "2.0", "method": "notifications/cancelled", "params": {"requestId": rid}})
+        time.sleep(0.5)
+        late = peer.held.pop()
+        peer.send({"jsonrpc": "2.0", "id": late["id"], "result": {"action": "accept", "content": {"approve": True}}})
+        peer.hold = False
+        listed = peer.call("results", {})
+    finally:
+        code = peer.close()
+    assert rid not in peer.responses and listed["ok"] and code == 0
+    assert runs_in(root) == 0
+    with Store.open(root / "ema_workspace") as store:
+        assert [a.answer for a in store.approvals()] == [False]
+
+
+@pytest.mark.parametrize("how", ["disconnect", "SIGTERM"])
+def test_stdio_leaving_during_a_run_stops_it_and_its_children(root, how):
+    """m1, m4 (C49; 0026): a client that leaves during a run, or a SIGTERM, stops the evaluation between two runs,
+    every finished run stored; the server exits (by the signal, for SIGTERM), its model children stop, and the run
+    lock is free."""
+    (root / "slow").mkdir()
+    (root / "slow" / "slow.py").write_text(SLOW)
+    spec = {"name": "slow", "description": "", "interface": "python_function", "function": "slow.py:f",
+            "parameters": [{"name": "x", "units": "", "nominal": 0.5, "description": ""}],
+            "predictions": [{"name": "y", "units": "", "description": ""}]}  # fmt: skip
+    (root / "slow" / "model.json").write_text(json.dumps(spec))
+    with open_workspace("ema_workspace", root=root) as ws:
+        ws.load_model("slow/model.json")
+    peer = StdioPeer(root)
+    peer.initialize()
+    arguments = {"model": "slow", "diagnostic": "scatter", "space": {"x": [0.0, 1.0]}, "params": {"n": 20, "seed": 1}}
+    peer.start("tools/call", peer.tool_params("run_diagnostic", arguments, progress="p"))
+    peer.pump(lambda: any(n["params"].get("progress", 0) >= 1 for n in peer.notes), 60)
+    children = _children(peer.proc.pid)
+    assert children
+    if how == "SIGTERM":
+        peer.proc.send_signal(signal.SIGTERM)
+        code = peer.proc.wait(timeout=60)
+        peer.stderr.close()
+    else:
+        code = peer.close()
+    assert code == (-signal.SIGTERM if how == "SIGTERM" else 0)
+    assert _gone(children), "a model child outlived the server"
+    assert 1 <= runs_in(root) < 20
+    with open_workspace("ema_workspace", root=root) as ws:  # the lock is free: a run goes
+        assert ws.run("ishigami", "point_run", repeats=1, approve=lambda q: True).counts.new == 2
+
+
+def test_stdio_malformed_answers_are_a_no_at_once(root):
+    """m3, m4 (P3; record 0081 item 6): a reply whose result isn't an object, an ``approve`` that isn't the boolean
+    true, an unknown action, and a client error are each a no at once, nothing run; Accept with ``{}`` or no content
+    takes the form's default, a yes."""
+    replies: list[dict[str, Any]] = [
+        {"result": "yes"},
+        {"result": None},
+        {"result": {"action": "accept", "content": {"approve": "true"}}},
+        {"result": {"action": "accept", "content": {"approve": 1}}},
+        {"result": {"action": "yes", "content": {"approve": True}}},
+        {"error": {"code": -32603, "message": "client blew up"}},
+        {"result": {"action": "accept", "content": {}}},
+        {"result": {"action": "accept"}},
+    ]
+    peer = StdioPeer(root, replies=replies)
+    got = []
+    started = time.monotonic()
+    try:
+        peer.initialize()
+        for seed in (1, 1, 1, 1, 1, 1, 1, 2):
+            arguments = {"model": "ishigami", "diagnostic": "scatter", "space": PI, "params": {"n": 5, "seed": seed}}
+            got.append(peer.call("run_diagnostic", arguments))
+    finally:
+        code = peer.close()
+    assert time.monotonic() - started < 60 and code == 0  # none waited ELICITATION_TIMEOUT_S
+    assert [e["ok"] for e in got] == [False] * 6 + [True, True]
+    assert all("declined" in e["error"]["message"] for e in got[:6])
+    assert peer.forms[0]["requestedSchema"]["properties"]["approve"]["default"] is True
+    with Store.open(root / "ema_workspace") as store:
+        assert [a.answer for a in store.approvals()] == [False] * 6 + [True, True]

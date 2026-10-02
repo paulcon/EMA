@@ -105,3 +105,12 @@ Each is in record 0081 with its reason.
   would become a priced question returned as `InputRequiredResult` and asked again on the retry, which needs the
   workspace to separate "ask" from "run under the lock"; the seam is `EmaServer.run`).
 - **For the demo:** `docs/notes/demo_mcp.md`.
+- **Review round 1** (on `demo-15fix`; record 0081, Review round 1, items 17–26; record 0080 items 29–30): a spec
+  file at `save_model`'s path holding the same spec, hand-formatted, is asked "already saved, unchanged: load it?"
+  and loaded, never rewritten (ruling A); the form's `approve` defaults to true (ruling B); SIGTERM stops as a
+  disconnect does, then ends the process by the signal; `params` naming a tool's own argument is a `RequestError`;
+  a reply whose result isn't an object is a no at once; a cancel is never lost and a queued call never asks;
+  `results(id, filter)` is refused; `data` refuses a non-finite number; `Stopped` is in `ema.types.errors`;
+  `tools.md` reworded. Not done: killing a model call under way at a stop (it finishes and is stored; record 0081
+  item 19 says why). Tests: 10 more in `tests/unit/mcp` (3 over stdio: a cancel during the form, a disconnect and a
+  SIGTERM during a run, malformed answers); `ema.mcp` is now 626 code lines (`server.py` 598).

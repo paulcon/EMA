@@ -121,6 +121,20 @@ The independent review's findings, and the choices their fixes make (each implem
     value. `repr` writes the shortest text that reads back the same double, as the spec's JSON does. `RunInfo`'s
     point keeps `fmt`, as a run's point is the design's (computed) and is named with its values.
 
+From steps 15 and 16's review round 1 (record 0081, Review round 1; on `demo-15fix`):
+
+29. **A spec file at the path holding the same spec is loaded, never rewritten** (ruling A; T6, U9):
+    `propose_model` and `save_model` take a file at the path whose `ModelSpec.from_json(text).to_json()` equals the
+    drafted spec's rendered text as "already saved": the proposal's `spec_text` is the file's own text, the
+    confirmation asks "already saved, unchanged: load it?" with those bytes (their hash recorded), nothing is
+    written, and the file is loaded after the yes, refused if it changed after the question. A file with another
+    spec, or text that isn't one, is still `PathRefused` before asking ("exists, with another spec or other text").
+    At most 4 MiB of such a file is read.
+30. **A path too long for the file system is `PathRefused`** (n3; T5): `_path` refuses a path argument with a part
+    longer than `PC_NAME_MAX` or a whole longer than `PC_PATH_MAX` (255 and 1024 bytes where `pathconf` can't say),
+    before anything is asked or made; an export directory that can't be made for another reason (a read-only file
+    system) is `PathRefused` naming it, not an `OSError`.
+
 ## Deferrals
 
 - **The use cases that need scatter, coordinate lines, or the linear and polynomial models** run once those are
@@ -135,7 +149,9 @@ The independent review's findings, and the choices their fixes make (each implem
 
 ## Spec edits on acceptance
 
-- `architecture.md` §7: items 4–7, 9, 14, 15, 22; `Workspace(store, root)` is built by `open_workspace` only.
+- `architecture.md` §7: items 4–7, 9, 14, 15, 22, 29, 30; `Workspace(store, root)` is built by `open_workspace` only.
+  `save_model`'s comment, and `trust.md` T6 (its rule, its test, "The path `save_model` writes"): "the same spec"
+  rather than "the same bytes" (item 29).
 - `architecture.md` §5: `Store.result_directory(result_id, *, complete=None)` (item 19); §6: `ema.approval`'s
   `fenced` (item 24).
 - `data_model.md` §8: Q3's `model_names()` (item 3).
@@ -157,8 +173,10 @@ The independent review's findings, and the choices their fixes make (each implem
   and the roadmap's 745; `ema.diagnostics.base` already holds the request, identity, and provenance helpers the
   estimate counted (record 0075). After review round 1, 886 (`__init__.py` 382, `_evaluate.py` 252,
   `_reproduce.py` 161, `_export.py` 91): the thread check is 34 of the 56 added (its decorator, and one line on
-  each of the 18 methods), the linked spec's check before loading 9.
+  each of the 18 methods), the linked spec's check before loading 9. After steps 15–16's review round 1 (items 29,
+  30), 915 (`__init__.py` 408, `_export.py` 94).
 - **Tests:** the fast tier gains 25 tests (about 35 s serially, 2 s each); the slow tier 10 (U1–U8, the guide, and
-  their skips until steps 10–13 merge). Review round 1 adds 8 fast tests (33 in `tests/unit/workspace`).
+  their skips until steps 10–13 merge). Review round 1 adds 8 fast tests (33 in `tests/unit/workspace`); steps
+  15–16's review round 1 adds 2 (items 29, 30).
 - Steps 15 and 16 call one workspace method per tool or command; every method returns a type that prints as EMA's
   text, so they format no number (P1; C54, C55).

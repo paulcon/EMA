@@ -21,6 +21,7 @@ import logging
 import math
 import os
 import re
+import signal
 import threading
 import time
 import urllib.parse
@@ -37,8 +38,9 @@ from mcp.server.lowlevel import Server
 from mcp.server.runner import serve_loop
 from mcp.server.stdio import stdio_server
 from mcp.shared.exceptions import MCPError
+from mcp.shared.message import SessionMessage
 
-from ema.types.errors import CannotAsk, EMAError, NotFound, PathRefused, RequestError
+from ema.types.errors import CannotAsk, EMAError, NotFound, PathRefused, RequestError, Stopped
 from ema.types.model import ModelSpec
 from ema.types.requests import ApprovalRequest, Approver, ConfirmationRequest, Progress
 from ema.types.results import DiagnosticResult
@@ -46,7 +48,7 @@ from ema.types.summaries import DiagnosticSummary
 from ema.types.text import timestamp_text
 from ema.workspace import Workspace, open_workspace
 
-__all__ = ["ELICITATION_TIMEOUT_S", "PROGRESS_INTERVAL_S", "TOOLS", "EmaServer", "serve"]
+__all__ = ["ELICITATION_TIMEOUT_S", "PROGRESS_INTERVAL_S", "TOOLS", "EmaServer", "Stopped", "serve"]
 
 #: Seconds an approval or a confirmation waits for its answer; unanswered, it is a no, and the run lock is freed (§8).
 ELICITATION_TIMEOUT_S = 900
@@ -101,12 +103,32 @@ ENVELOPE_SCHEMA = {
     },
     "required": ["ok", "data", "text", "see", "error"],
 }
-#: An elicitation's form: the user's yes is ``accept`` with ``approve`` true; anything else is a no (P3; 0016).
+#: An elicitation's form: one boolean, checked by default, so Accept on the form showing the price is a yes; decline,
+#: cancel, ``approve`` false, or anything else is a no (P3; 0016; record 0081 item 6, amended in Review round 1).
 _YES_SCHEMA = {
     "type": "object",
-    "properties": {"approve": {"type": "boolean", "title": "Approve", "description": "Yes: go ahead. No: nothing."}},
+    "properties": {
+        "approve": {
+            "type": "boolean",
+            "title": "Approve",
+            "description": "Yes: go ahead. No: nothing.",
+            "default": True,
+        }
+    },
     "required": ["approve"],
 }
+#: ``run``'s and ``price``'s own arguments, which ``params`` can't name (each is a tool argument, or none at all).
+_NOT_PARAMS = {
+    "model": "the tool's own `model` argument",
+    "diagnostic": "the tool's own `diagnostic` argument",
+    "space": "the tool's own `space` argument",
+    "prediction": "the tool's own `prediction` argument",
+    "retry_failed": "the tool's own `retry_failed` argument",
+    "approve": "no argument: the user approves through EMA's question",
+    "on_progress": "no argument: progress comes as notifications",
+    "self": "no argument",
+}
+_STOPPED = "stopped: the client cancelled the call or left, or the server is stopping; every finished run is stored"
 _ID = r"([0-9a-fA-F]{4,64})"
 _REPORT_URI = re.compile(rf"ema://results/{_ID}/report")
 _FIGURE_URI = re.compile(rf"ema://results/{_ID}/figures/([^/]+)\.(png|json)")
@@ -164,8 +186,10 @@ def _plain(x: Any) -> Any:
     """Return a value EMA returned as strict JSON data, leaving each number as it is (P1); ``text`` is the envelope's."""
     if x is None or isinstance(x, (bool, int, str)):
         return x
-    if isinstance(x, float):
-        return x if math.isfinite(x) else None
+    if isinstance(x, float):  # EMA's types hold finite numbers only, so a non-finite one is a bug (0081, n6)
+        if not math.isfinite(x):
+            raise ValueError(f"a non-finite number, {x!r}, where EMA's types hold finite ones")
+        return x
     if isinstance(x, Enum):
         return x.value
     if isinstance(x, datetime):
@@ -265,8 +289,26 @@ def _arguments(tool: str, given: Mapping[str, Any]) -> dict[str, Any]:
 # -- one call: its questions and progress, from the worker thread to the event loop ----------------------------
 
 
-class Stopped(EMAError):
-    """The client cancelled the call, or left: the evaluation stops between two runs, every finished run stored."""
+def _answered(item: Any) -> Any:
+    """Turn a client's reply that the SDK can't read (its result not an object) into an error reply for its id.
+
+    The SDK drops such a line, leaving the question waiting ``ELICITATION_TIMEOUT_S``; as an error, the question is
+    a no at once (record 0081, Review round 1, m3). Anything else passes through.
+    """
+    errors = getattr(item, "errors", None)
+    if not isinstance(item, Exception) or not callable(errors):
+        return item
+    try:
+        raws = [e.get("input") for e in errors()]
+    except Exception:  # noqa: BLE001  (not pydantic's error: leave it to the SDK)
+        return item
+    for raw in raws:
+        if isinstance(raw, dict) and "method" not in raw and "error" not in raw:
+            rid = raw.get("id")
+            if isinstance(rid, (int, str)) and not isinstance(rid, bool):
+                error = types.ErrorData(code=types.INVALID_REQUEST, message="the reply's result isn't a JSON object")
+                return SessionMessage(types.JSONRPCError(jsonrpc="2.0", id=rid, error=error))
+    return item
 
 
 class _Call:
@@ -288,11 +330,16 @@ class _Call:
     def _on_loop(self, coroutine: Any, timeout: float) -> Any:
         if self.cancelled.is_set():
             coroutine.close()
-            raise Stopped("stopped: the client cancelled the call or left; every finished run is stored")
+            raise Stopped(_STOPPED)
         future = asyncio.run_coroutine_threadsafe(coroutine, self.loop)
         self._waiting = future
         try:
+            if self.cancelled.is_set():  # checked again once ``_waiting`` is set, so a cancel between isn't lost (n1)
+                future.cancel()
+                raise Stopped(_STOPPED)
             return future.result(timeout=timeout)
+        except concurrent.futures.CancelledError:
+            raise Stopped(_STOPPED) from None
         finally:
             self._waiting = None
 
@@ -303,7 +350,9 @@ class _Call:
 
     def _ask(self, question: ApprovalRequest | ConfirmationRequest) -> bool:
         try:
-            return bool(self._on_loop(self._elicit(question.text), ELICITATION_TIMEOUT_S + 30))
+            return self._on_loop(self._elicit(question.text), ELICITATION_TIMEOUT_S + 30) is True
+        except Stopped:
+            return False  # a cancelled call's question is a no, recorded as asked (W3)
         except concurrent.futures.TimeoutError:
             raise TimeoutError(f"no answer within ELICITATION_TIMEOUT_S, {ELICITATION_TIMEOUT_S} s") from None
 
@@ -315,7 +364,7 @@ class _Call:
                 )
         except TimeoutError:
             raise TimeoutError(f"no answer within ELICITATION_TIMEOUT_S, {ELICITATION_TIMEOUT_S} s") from None
-        return answer.action == "accept" and (answer.content or {}).get("approve") is True
+        return answer.action == "accept" and (answer.content or {}).get("approve", True) is True  # the default
 
     def progress(self, progress: Progress) -> None:
         """Send a progress notification, its message EMA's text; raising here stops the evaluation (0080)."""
@@ -367,6 +416,8 @@ class EmaServer:
         self._writer = concurrent.futures.ThreadPoolExecutor(1, thread_name_prefix="ema-mcp-write")
         self._reader = concurrent.futures.ThreadPoolExecutor(1, thread_name_prefix="ema-mcp-read")
         self._calls: set[_Call] = set()
+        self._stopping = False
+        self._closing = threading.Lock()
         try:
             self._write_ws = self._writer.submit(open_workspace, workspace, root=root).result()
             self._read_ws = self._reader.submit(open_workspace, workspace, root=root).result()
@@ -379,24 +430,69 @@ class EmaServer:
             on_list_resource_templates=self._list_templates, on_read_resource=self._read_resource,
         )  # fmt: skip
 
+    def stop(self) -> None:
+        """Stop serving: each open call stops between two runs, its question answered no; a new call is refused."""
+        self._stopping = True
+        self._cancel_calls()
+
+    def _cancel_calls(self) -> None:
+        for call in list(self._calls):
+            call.cancel()
+
     def close(self) -> None:
-        """Close both workspaces on their threads, stopping the model children, then the threads."""
-        for pool, name in ((self._writer, "_write_ws"), (self._reader, "_read_ws")):
-            ws = getattr(self, name, None)
-            if ws is not None:
-                pool.submit(ws.close).result()
-                setattr(self, name, None)
-            pool.shutdown(wait=True)
+        """Stop, then close both workspaces on their threads once their calls end; then the threads.
+
+        Closing releases the run lock and stops the model children (0026). Safe from any thread, and again.
+        """
+        self.stop()
+        with self._closing:
+            for pool, name in ((self._writer, "_write_ws"), (self._reader, "_read_ws")):
+                ws = getattr(self, name, None)
+                if ws is not None:
+                    pool.submit(ws.close).result()
+                    setattr(self, name, None)
+                pool.shutdown(wait=True)
+
+    def terminate(self, signum: int, frame: Any = None) -> None:
+        """SIGTERM's handler (``serve``): stop as at a disconnect, close, then end the process by the signal.
+
+        Each open call stops between two runs (the model call under way finishes and is stored), a question waiting
+        is answered no, the run lock is released, and the model children are stopped; a second SIGTERM ends the
+        process at once (record 0081, Review round 1, m1).
+        """
+        signal.signal(signum, signal.SIG_DFL)
+        self.stop()
+
+        def close_then_end() -> None:
+            try:
+                self.close()
+            finally:
+                os.kill(os.getpid(), signum)
+
+        threading.Thread(target=close_then_end, name="ema-mcp-terminate", daemon=True).start()
 
     async def run(self, read_stream: Any, write_stream: Any) -> None:
-        """Serve one client over a stream pair until it leaves: the handshake era only (0081 item 2)."""
+        """Serve one client over a stream pair until it leaves: the handshake era only (0081 item 2).
+
+        A reply the SDK can't read becomes an error for its id, a no at once (``_answered``). When the client
+        leaves, every open call stops between two runs, and one queued never starts.
+        """
+        relay_send, relay_read = anyio.create_memory_object_stream[Any](0)
+
+        async def relay() -> None:
+            async with relay_send, read_stream:
+                async for item in read_stream:
+                    await relay_send.send(_answered(item))
+
         try:
-            async with self.server.lifespan(self.server) as state:
-                await serve_loop(self.server, read_stream, write_stream, lifespan_state=state,
-                                 init_options=self.server.create_initialization_options())  # fmt: skip
+            async with anyio.create_task_group() as tg:
+                tg.start_soon(relay)
+                async with self.server.lifespan(self.server) as state:
+                    await serve_loop(self.server, relay_read, write_stream, lifespan_state=state,
+                                     init_options=self.server.create_initialization_options())  # fmt: skip
+                tg.cancel_scope.cancel()
         finally:
-            for call in list(self._calls):
-                call.cancel()
+            self._cancel_calls()
 
     async def run_stdio(self) -> None:
         """Serve over stdin and stdout; the SDK points fd 1 at stderr meanwhile, so nothing else reaches it (T9)."""
@@ -415,6 +511,8 @@ class EmaServer:
         name = params.name
         if name not in TOOLS:
             return _tool_result(_failure(f"no tool {name!r}; the tools are {', '.join(TOOLS)}", False))
+        if self._stopping:
+            return _tool_result(_failure(_STOPPED, False))
         capabilities = ctx.session.client_capabilities
         can_ask = capabilities is not None and capabilities.elicitation is not None and ctx.session.can_send_request
         call = _Call(ctx, asyncio.get_running_loop(), can_ask)
@@ -431,7 +529,12 @@ class EmaServer:
         return _tool_result(envelope)
 
     def _dispatch(self, ws: Workspace, name: str, arguments: dict[str, Any], call: _Call) -> dict[str, Any]:
-        """Run one tool on its thread, and return its envelope; an error becomes the envelope's (C55)."""
+        """Run one tool on its thread, and return its envelope; an error becomes the envelope's (C55).
+
+        A call cancelled while queued never calls the workspace, so nothing is asked or recorded (T3; n2).
+        """
+        if call.cancelled.is_set():
+            return _failure(_STOPPED, False)
         try:
             data, text, see = getattr(self, f"_tool_{name}")(ws, _arguments(name, arguments), call)
             return _envelope(data, text, see)
@@ -473,9 +576,10 @@ class EmaServer:
     def _request(a: dict[str, Any]) -> tuple[tuple[Any, ...], dict[str, Any]]:
         keywords = {"prediction": a.get("prediction"), "retry_failed": bool(a.get("retry_failed", False))}
         params = a.get("params") or {}
-        clash = sorted(set(params) & {"prediction", "retry_failed", "approve", "on_progress"})
-        if clash:
-            raise RequestError(f"{clash[0]} is an argument of its own, not a diagnostic parameter in params")
+        clash = sorted(set(params) & set(_NOT_PARAMS))
+        if clash:  # never the workspace's TypeError (0081, Review round 1, m2)
+            raise RequestError(f"{clash[0]} isn't a diagnostic parameter: it goes in {_NOT_PARAMS[clash[0]]}, "
+                               "not in params")  # fmt: skip
         return (a["model"], a["diagnostic"], a.get("space")), {**keywords, **params}
 
     def _tool_price(self, ws: Workspace, a: dict[str, Any], call: _Call) -> tuple[Any, str, list[str]]:
@@ -490,6 +594,8 @@ class EmaServer:
 
     def _tool_results(self, ws: Workspace, a: dict[str, Any], call: _Call) -> tuple[Any, str, list[str]]:
         if "id" in a:
+            if len(a) > 1:  # as ``ema results ID`` refuses filters (0082 item 8; n5)
+                raise RequestError("results: give an id, or filters to list results, not both")
             result = ws.get_result(a["id"])
             return _plain(result), result.shown.text if result.shown else result.result_id, _see(result)
         listed = ws.list_results(**a)
@@ -576,6 +682,10 @@ class EmaServer:
 def serve(*, root: str, workspace: str = "ema_workspace") -> None:
     """Run the stdio MCP server until the client disconnects (architecture.md §8; ``ema mcp``).
 
+    On a disconnect, Ctrl-C, or SIGTERM, each open call stops between two runs, every finished run stored; then the
+    workspaces close, releasing the run lock and stopping the model children. A SIGTERM then ends the process by
+    the signal (``EmaServer.terminate``).
+
     Parameters
     ----------
     root
@@ -589,7 +699,11 @@ def serve(*, root: str, workspace: str = "ema_workspace") -> None:
         For a root refused, before anything is served (``ema mcp`` exits 2; 0061).
     """
     server = EmaServer(root=root, workspace=workspace)
+    main = threading.current_thread() is threading.main_thread()
+    previous = signal.signal(signal.SIGTERM, server.terminate) if main else None
     try:
         anyio.run(server.run_stdio)
     finally:
         server.close()
+        if previous is not None and signal.getsignal(signal.SIGTERM) == server.terminate:
+            signal.signal(signal.SIGTERM, previous)

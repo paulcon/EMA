@@ -77,3 +77,7 @@ Each is in record 0082, with why.
   seam is `serve(root=, workspace=)`). `--pdf` is tested with a stubbed `Workspace.report` only (pandoc is the slow
   tier's `tests/slow/test_pdf.py`). U2's transcript as typed on the CLI, as a slow test (about 40 lines; C54 covers
   each command).
+- **Review round 1** (on `demo-15fix`; record 0082, Review round 1, items 15–16): `--param` naming `model`,
+  `diagnostic`, `self`, or any of the request's own arguments is bad usage (exit 2) saying where it goes
+  (`approve` is `--yes`); an `OSError` (a `--workspace` that can't be made) prints "ema: <message>" and exits 1.
+  2 more tests; `ema.cli` is 283 code lines.

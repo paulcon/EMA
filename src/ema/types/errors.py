@@ -68,3 +68,11 @@ class PdfFailed(EMAError):
 
 class PathRefused(EMAError):
     """An MCP path argument, or a drafted spec's file, is refused (trust.md, T5, T7)."""
+
+
+class Stopped(EMAError):
+    """An evaluation stopped between two runs, its caller having cancelled or left; every finished run is stored.
+
+    The MCP server raises it from ``on_progress`` for a cancelled call, a client that left, or SIGTERM (record 0080
+    item 14; record 0081 item 9 and Review round 1). Running the same request again reuses the stored runs (C50).
+    """

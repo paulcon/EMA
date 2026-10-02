@@ -81,7 +81,10 @@ def export(store: Store, result: DiagnosticResult, directory: str) -> str:
     spec = store.model_version(result.model_version_id).spec
     runs = store.result_runs(result.result_id)
     assert runs.points is not None
-    os.makedirs(target, exist_ok=True)
+    try:
+        os.makedirs(target, exist_ok=True)
+    except OSError as error:  # a read-only or full file system, say: EMA's error, naming why (record 0080, n3)
+        raise PathRefused(f"{target} can't be made: {error.strerror or error}; nothing exported") from None
     ids = hex_ids(runs.run_ids)
     approval = result.provenance.approval_id
     approvals = hex_ids(runs.approval_ids)

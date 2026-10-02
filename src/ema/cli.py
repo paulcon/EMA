@@ -5,7 +5,7 @@ rendered, so it formats no number (C54; P1). It imports only ``ema.workspace`` a
 imports ``ema.mcp.server`` lazily, inside the command, since it needs the ``ema[mcp]`` extra (record 0061).
 
 Streams: the result on stdout; questions, progress, paths of a report, and errors on stderr (0060; trust.md T9).
-Exit codes: 0 success; 1 an ``EMAError`` (a declined approval included); 2 bad usage, or ``ema mcp``'s root refused
+Exit codes: 0 success; 1 an ``EMAError`` (a declined approval included) or an ``OSError``; 2 bad usage, or ``ema mcp``'s root refused
 at start (T5; 0061); 130 Ctrl-C.
 """
 
@@ -22,8 +22,18 @@ from ema.workspace import Workspace, ask, open_workspace
 
 __all__ = ["main"]
 
-#: ``run``'s and ``price``'s own keywords, which a ``--param`` can't name (they have options of their own).
-RESERVED_PARAMS = frozenset({"space", "prediction", "retry_failed", "approve", "on_progress"})
+#: ``run``'s and ``price``'s own arguments, which a ``--param`` can't name, and where each goes instead (0082 item 3;
+#: Review round 1, m2 and n4): never the workspace's ``TypeError``.
+RESERVED_PARAMS = {
+    "model": "the MODEL argument",
+    "diagnostic": "the DIAGNOSTIC argument",
+    "space": "--space FILE",
+    "prediction": "--prediction",
+    "retry_failed": "--retry-failed",
+    "approve": "--yes (ema run), or your answer to the question",
+    "on_progress": "nothing: the progress line is on stderr",
+    "self": "nothing",
+}
 
 EXTRA_MISSING = "ema mcp needs the ema[mcp] extra: uv sync --extra mcp (or pip install 'ema[mcp]')"
 
@@ -78,7 +88,7 @@ def _params(given: Sequence[str] | None) -> dict[str, str]:
         if not sep or not key:
             raise UsageError(f"--param {item!r}: write it as name=value")
         if key in RESERVED_PARAMS:
-            raise UsageError(f"--param {key}: give it with --{key.replace('_', '-')}, not as a diagnostic parameter")
+            raise UsageError(f"--param {key} isn't a diagnostic parameter: it goes in {RESERVED_PARAMS[key]}")
         if key in params:
             raise UsageError(f"--param {key} is given twice")
         params[key] = value
@@ -371,7 +381,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     Returns
     -------
     int
-        0 success; 1 an ``EMAError``, a declined approval included; 2 bad usage, or ``ema mcp``'s root refused at
+        0 success; 1 an ``EMAError``, a declined approval included, or an ``OSError``; 2 bad usage, or ``ema mcp``'s root refused at
         start; 130 Ctrl-C, with every finished run stored (C49).
     """
     top = parser()
@@ -395,6 +405,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         _err(str(error))
         return 2
     except EMAError as error:
+        _err(f"ema: {error}")
+        return 1
+    except OSError as error:  # a workspace that can't be made or read, say: its reason, not a traceback (m2)
         _err(f"ema: {error}")
         return 1
     except KeyboardInterrupt:
