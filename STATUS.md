@@ -4,6 +4,9 @@
 
 ## Now
 
+- **Demo build (record 0066, 2026-10-01 onward):** the build steps run autonomously on the `demo` branch, in
+  waves, with independent agent reviews; provisional records 0066 onward (proposed). Log: `docs/notes/demo_build.md`.
+  Step 01 built (record 0067), review pending; BLAS determinism measured (`docs/notes/blas_determinism_2026-10-01.md`).
 - Writing the design documents by hand (`TODO.md`): steps 1–13 done.
 - "Before the first line of code" (`TODO.md`) done: the specs checked against each other, and the contradictions
   resolved (records 0061–0064). The first plan written: `docs/plans/01-scaffolding-and-designs.md`

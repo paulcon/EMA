@@ -1,0 +1,100 @@
+"""Layer 0: the domain's data classes and errors, the canonical encoder, hashes and ids, and number formatting.
+
+Pure: it imports only the standard library's pure modules and numpy (architecture.md §3; AR2). Each module's
+public names are re-exported here; later build steps add theirs (``runs``, ``results``, ``requests``,
+``summaries``).
+"""
+
+from ema.types.design import Design, DesignIdentity, DesignStructure, Line
+from ema.types.errors import (
+    AmbiguousId,
+    ApprovalDeclined,
+    CannotAsk,
+    DesignTooLarge,
+    EMAError,
+    ModelChanged,
+    NotFound,
+    PandocMissing,
+    PathRefused,
+    PdfFailed,
+    RequestError,
+    SpecError,
+    WorkspaceBusy,
+    WorkspaceVersion,
+)
+from ema.types.identity import (
+    TrackedFile,
+    batch_call_id,
+    canonical_json,
+    decimal_fraction,
+    model_version_label,
+    point_hash,
+    run_id,
+    sha256_hex,
+)
+from ema.types.model import (
+    CommandLine,
+    CsvParser,
+    FileEntry,
+    InputDeck,
+    JsonParser,
+    Keep,
+    Limits,
+    ModelParameter,
+    ModelSpec,
+    ParserSpec,
+    PredictionSpec,
+    PythonFunction,
+    RegexParser,
+)
+from ema.types.space import ModelParameterSpace, Range, Scale
+from ema.types.streams import spawned
+from ema.types.text import duration, fmt
+
+__all__ = [
+    "AmbiguousId",
+    "ApprovalDeclined",
+    "CannotAsk",
+    "CommandLine",
+    "CsvParser",
+    "Design",
+    "DesignIdentity",
+    "DesignStructure",
+    "DesignTooLarge",
+    "EMAError",
+    "FileEntry",
+    "InputDeck",
+    "JsonParser",
+    "Keep",
+    "Limits",
+    "Line",
+    "ModelChanged",
+    "ModelParameter",
+    "ModelParameterSpace",
+    "ModelSpec",
+    "NotFound",
+    "PandocMissing",
+    "ParserSpec",
+    "PathRefused",
+    "PdfFailed",
+    "PredictionSpec",
+    "PythonFunction",
+    "Range",
+    "RegexParser",
+    "RequestError",
+    "Scale",
+    "SpecError",
+    "TrackedFile",
+    "WorkspaceBusy",
+    "WorkspaceVersion",
+    "batch_call_id",
+    "canonical_json",
+    "decimal_fraction",
+    "duration",
+    "fmt",
+    "model_version_label",
+    "point_hash",
+    "run_id",
+    "sha256_hex",
+    "spawned",
+]

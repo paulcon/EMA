@@ -1,0 +1,38 @@
+# EMA
+
+EMA runs diagnostics on computational models to find exploitable structure, and reports the results with
+figures, numbers, and their intervals.
+
+## Guides
+
+```{toctree}
+:maxdepth: 1
+
+guides/get_started
+guides/add_a_model
+guides/run_a_diagnostic
+guides/add_a_diagnostic
+```
+
+## API reference
+
+The public names of the modules that exist so far (`architecture.md`), one page per module.
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _autosummary
+
+   ema.types.errors
+   ema.types.text
+   ema.types.streams
+   ema.types.identity
+   ema.types.model
+   ema.types.space
+   ema.types.design
+   ema.designs.samplers
+   ema.designs.generators
+   ema.designs.point
+   ema.designs.uniform
+   ema.designs.convergent
+   ema.designs.lines
+```

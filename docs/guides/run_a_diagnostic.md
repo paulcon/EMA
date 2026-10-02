@@ -27,7 +27,7 @@
 
 2. **Choose the model parameter space and the diagnostic parameters.**
 
-   ```json
+   ```text
    {"k": [30, 60], "q": [1e4, 5e4], …}
    ```
 
@@ -105,7 +105,7 @@
 7. **Failed runs** (U3): the header and a note count them by kind; estimates use the usable runs only (P6).
 
    ```python
-   wide = {"k": (5.0, 60.0), "q": (1e4, 2e5), …}   # U3's wider space
+   wide = {"k": (5.0, 60.0), "q": (1e4, 2e5), ...}   # U3's wider space
    r1 = ws.run("heat", "scatter", wide, n=200, seed=2, approve=ema.ask)
    for run in ws.failed_runs(r1):  # each run not usable: its point, kind, and reason
        print(run)

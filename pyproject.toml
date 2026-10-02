@@ -1,0 +1,160 @@
+[project]
+name = "ema"
+version = "2.0.0.dev0"
+description = "Exploratory Model Analysis: diagnostics that find exploitable structure in computational models"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Paul G Constantine" }]
+# Lower bounds: the first releases with wheels for Python 3.13 (record 0059).
+dependencies = [
+    "numpy>=2.1.0",
+    "scipy>=1.14.1",
+    "matplotlib>=3.9.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.21,<0.13"]
+build-backend = "uv_build"
+
+# Development tools, not shipped; each bounded below at its release when first locked (record 0059).
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.16.10",
+    "mypy>=2.4.0",
+    "import-linter>=2.15",
+    "sphinx>=9.1.0",
+    "myst-parser>=5.1.0",
+    "furo>=2025.12.19",
+]
+
+# ---------------------------------------------------------------------------------------------------------
+# Ruff (record 0059, item 4)
+
+[tool.ruff]
+line-length = 120
+# Python files only: the Markdown documents are not formatted (they hold specs and guides, edited by hand).
+extend-exclude = ["docs/checks", "*.md"]
+
+[tool.ruff.lint]
+extend-select = ["B905", "NPY", "I", "D"]
+# Docstrings are required of public names only: not of magic methods such as a dataclass's __post_init__.
+extend-ignore = ["D105"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
+"**/conftest.py" = ["D"]
+
+# ---------------------------------------------------------------------------------------------------------
+# mypy (record 0059, item 4): not strict
+
+[tool.mypy]
+files = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["scipy", "scipy.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------------------------------------
+# pytest (record 0059, item 4); the --slow option and the slow marker are in the root conftest.py
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "src"]
+addopts = ["--doctest-modules"]
+xfail_strict = true
+
+# ---------------------------------------------------------------------------------------------------------
+# Import contracts (architecture.md §1 and §10; record 0059, item 4). Each contract lists only the layers and
+# source modules that exist, one per line, and grows as build steps add packages; a forbidden module may be
+# named before it exists.
+
+[tool.importlinter]
+root_package = "ema"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "AR1 One-way layers"
+type = "layers"
+layers = [
+    "ema.designs",
+    "ema.types",
+]
+
+[[tool.importlinter.contracts]]
+name = "AR2 No I/O in layers 0-1"
+type = "forbidden"
+source_modules = [
+    "ema.types",
+    "ema.designs",
+]
+forbidden_modules = [
+    "os",
+    "pathlib",
+    "subprocess",
+    "sqlite3",
+    "shutil",
+    "tempfile",
+    "time",
+    "random",
+    "socket",
+    "matplotlib",
+]
+
+[[tool.importlinter.contracts]]
+name = "AR4 Only the runner runs a model"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+    "ema.types",
+    "ema.designs",
+]
+forbidden_modules = [
+    "ema.models.execute",
+]
+
+[[tool.importlinter.contracts]]
+name = "AR5 Only the store opens the database"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+    "ema.types",
+    "ema.designs",
+]
+forbidden_modules = [
+    "sqlite3",
+]
+
+[[tool.importlinter.contracts]]
+name = "AR6 No LLM SDK (P1)"
+type = "forbidden"
+source_modules = [
+    "ema",
+]
+forbidden_modules = [
+    "anthropic",
+    "openai",
+    "google",
+    "langchain",
+    "langchain_core",
+    "litellm",
+    "mistralai",
+    "cohere",
+    "ollama",
+]
+
+[[tool.importlinter.contracts]]
+name = "Reference models are data beside the layers"
+type = "forbidden"
+source_modules = [
+    "ema.types",
+    "ema.designs",
+]
+forbidden_modules = [
+    "ema.reference_models",
+]
