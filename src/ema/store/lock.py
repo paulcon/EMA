@@ -4,6 +4,12 @@
 a second holder in the same process as well as in another (a per-process POSIX lock would not), and is released when
 the descriptor closes or the process exits. The holder writes its process id, host, and start time into the file,
 so a second process is refused naming it. Only the workspace that makes runs takes it.
+
+**Fork caveat** (review round 1): ``flock`` belongs to the open file description, which a child made by
+``os.fork`` without ``exec`` shares, so such a child keeps the lock held after its parent releases it, until the
+child exits. The descriptor is opened non-inheritable (Python's default), so a child started by ``subprocess`` or
+by ``multiprocessing``'s "spawn" or "forkserver" doesn't hold it: the runner (step 07) starts model processes that
+way, never with a bare fork or ``multiprocessing``'s "fork".
 """
 
 import fcntl

@@ -159,10 +159,13 @@ def record_batch(store: Store, runs: Sequence[Run], time_s: float = 1.0) -> Batc
     return call
 
 
-def made(store: Store, mv: str, points: Sequence[Sequence[float]], *, replicate: int = 0) -> tuple[str, list[Run]]:
-    """Approve and make ok runs at ``points``; return the approval and the runs."""
+def made(
+    store: Store, mv: str, points: Sequence[Sequence[float]], *, replicate: int = 0, req: Request | None = None
+) -> tuple[str, list[Run]]:
+    """Approve (for ``req``, the default request by default) and make ok runs at ``points``; return the approval and
+    the runs."""
     ks = keys(mv, points, replicate)
-    approval = approve(store, mv, ks)
+    approval = approve(store, mv, ks, req=req)
     runs = [ok_run(k, mv, approval, y=float(i), z=-float(i)) for i, k in enumerate(ks)]
     record_runs(store, runs)
     return approval, runs

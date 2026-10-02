@@ -87,6 +87,15 @@ Each is record 0072's, numbered as there, one line each.
 18. The run lock writes its holder ("process <pid> on <host>, since <time>"), named by `WorkspaceBusy`.
 19. The temporary result directory is `results/.<12 hex>-<random>` (atomic rename); a raced identical one wins.
 20. The store contract runs over the `Store` class; broken toys are subclasses, some overriding private checks.
+21. (Review round 1) The result directory swaps a directory in place under the write lock W5 holds; none deleted in place.
+22. (Review round 1) W5: the approval asked for the result's request, cited by no other result, all its runs made and used.
+23. (Review round 1) W5 takes a measured-noisy record only with a point run's result, as its own.
+24. (Review round 1) `Store.open`: locked is `WorkspaceBusy`; not a database is `WorkspaceVersion`.
+25. (Review round 1) Stored runs' model predictions in their spec's order.
+26. (Review round 1) Q1's key-only read `current_keys -> dict[(hash, replicate), CurrentKey]` for `resolve`.
+27. (Review round 1) Upper-case ids read back as stored; `result_directory` checks its id; chunks fit SQLite's
+    variable limit; W1 resolves its path; W4 retries a busy statement inside its transaction.
+28. (Review round 1) The run lock's fork caveat: the runner starts processes with `subprocess` or "spawn".
 
 ## Notes
 
@@ -108,9 +117,18 @@ Each is record 0072's, numbered as there, one line each.
 - **Shared files, edited additively:** `pyproject.toml` (AR1's layer `ema.models | ema.store`; `ema.store` added to
   AR4's and the reference models' sources; AR5 already excludes it), `docs/index.md` (a block of its own for the
   store's five modules), `tests/slow/test_wheel.py` (a `MODULES +=` list of its own).
-- **Deferred** (0072): §6's timing target for Q1 at 10⁶ (measured about 20–25 s extrapolated; the seam a key-only
-  read for `resolve`, about 1–2 hours with step 07); the version-1 workspace fixture (from schema version 2 on).
-- **For step 07:** `resolve` reads Q1 (`current_runs`) and needs only each key's run id, attempt, and status;
+- **Deferred** (0072): §6's timing test, pricing at 10⁶, is step 07's (`current_keys` measured about 7–8 s per 10⁶
+  extrapolated); the version-1 workspace fixture (from schema version 2 on).
+- **Review round 1** (0072 items 21–28): every major, minor, and cheap nit fixed, each with a test; the fast tier
+  is 1,183 tests (2 slow skipped), 11 of them new, and the contract's meta-test covers 17 toys (4 new). New:
+  `tests/unit/store/test_concurrency.py` (4 spawned processes, 12 trials, about 1 s). Not changed: `RunUsed` stays
+  exported (`architecture.md` §5 and `data_model.md` §10 name it); the `_Listed` cast stays, since a typed
+  alternative needs `ResultSummary.make` in `ema.types` to take a protocol (step T's module). `ema.store` is now
+  1,216 code lines (`store.py` 995).
+- **For step 07:** `resolve` and `price` read Q1's key-only `current_keys` (each key's run id, attempt, status);
   `run_new` calls Q13 before each call and W4 after it, with `BatchCall` for a batch call; `ask_approval` calls W3
   with the `Price` and the new keys; `read_batch` and `replay_batch` read Q15 (`runs_by_id`, `points=True` for a
-  replay). For step 14: W5 takes the result whole, after `result_directory` puts its files in place.
+  replay); model processes start with `subprocess` or "spawn" (the run lock's fork caveat). For step 14: W5 takes
+  the result whole, after `result_directory` puts its files in place, and refuses (`ValueError`) a result whose
+  approval was asked for another request, is cited by another result, or has a priced run not made and used; a
+  measured-noisy record only with a point run's result.

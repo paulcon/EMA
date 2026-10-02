@@ -8,11 +8,11 @@ from datetime import UTC, datetime
 import numpy as np
 import pytest
 
-from ema.store import ApprovedPoint, BatchCall, Loading, Store
+from ema.store import ApprovedPoint, BatchCall, CurrentKey, Loading, Store
 from ema.types.design import DesignIdentity
 from ema.types.errors import AmbiguousId, NotFound, RequestError
 from ema.types.identity import batch_call_id, id_array, point_hash, reuse_key, sha256_hex
-from ema.types.model import Keep
+from ema.types.model import Keep, ModelSpec
 from ema.types.requests import TestRunRequest
 from ema.types.results import MeasuredNoisy
 from ema.types.runs import FailureKind, Price, RunStatus
@@ -242,11 +242,11 @@ def test_a_point_runs_result_reads_back_equal_to_the_evaluated_one(store):
     mv = world.load(store)
     x = (1.0, 0.0, 0.5)
     ks = [world.keys(mv, [x], replicate=r)[0] for r in (1, 2, 3)]
-    approval = world.approve(store, mv, ks)
+    point_run = world.request(diagnostic="point_run")
+    approval = world.approve(store, mv, ks, req=point_run)
     runs = [world.ok_run(k, mv, approval, y=1.0 + 2.0**-30 * k.replicate) for k in ks]
     world.record_runs(store, runs)
-    evaluated = world.result(mv, runs, approval=approval, req=world.request(diagnostic="point_run"),
-                             noisy=world.noisy_record(mv, x))  # fmt: skip
+    evaluated = world.result(mv, runs, approval=approval, req=point_run, noisy=world.noisy_record(mv, x))
     assert evaluated.measured_noisy.made_at is None
     world.store_result(store, evaluated)
     read_back = store.get_result(evaluated.result_id)
@@ -356,7 +356,7 @@ def test_list_results_newest_first_with_filters(store):
     mv = world.load(store)
     other = world.load(store, world.spec(name="other"))
     approval, runs = world.made(store, mv, [(1.0, 0.0, 0.5)])
-    a2, runs2 = world.made(store, other, [(1.0, 0.0, 0.5)])
+    a2, runs2 = world.made(store, other, [(1.0, 0.0, 0.5)], req=world.request(diagnostic="lines"))
     first = world.store_result(store, world.result(mv, runs, approval=approval))
     second = world.store_result(store, world.result(mv, runs, approval=None, req=world.request(prediction="z", seed=2)))
     third = world.store_result(store, world.result(other, runs2, approval=a2, req=world.request(diagnostic="lines")))
@@ -379,8 +379,10 @@ def test_delete_result_removes_its_rows_and_directory(store):
     """W6: its measured-noisy, result_runs, and results rows, then its directory; runs and approvals kept."""
     mv = world.load(store)
     x = (1.0, 0.0, 0.5)
-    approval, runs = world.made(store, mv, [x])
-    res = world.store_result(store, world.result(mv, runs, approval=approval, noisy=world.noisy_record(mv, x)))
+    point_run = world.request(diagnostic="point_run")
+    approval, runs = world.made(store, mv, [x], req=point_run)
+    res = world.result(mv, runs, approval=approval, req=point_run, noisy=world.noisy_record(mv, x))
+    res = world.store_result(store, res)
     assert os.path.isdir(store.layout.result_dir(res.result_id))
     store.delete_result(res.result_id)
     assert store.find_result(res.result_id) is None and store.measured_noisy(mv, "y") == ()
@@ -446,8 +448,10 @@ def test_an_ambiguous_prefix_lists_the_ids(store):
 def test_measured_noisy_round_trip(store):
     mv = world.load(store)
     x = (1.0, 0.0, 0.5)
-    approval, runs = world.made(store, mv, [x])
-    world.store_result(store, world.result(mv, runs, approval=approval, noisy=world.noisy_record(mv, x, std=None)))
+    point_run = world.request(diagnostic="point_run")
+    approval, runs = world.made(store, mv, [x], req=point_run)
+    noisy = world.noisy_record(mv, x, std=None)
+    world.store_result(store, world.result(mv, runs, approval=approval, req=point_run, noisy=noisy))
     (row,) = store.measured_noisy(mv, "y")
     assert isinstance(row, MeasuredNoisy) and row.std is None and row.point == x and row.runs == 4
 
@@ -546,3 +550,92 @@ def test_the_store_never_updates_a_row():
     assert [m.start() for m in re.finditer(r"\bDELETE FROM\b", source)] and "def delete_result" in source
     public = [n for n in dir(Store) if not n.startswith("_")]
     assert not [n for n in public if n.startswith(("update", "set_", "replace", "edit"))]
+
+
+# Review round 1 ----------------------------------------------------------------------------------------------
+
+
+def test_stored_runs_keep_their_specs_prediction_order(store):
+    """m3: a stored run's model predictions come back in the spec's order, not the table's (by name)."""
+    spec = ModelSpec.from_json(
+        """{"name": "rev", "description": "d", "interface": "python_function", "function": "model.py:f",
+        "parameters": [{"name": "a", "units": "m", "description": "a", "nominal": 1.0}],
+        "predictions": [{"name": "zeta", "units": "K", "description": "z"},
+                        {"name": "alpha", "units": "K", "description": "a"}]}"""
+    )
+    mv = store.record_loading(spec, world.SPEC_PATH, world.FILES)
+    (k,) = world.keys(mv, [(1.0,)])
+    approval = world.approve(store, mv, [k])
+    run = replace(world.ok_run(k, mv, approval), predictions={"zeta": 1.0, "alpha": None}, missing={"alpha": "no"})
+    store.record_call([run])
+    assert list(store.get_run(run.run_id).predictions) == ["zeta", "alpha"]
+    assert list(store.current_runs(mv, [k.point_hash])[(k.point_hash, 0)].predictions) == ["zeta", "alpha"]
+    assert list(store.runs_by_id([run.run_id]).values) == ["zeta", "alpha"]
+
+
+def test_current_keys_is_q1_without_the_runs(store):
+    """m4: Q1's key-only read gives each stored key's current run id, attempt, and status, as current_runs does."""
+    mv = world.load(store)
+    x, y = (1.0, 0.0, 0.5), (2.0, 0.0, 0.5)
+    (k0,) = world.keys(mv, [x])
+    a0 = world.approve(store, mv, [k0])
+    store.record_call([world.failed_run(k0, mv, a0)])
+    (k1,) = world.keys(mv, [x], attempt=1)
+    a1 = world.approve(store, mv, [k1])
+    store.record_call([world.ok_run(k1, mv, a1)])
+    (kf,) = world.keys(mv, [y], replicate=2)
+    af = world.approve(store, mv, [kf])
+    store.record_call([world.failed_run(kf, mv, af)])
+    hashes = [point_hash(x), point_hash(y), point_hash((9.0, 0.0, 0.5)), point_hash(x)]
+    keys = store.current_keys(mv, hashes)
+    assert keys == {
+        (point_hash(x), 0): CurrentKey(k1.run_id, 1, RunStatus.OK),
+        (point_hash(y), 2): CurrentKey(kf.run_id, 0, RunStatus.FAILED),
+    }
+    runs = store.current_runs(mv, hashes)
+    assert {k: (r.run_id, r.attempt, r.status) for k, r in runs.items()} == {k: tuple(v) for k, v in keys.items()}
+
+
+def test_ids_given_in_upper_case_read_back_in_lower_case(store):
+    """n1: an id read in either case is returned as stored (lowercase), and W6 finds its directory."""
+    mv = world.load(store)
+    approval, runs = world.made(store, mv, [(1.0, 0.0, 0.5)])
+    res = world.store_result(store, world.result(mv, runs, approval=approval))
+    assert store.get_result(res.result_id.upper()) == res
+    assert store.get_result(res.result_id.upper()).result_id == res.result_id
+    assert store.model_version(mv.upper()).model_version_id == mv
+    assert store.approval_points(approval.upper())[0].approval_id == approval
+    assert store.approval_coverage(approval.upper(), []).approval_id == approval
+    assert store.short("run", runs[0].run_id.upper()) == store.short("run", runs[0].run_id)
+    upper = world.approve(store, mv.upper(), world.keys(mv, [(2.0, 0.0, 0.5)]))
+    assert store.approvals()[-1].model_version_id == mv and upper == store.approvals()[-1].approval_id
+    store.delete_result(res.result_id.upper())
+    assert os.listdir(store.layout.results) == []
+
+
+def test_a_malformed_result_id_gets_no_directory(store):
+    """n2: result_directory refuses an id that isn't 64 lowercase hex digits before making anything."""
+    for bad in ("../../x", "AB" * 32, "ab" * 31):
+        with pytest.raises(ValueError, match="64 lowercase hex"), store.result_directory(bad):
+            pass
+    assert os.listdir(store.layout.results) == []
+
+
+def test_a_loadings_spec_path_is_stored_resolved(store, tmp_path):
+    """n5: §3.2's path is absolute and resolved when written."""
+    real = tmp_path / "models" / "toy"
+    real.mkdir(parents=True)
+    (tmp_path / "link").symlink_to(real)
+    world.load(store)
+    store.record_loading(world.spec(), str(tmp_path / "models" / ".." / "link" / "model.json"), world.FILES)
+    assert store.current_loading("toy").spec_path == os.path.join(os.path.realpath(real), "model.json")
+
+
+def test_a_leftover_is_replaced_and_no_temporary_directory_is_left(store):
+    """M1: a leftover with no row is moved aside and deleted, ours renamed in; nothing else stays in results/."""
+    rid = "cd" * 32
+    os.makedirs(os.path.join(store.layout.result_dir(rid), "old", "deep"))
+    with store.result_directory(rid) as tmp:
+        world.write_report(tmp, "new")
+    assert os.listdir(store.layout.results) == [rid]
+    assert os.listdir(store.layout.result_dir(rid)) == ["report.md"]

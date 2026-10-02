@@ -9,6 +9,7 @@ import pytest
 
 from ema.store import BUSY_TIMEOUT_S, Layout, Store, migrations
 from ema.types.errors import NotFound, WorkspaceBusy, WorkspaceVersion
+from ema.types.identity import point_hash
 from tests.support import store as world
 
 
@@ -204,3 +205,66 @@ def test_w4_waits_past_the_busy_timeout_until_it_commits(tmp_path):
         store.record_call([world.ok_run(k, mv, approval)])
         timer.join()
         assert store.run_times(mv)[0] == 1
+
+
+def test_a_file_that_is_not_a_database_is_refused(tmp_path):
+    """Review round 1, m1: a damaged or foreign ema.db is WorkspaceVersion, not sqlite3's own error."""
+    (tmp_path / "ema.db").write_bytes(b"not a database at all" * 100)
+    with pytest.raises(WorkspaceVersion, match="not an EMA workspace"):
+        Store.open(str(tmp_path))
+
+
+def test_opening_a_locked_workspace_is_workspace_busy(tmp_path):
+    """Review round 1, m1: a database locked past the busy timeout while opening is WorkspaceBusy, retryable."""
+
+    class Impatient(Store):
+        busy_timeout_s = 0.05
+
+    Store.open(str(tmp_path)).close()
+    blocker = _connect(str(tmp_path / "ema.db"))
+    blocker.execute("BEGIN EXCLUSIVE")
+    try:
+        with pytest.raises(WorkspaceBusy, match="locked") as error:
+            Impatient.open(str(tmp_path))
+        assert error.value.retryable
+    finally:
+        blocker.execute("ROLLBACK")
+    Impatient.open(str(tmp_path)).close()
+
+
+def test_w4_retries_a_busy_statement_inside_its_transaction(tmp_path):
+    """Review round 1, n7: a busy statement inside W4's transaction (a spill that waits for readers) rolls it back and
+    tries the whole call again."""
+
+    class SpillsOnce(Store):
+        spilled = False
+
+        def _check_predictions(self, c, runs):
+            if not self.spilled:
+                self.spilled = True
+                c.execute("INSERT INTO batch_calls VALUES (?, 1, 1.0)", (b"\x01" * 32,))  # written, then rolled back
+                raise sqlite3.OperationalError("database is locked")
+            super()._check_predictions(c, runs)
+
+    with SpillsOnce.open(str(tmp_path)) as store:
+        mv = world.load(store)
+        (k,) = world.keys(mv, [(1.0, 0.0, 0.5)])
+        approval = world.approve(store, mv, [k])
+        store.record_call([world.ok_run(k, mv, approval)])
+        assert store.spilled and store.run_times(mv)[0] == 1
+        with pytest.raises(NotFound):
+            store.batch_call("01" * 32)
+
+
+def test_chunks_fit_sqlites_variable_limit(tmp_path):
+    """Review round 1, n4: a chunk never binds more variables than the connection allows."""
+    with Store.open(str(tmp_path)) as store:
+        store._conn.setlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER, 17)  # W4's insert binds 16
+        small = Store(store._conn, store.layout)
+        assert small._chunk == 16
+        mv = world.load(small)
+        points = [(float(i), 0.0, 0.5) for i in range(40)]
+        _, runs = world.made(small, mv, points)
+        hashes = [point_hash(p) for p in points]
+        assert len(small.current_runs(mv, hashes)) == len(small.current_keys(mv, hashes)) == 40
+        assert len(small.runs_by_id(world.ids(runs))) == 40

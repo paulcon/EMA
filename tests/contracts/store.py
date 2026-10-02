@@ -242,19 +242,26 @@ def check_measured_noisy(store_class: type[Store]) -> None:
     with world.opened(store_class) as store:
         mv = world.load(store)
         x = (1.0, 0.0, 0.5)
+        point_run = world.request(diagnostic="point_run")
         ks = [world.keys(mv, [x], replicate=r)[0] for r in (1, 2)]
-        approval = world.approve(store, mv, ks)
+        approval = world.approve(store, mv, ks, req=point_run)
         runs = [world.ok_run(k, mv, approval, y=1.0 + k.replicate) for k in ks]
         world.record_runs(store, runs)
-        point_run = world.request(diagnostic="point_run")
         first = world.result(mv, runs, approval=approval, req=point_run, noisy=world.noisy_record(mv, x))
         world.store_result(store, first)
-        quiet = world.store_result(store, world.result(mv, runs, approval=approval))
+        quiet = world.store_result(store, world.result(mv, runs, approval=None))  # reuses the point run's runs
         (read,) = store.measured_noisy(mv, "y")
         assert read.result_id == first.result_id and read.made_at is not None and read.std == 0.125
         assert store.measured_noisy(mv, "z") == ()
+        scatter = world.result(mv, runs, approval=None, req=world.request(seed=3), noisy=world.noisy_record(mv, x))
+        assert refused(world.store_result, store, scatter), "a measured-noisy record with a result not a point run's"
         second_req = world.request(diagnostic="point_run", seed=2)
-        second = world.result(mv, runs, approval=approval, req=second_req, noisy=world.noisy_record(mv, x, std=0.5))
+        more = [world.keys(mv, [x], replicate=r)[0] for r in (3, 4)]
+        second_approval = world.approve(store, mv, more, req=second_req)
+        more_runs = [world.ok_run(k, mv, second_approval, y=1.0 + k.replicate) for k in more]
+        world.record_runs(store, more_runs)
+        noisy = world.noisy_record(mv, x, std=0.5)
+        second = world.result(mv, runs + more_runs, approval=second_approval, req=second_req, noisy=noisy)
         world.store_result(store, second)
         records = [m.result_id for m in store.measured_noisy(mv, "y")]
         assert records == [second.result_id, first.result_id], "not every record, newest first"
@@ -270,7 +277,8 @@ def check_round_trip(store_class: type[Store]) -> None:
         assert store.model_version(mv).spec == world.spec()
         points = [(v, -v, 0.5) for v in awkward]
         ks = world.keys(mv, points)
-        approval = world.approve(store, mv, ks)
+        point_run = world.request(diagnostic="point_run")
+        approval = world.approve(store, mv, ks, req=point_run)
         runs = [world.ok_run(k, mv, approval, y=v, z=-v) for k, v in zip(ks, awkward, strict=True)]
         world.record_runs(store, runs)
         for run in runs:
@@ -284,7 +292,7 @@ def check_round_trip(store_class: type[Store]) -> None:
         assert columns.points.tobytes() == np.array(points).tobytes()
         assert columns.values["y"].tobytes() == np.array(awkward).tobytes()
         noisy = world.noisy_record(mv, points[0], std=None)
-        res = world.result(mv, runs, approval=approval, req=world.request(diagnostic="point_run"), noisy=noisy)
+        res = world.result(mv, runs, approval=approval, req=point_run, noisy=noisy)
         world.store_result(store, res)
         stored = store.get_result(res.result_id)
         assert stored == res and stored.to_json() == res.to_json(), "a result did not load back equal"
@@ -310,6 +318,25 @@ def check_new_runs(store_class: type[Store]) -> None:
         stranger = world.result(mv, old, approval=old_approval, note="its approval's runs aren't its own")
         stranger = replace(stranger, provenance=replace(stranger.provenance, approval_id=approval))
         assert refused(world.store_result, store, stranger), "a result with another evaluation's approval"
+        # Subsets: a result using 1 of its approval's 2 runs; an approval of 2 runs with 1 made (C49: no result).
+        both_approval, both = world.made(store, mv, [(3.0, 0.0, 0.5), (4.0, 0.0, 0.5)])
+        half = world.result(mv, both[:1], approval=both_approval)
+        assert refused(world.store_result, store, half), "a result with part of its approval's runs"
+        ks = world.keys(mv, [(5.0, 0.0, 0.5), (6.0, 0.0, 0.5)])
+        unfinished = world.approve(store, mv, ks)
+        (made,) = [world.ok_run(ks[0], mv, unfinished)]
+        store.record_call([made])
+        interrupted = world.result(mv, [made], approval=unfinished)
+        assert refused(world.store_result, store, interrupted), "a result whose approval's runs weren't all made"
+        # An approval is used by the diagnostic evaluation that asked for it (§5.4).
+        asked = world.request(seed=7)
+        other_approval, others = world.made(store, mv, [(7.0, 0.0, 0.5)], req=asked)
+        elsewhere = world.result(mv, others, approval=other_approval, req=world.request(seed=8))
+        assert refused(world.store_result, store, elsewhere), "a result citing an approval asked for another request"
+        # ... and once: a second result citing it is refused (here, the same request under other library versions).
+        again = world.result(mv, old + new, approval=approval, versions={**world.VERSIONS, "numpy": "2.3.2"})
+        assert again.result_id != good.result_id
+        assert refused(world.store_result, store, again), "a second result citing an approval already used"
 
 
 # --------------------------------------------------------------------------------------------------------------
@@ -448,6 +475,34 @@ class NoNewRunsCheck(Store):
         return None
 
 
+class CountsOnly(Store):
+    """Checks only that a result's counted new runs are its runs under its approval, not all of the approval's (I12)."""
+
+    def _check_new_runs(self, c: Any, result: DiagnosticResult, own: Any, priced: Any, new: int) -> None:
+        super()._check_new_runs(c, result, None, None, new)
+
+
+class AnyRequestsApproval(Store):
+    """Takes an approval asked for any request (§5.4)."""
+
+    def _check_approval_request(self, result: DiagnosticResult, request: str) -> None:
+        return None
+
+
+class ApprovalUsedTwice(Store):
+    """Lets several results cite one approval (§5.4: an approval is used once)."""
+
+    def _check_approval_unused(self, c: Any, result: DiagnosticResult, own: bytes) -> None:
+        return None
+
+
+class NoiseFromAnyResult(Store):
+    """Stores a measured-noisy record with any diagnostic's result (I10)."""
+
+    def _check_noisy(self, result: DiagnosticResult) -> None:
+        return None
+
+
 BROKEN: dict[str, list[type[Store]]] = {
     "check_append_only": [RetryOverwrites],
     "check_retry_beside_failed": [FirstAttemptCurrent],
@@ -459,9 +514,9 @@ BROKEN: dict[str, list[type[Store]]] = {
     "check_repeat": [ReplacesRepeat],
     "check_provenance": [DistinctRowsOnly],
     "check_design_order": [StoredOrder],
-    "check_measured_noisy": [LatestNoiseOnly],
+    "check_measured_noisy": [LatestNoiseOnly, NoiseFromAnyResult],
     "check_round_trip": [FifteenDigits],
-    "check_new_runs": [NoNewRunsCheck],
+    "check_new_runs": [NoNewRunsCheck, CountsOnly, AnyRequestsApproval, ApprovalUsedTwice],
 }
 
 CHECKS = {

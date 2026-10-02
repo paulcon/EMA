@@ -1,5 +1,5 @@
 """The store across its real chunk boundaries (slow tier; data_model.md §6, §8: Q1, Q6, Q7, Q15 read in chunks of
-30,000 rows).
+30,000 rows; Q1's key-only read too).
 
 70,001 runs (two whole chunks and a remainder) are stored as batch calls; each chunked read must return every row,
 in the order asked for. Correctness only: §6's timing target (Q1 on 10⁶ points in under 10 s) is deferred by record
@@ -30,6 +30,8 @@ def test_chunked_reads_return_every_row_in_order(tmp_path):
         current = store.current_runs(mv, [point_hash(p) for p in points])
         assert len(current) == N
         assert all(current[(k.point_hash, 0)].run_id == k.run_id for k in ks[::997])
+        keys = store.current_keys(mv, [point_hash(p) for p in points])
+        assert len(keys) == N and all(keys[(k.point_hash, 0)].run_id == k.run_id for k in ks[::997])
         order = rng.permutation(N)
         asked = world.ids([runs[i] for i in order])
         columns = store.runs_by_id(asked, points=True)

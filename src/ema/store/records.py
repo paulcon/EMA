@@ -6,11 +6,13 @@ Rows that ``ema.types`` already has a class for are returned as that class (``Ru
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import NamedTuple
 
 from ema.types.design import DesignIdentity
 from ema.types.identity import TrackedFile
 from ema.types.model import Keep, ModelSpec
 from ema.types.requests import Request, TestRunRequest
+from ema.types.runs import RunStatus
 
 
 @dataclass(frozen=True)
@@ -183,6 +185,26 @@ class BatchCall:
     batch_call_id: str
     size: int
     time_s: float
+
+
+class CurrentKey(NamedTuple):
+    """A stored key's current run, as Q1's key-only read returns it (``Store.current_keys``; C46, C47).
+
+    A named tuple, not a frozen dataclass: Q1 builds one per design point, up to 10⁶ (§6).
+
+    Attributes
+    ----------
+    run_id : str
+        The current run's id.
+    attempt : int
+        Its attempt, the highest at its key (I2).
+    status : RunStatus
+        Whether it was ok or failed (a failed run is new only with ``retry_failed``, C47).
+    """
+
+    run_id: str
+    attempt: int
+    status: RunStatus
 
 
 @dataclass(frozen=True)

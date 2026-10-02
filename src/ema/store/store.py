@@ -7,6 +7,7 @@ while it runs; Q7 and Q15 read in chunks of ``chunk_rows`` rows, one statement e
 connection waits at most one chunk (0056).
 """
 
+import errno
 import json
 import os
 import shutil
@@ -30,11 +31,12 @@ from ema.store.records import (
     BatchCall,
     Confirmation,
     Coverage,
+    CurrentKey,
     Loading,
     ModelVersion,
 )
 from ema.types.design import DesignIdentity
-from ema.types.errors import AmbiguousId, NotFound, RequestError, WorkspaceBusy
+from ema.types.errors import AmbiguousId, NotFound, RequestError, WorkspaceBusy, WorkspaceVersion
 from ema.types.identity import (
     ID_DTYPE,
     TrackedFile,
@@ -59,6 +61,8 @@ from ema.types.text import parse_timestamp, timestamp_text
 BUSY_TIMEOUT_S = 60.0
 #: Rows per statement when reading many (§6, §8: Q1, Q7, Q15).
 CHUNK_ROWS = 30_000
+#: The point run's diagnostic name: the only result with a measured-noisy record (I10; point_run.md).
+POINT_RUN = "point_run"
 
 #: The id kinds Q11 resolves: each one's table, its id column, and its name in messages.
 ID_KINDS: Mapping[str, tuple[str, str, str]] = {
@@ -235,6 +239,9 @@ class Store:
         self._conn = conn
         self.layout = layout
         self._prediction_names: dict[bytes, tuple[str, ...]] = {}
+        # Rows per chunk: chunk_rows, but never more bound variables than this SQLite allows (one is the model
+        # version's, in Q1).
+        self._chunk = max(1, min(self.chunk_rows, conn.getlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER) - 1))
 
     # -- opening and closing ------------------------------------------------------------------------------------
 
@@ -260,7 +267,10 @@ class Store:
         NotFound
             With ``create=False``, when there is no workspace at ``path``.
         WorkspaceVersion
-            For a newer schema, naming both versions; an older one is migrated after copying ``ema.db``.
+            For a newer schema, naming both versions (an older one is migrated after copying ``ema.db``); a file
+            that isn't an EMA workspace's database.
+        WorkspaceBusy
+            When another connection holds the database's lock past the busy timeout.
         """
         layout = Layout.of(path)
         if create:
@@ -274,6 +284,17 @@ class Store:
             conn.execute("PRAGMA journal_mode = DELETE")
             conn.execute("PRAGMA synchronous = FULL")
             migrations.prepare(conn, layout.db)
+        except sqlite3.OperationalError as error:
+            conn.close()
+            if _busy(error):
+                raise WorkspaceBusy(
+                    f"the workspace's database {layout.db} stayed locked by another connection for "
+                    f"{cls.busy_timeout_s:g} s"
+                ) from error
+            raise
+        except sqlite3.DatabaseError as error:  # "file is not a database", or a damaged one
+            conn.close()
+            raise WorkspaceVersion(f"{layout.db} is not an EMA workspace's database: {error}") from error
         except BaseException:
             conn.close()
             raise
@@ -305,28 +326,61 @@ class Store:
 
         If the result's directory exists already: with a stored result (Q5), the temporary directory is discarded,
         and the stored result is the answer (W5 then writes nothing, 0056); with no stored result, it is a
-        leftover and is replaced. On an exception, the temporary directory is removed and nothing is put in place.
+        leftover (or another process's identical directory, S10) and is replaced. On an exception, the temporary
+        directory is removed and nothing is put in place.
+
+        Safe for several processes at once (review round 1, M1): the directory in place is never deleted where it
+        is. A first rename that finds it there is retried under the database's write lock, which W5 also holds
+        while it looks for the directory: the one in place is moved aside atomically, ours renamed in, and the
+        moved copy deleted afterwards, so W5 never sees the directory missing.
+
+        Raises
+        ------
+        ValueError
+            For a result id that isn't 64 lowercase hex digits.
         """
+        if len(result_id) != 64 or any(ch not in "0123456789abcdef" for ch in result_id):
+            raise ValueError(f"a result id is 64 lowercase hex digits, not {result_id!r}")
         final = self.layout.result_dir(result_id)
         os.makedirs(self.layout.results, exist_ok=True)
         tmp = tempfile.mkdtemp(prefix=f".{result_id[:12]}-", dir=self.layout.results)
         try:
             yield tmp
-        except BaseException:
-            shutil.rmtree(tmp, ignore_errors=True)
-            raise
-        if os.path.isdir(final):
-            if self._has_result(result_id):
+            self._put_in_place(tmp, final, result_id)
+        finally:
+            if os.path.lexists(tmp):
                 shutil.rmtree(tmp, ignore_errors=True)
-                return
-            shutil.rmtree(final)
+
+    def _put_in_place(self, tmp: str, final: str, result_id: str) -> None:
+        """Rename ``tmp`` to ``final``; if a directory is there, keep it with a stored result, else replace it (§6)."""
         try:
             os.rename(tmp, final)
-        except OSError:
-            shutil.rmtree(tmp, ignore_errors=True)
-            if not os.path.isdir(final):
+            return
+        except OSError as error:
+            if error.errno not in (errno.ENOTEMPTY, errno.EEXIST):
                 raise
-            # another process put the same result's directory in place meanwhile: its files are the same (S10)
+        asides: list[str] = []
+        try:
+            with self._write() as c:
+                while not c.execute(
+                    "SELECT 1 FROM results WHERE result_id = ?", (bytes.fromhex(result_id),)
+                ).fetchone():
+                    aside = tempfile.mkdtemp(prefix=f".{result_id[:12]}-old-", dir=self.layout.results)
+                    asides.append(aside)
+                    try:
+                        os.rename(final, os.path.join(aside, "old"))
+                    except FileNotFoundError:
+                        pass  # gone meanwhile (a rename outside the lock): nothing to move aside
+                    try:
+                        os.rename(tmp, final)
+                        return
+                    except OSError as error:
+                        if error.errno not in (errno.ENOTEMPTY, errno.EEXIST):
+                            raise
+                # stored meanwhile, with its directory in place: ours is discarded (0056)
+        finally:
+            for aside in asides:
+                shutil.rmtree(aside, ignore_errors=True)
 
     # -- transactions -------------------------------------------------------------------------------------------
 
@@ -380,7 +434,7 @@ class Store:
         spec
             The validated spec, with its settings (``keep``, ``batch_size``, ``timeout_s``).
         spec_path
-            The spec file, absolute.
+            The spec file, absolute; stored resolved (§3.2: symbolic links and ``..`` resolved).
         files
             Its tracked files, hashed.
 
@@ -392,6 +446,7 @@ class Store:
         """
         if not os.path.isabs(spec_path):
             raise ValueError(f"a loading's spec path is absolute, not {spec_path!r}")
+        spec_path = os.path.realpath(spec_path)
         tracked = tuple(sorted(files, key=lambda f: f.path))
         mv = version_hash(spec, tracked)
         now = _now()
@@ -432,15 +487,15 @@ class Store:
         NotFound
             For an unknown id.
         """
+        raw = _blob(model_version_id, "model version")
         rows = self._execute(
-            "SELECT name, spec, files, created_at FROM model_versions WHERE model_version_id = ?",
-            (_blob(model_version_id, "model version"),),
+            "SELECT name, spec, files, created_at FROM model_versions WHERE model_version_id = ?", (raw,)
         )
         if not rows:
             raise NotFound(f"no model version {model_version_id}")
         name, spec, listed, at = rows[0]
         files = tuple(TrackedFile(path, digest, shared) for path, digest, shared in json.loads(listed))
-        return ModelVersion(model_version_id, name, ModelSpec.from_json(spec), files, parse_timestamp(at))
+        return ModelVersion(raw.hex(), name, ModelSpec.from_json(spec), files, parse_timestamp(at))
 
     def _predictions_of(self, mv: bytes) -> tuple[str, ...]:
         """Return the model predictions of a model version's spec (I6), in order; cached, as rows never change."""
@@ -522,7 +577,7 @@ class Store:
             if c.execute("SELECT 1 FROM model_versions WHERE model_version_id = ?", (mv,)).fetchone() is None:
                 raise NotFound(f"no model version {model_version_id}")
             n_before = c.execute("SELECT COUNT(*) FROM approvals").fetchone()[0]
-            aid = approval_id(model_version_id, asked_for, request, price.new, price.reused, n_before)
+            aid = approval_id(mv.hex(), asked_for, request, price.new, price.reused, n_before)
             c.execute(
                 "INSERT INTO approvals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
@@ -582,11 +637,12 @@ class Store:
 
     def approval_points(self, approval_id: str) -> tuple[ApprovedPoint, ...]:
         """Q12 (an audit's detail): the points and replicates an approval covers, by point hash (P3)."""
+        aid = _blob(approval_id, "approval")
         rows = self._execute(
             "SELECT point_hash, replicate FROM approval_points WHERE approval_id = ? ORDER BY point_hash, replicate",
-            (_blob(approval_id, "approval"),),
+            (aid,),
         )
-        return tuple(ApprovedPoint(approval_id, h.hex(), r) for h, r in rows)
+        return tuple(ApprovedPoint(aid.hex(), h.hex(), r) for h, r in rows)
 
     def confirmations(self) -> tuple[Confirmation, ...]:
         """Q12: every confirmation, with its question and answer, in order (T3)."""
@@ -623,7 +679,7 @@ class Store:
                 (mv, ph, key.replicate, aid),
             )
             covered.append(bool(approved) and not made)
-        return Coverage(approval_id, mv.hex(), bool(answer), tuple(covered))
+        return Coverage(aid.hex(), mv.hex(), bool(answer), tuple(covered))
 
     # -- W4, Q1, Q2, Q9: runs ------------------------------------------------------------------------------------
 
@@ -634,7 +690,9 @@ class Store:
         model version, covers its point and replicate, and has no run there yet (I4, P3); its attempt is one more
         than the key's current run, which failed, or 0 (I2, C47); an ok run has every model prediction of its spec
         (I6). A lock held by another connection is waited for past the busy timeout, since the call has finished
-        and its runs must be stored.
+        and its runs must be stored: a busy ``BEGIN`` or ``COMMIT`` is tried again, and a busy statement inside the
+        transaction (a large call's spill to the database file, which waits for readers) rolls it back and tries
+        the whole transaction again.
 
         Parameters
         ----------
@@ -651,6 +709,16 @@ class Store:
         """
         runs = tuple(runs)
         hashes = self._check_keys(runs, batch_call)
+        while True:
+            try:
+                self._insert_call(runs, hashes, batch_call)
+                return
+            except sqlite3.OperationalError as error:
+                if not _busy(error):
+                    raise
+
+    def _insert_call(self, runs: Sequence[Run], hashes: Sequence[str], batch_call: BatchCall | None) -> None:
+        """W4's transaction: its checks, then the call's rows."""
         with self._write(persist=True) as c:
             self._check_approvals(c, runs, hashes)
             self._check_attempts(c, runs, hashes)
@@ -783,7 +851,7 @@ class Store:
         mv = _blob(model_version_id, "model version")
         distinct = list(dict.fromkeys(point_hashes))
         out: dict[tuple[str, int], Run] = {}
-        for chunk in _chunks(distinct, self.chunk_rows):
+        for chunk in _chunks(distinct, self._chunk):
             rows = self._execute(
                 f"SELECT {_RUN_COLUMNS}, point_hash FROM runs WHERE model_version_id = ? AND point_hash IN "
                 f"({_marks(len(chunk))})",
@@ -799,18 +867,53 @@ class Store:
                 out[(row[15].hex(), row[3])] = run
         return out
 
+    def current_keys(self, model_version_id: str, point_hashes: Sequence[str]) -> dict[tuple[str, int], CurrentKey]:
+        """Q1, keys only: the current run's id, attempt, and status at each stored key of these points.
+
+        What the runner's ``resolve`` and ``price`` need (C46, C47), without points, model predictions, or other
+        columns, so it is several times faster than ``current_runs`` (record 0072, review round 1).
+
+        Parameters
+        ----------
+        model_version_id
+            The model version.
+        point_hashes
+            The design's point hashes (repeats are read once).
+
+        Returns
+        -------
+        dict
+            ``(point hash, replicate)`` to its current run's ``CurrentKey``, for the keys with a stored run.
+        """
+        mv = _blob(model_version_id, "model version")
+        distinct = list(dict.fromkeys(point_hashes))
+        out: dict[tuple[str, int], CurrentKey] = {}
+        attempts: dict[tuple[bytes, int], int] = {}
+        for chunk in _chunks(distinct, self._chunk):
+            rows = self._execute(
+                "SELECT point_hash, replicate, attempt, run_id, status FROM runs WHERE model_version_id = ? AND "
+                f"point_hash IN ({_marks(len(chunk))})",
+                (mv, *(bytes.fromhex(h) for h in chunk)),
+            )
+            for ph, replicate, attempt, raw, status in rows:
+                if attempts.get((ph, replicate), -1) < attempt:
+                    attempts[(ph, replicate)] = attempt
+                    out[(ph.hex(), replicate)] = CurrentKey(raw.hex(), attempt, _STATUS[status])
+        return out
+
     def _read_predictions(self, raws: Sequence[bytes]) -> dict[bytes, list[tuple[str, Any, Any]]]:
         out: dict[bytes, list[tuple[str, Any, Any]]] = {}
-        for chunk in _chunks(raws, self.chunk_rows):
+        for chunk in _chunks(raws, self._chunk):
             for raw, name, value, reason in self._execute(
                 f"SELECT run_id, name, value, reason FROM predictions WHERE run_id IN ({_marks(len(chunk))})", chunk
             ):
                 out.setdefault(raw, []).append((name, value, reason))
         return out
 
-    @staticmethod
-    def _runs(rows: Sequence[Sequence[Any]], predictions: Mapping[bytes, list[tuple[str, Any, Any]]]) -> list[Run]:
-        """Build stored runs from ``runs`` rows and their model predictions.
+    def _runs(
+        self, rows: Sequence[Sequence[Any]], predictions: Mapping[bytes, list[tuple[str, Any, Any]]]
+    ) -> list[Run]:
+        """Build stored runs from ``runs`` rows and their model predictions, in their spec's order.
 
         W4 checked each run as ``Run`` does, and no row changes (I1), so a stored run is built without checking it
         again: Q1 builds one per design point (record 0072). Points are parsed one chunk at a time.
@@ -819,6 +922,9 @@ class Store:
         out = []
         for row, point in zip(rows, points, strict=True):
             read = predictions.get(row[0], [])
+            if read:  # the table returns them by name: put them in the spec's order (I6)
+                by_name = {item[0]: item for item in read}
+                read = [by_name[name] for name in self._predictions_of(row[1]) if name in by_name]
             run = object.__new__(Run)
             vars(run).update(
                 run_id=row[0].hex(),
@@ -891,12 +997,11 @@ class Store:
         NotFound
             For an unknown id.
         """
-        rows = self._execute(
-            "SELECT size, time_s FROM batch_calls WHERE batch_call_id = ?", (_blob(batch_call_id, "batch call"),)
-        )
+        raw = _blob(batch_call_id, "batch call")
+        rows = self._execute("SELECT size, time_s FROM batch_calls WHERE batch_call_id = ?", (raw,))
         if not rows:
             raise NotFound(f"no batch call {batch_call_id}")
-        return BatchCall(batch_call_id, rows[0][0], rows[0][1])
+        return BatchCall(raw.hex(), rows[0][0], rows[0][1])
 
     # -- Q7, Q15: runs as columns ------------------------------------------------------------------------------
 
@@ -925,12 +1030,12 @@ class Store:
             rows = self._execute(
                 f"SELECT {select} FROM result_runs AS u JOIN runs AS r ON r.run_id = u.run_id WHERE u.result_id = ? "
                 f'AND u."row" >= ? AND u."row" < ? ORDER BY u."row"',
-                (rid, start, start + self.chunk_rows),
+                (rid, start, start + self._chunk),
             )
             columns.add(rows, self._read_predictions(list(dict.fromkeys(row[0] for row in rows))))
-            if len(rows) < self.chunk_rows:
+            if len(rows) < self._chunk:
                 break
-            start += self.chunk_rows
+            start += self._chunk
         return columns.build()
 
     def runs_by_id(self, run_ids: np.ndarray | Sequence[str], *, points: bool = False) -> RunColumns:
@@ -957,7 +1062,7 @@ class Store:
         unique, inverse = np.unique(given, return_inverse=True)
         raws = [bytes(u) for u in unique.tolist()] if len(unique) else []
         found: dict[bytes, tuple[Any, ...]] = {}
-        for chunk in _chunks(raws, self.chunk_rows):
+        for chunk in _chunks(raws, self._chunk):
             for row in self._execute(f"SELECT {_RUN_COLUMNS} FROM runs WHERE run_id IN ({_marks(len(chunk))})", chunk):
                 found[row[0]] = row
         if len(found) != len(raws):
@@ -1011,8 +1116,7 @@ class Store:
         if result.result_id != sha256_hex(reuse_key(p.model_version_id, p.request, p.run_ids, versions)):
             raise ValueError(f"result {result.result_id}: its id is not its reuse key's hash (§3.4)")
         noisy = result.measured_noisy
-        if noisy is not None and noisy.made_at is not None:
-            raise ValueError("a result's own measured-noisy record has no made_at: W5 sets it (record 0072)")
+        self._check_noisy(result)
         rid = bytes.fromhex(result.result_id)
         now = _now()
         with self._write() as c:
@@ -1055,6 +1159,22 @@ class Store:
                 )
         return result
 
+    def _check_noisy(self, result: DiagnosticResult) -> None:
+        """I10: a measured-noisy record comes only with a point run's result, as its own, with no ``made_at`` yet."""
+        noisy = result.measured_noisy
+        if noisy is None:
+            return
+        if noisy.made_at is not None:
+            raise ValueError("a result's own measured-noisy record has no made_at: W5 sets it (record 0072)")
+        if result.diagnostic != POINT_RUN:
+            raise ValueError(f"only a point run's result has a measured-noisy record, not {result.diagnostic}'s (I10)")
+        if (noisy.result_id, noisy.model_version_id, noisy.prediction) != (
+            result.result_id,
+            result.model_version_id,
+            result.prediction,
+        ):
+            raise ValueError("a measured-noisy record is its own result's: its id, model version, and prediction (I10)")
+
     def _result_rows(self, result: DiagnosticResult) -> Iterator[tuple[int, bytes]]:
         """One ``result_runs`` row per design row: its number and its run's id (§5.10)."""
         raw = result.provenance.run_ids.tobytes()
@@ -1062,21 +1182,25 @@ class Store:
             yield row, raw[32 * row : 32 * row + 32]
 
     def _check_result_runs(self, c: sqlite3.Connection, result: DiagnosticResult) -> None:
-        """W5's preconditions on runs and approval: every run exists, of the model version; I12."""
+        """W5's preconditions on runs and approval: every run exists, of the model version; its approval; I12."""
         p = result.provenance
         mv = bytes.fromhex(result.model_version_id)
         own = None if p.approval_id is None else bytes.fromhex(p.approval_id)
+        priced = None
         if own is not None:
             row = c.execute(
-                "SELECT model_version_id, asked_for, answer FROM approvals WHERE approval_id = ?", (own,)
+                "SELECT model_version_id, asked_for, answer, request, new FROM approvals WHERE approval_id = ?", (own,)
             ).fetchone()
             if row is None or row[0] != mv or row[1] != "diagnostic_evaluation" or not row[2]:
                 raise ValueError(
                     f"result {result.result_id}: its approval said yes to no evaluation of its model version"
                 )
+            self._check_approval_request(result, row[3])
+            self._check_approval_unused(c, result, own)
+            priced = row[4]
         raws = [bytes(u) for u in np.unique(p.run_ids).tolist()]
         found = new = 0
-        for chunk in _chunks(raws, self.chunk_rows):
+        for chunk in _chunks(raws, self._chunk):
             for run_mv, run_approval in c.execute(
                 f"SELECT model_version_id, approval_id FROM runs WHERE run_id IN ({_marks(len(chunk))})", chunk
             ).fetchall():
@@ -1086,9 +1210,43 @@ class Store:
                 new += run_approval == own
         if found != len(raws):
             raise NotFound(f"result {result.result_id}: {len(raws) - found} of its {len(raws)} runs are not stored")
+        self._check_new_runs(c, result, own, priced, new)
+
+    def _check_approval_request(self, result: DiagnosticResult, request: str) -> None:
+        """Check that the approval was asked for this result's request: it is used by the evaluation that asked (§5.4)."""
+        if request != canonical_json(result.provenance.request.canonical()):
+            raise ValueError(f"result {result.result_id}: its approval was asked for another request (§5.4)")
+
+    def _check_approval_unused(self, c: sqlite3.Connection, result: DiagnosticResult, own: bytes) -> None:
+        """Check that no other stored result cites the approval: an approval is used once (§5.4)."""
+        if c.execute("SELECT 1 FROM results WHERE approval_id = ? LIMIT 1", (own,)).fetchone():
+            raise ValueError(f"result {result.result_id}: its approval is another result's (an approval is used once)")
+
+    def _check_new_runs(
+        self, c: sqlite3.Connection, result: DiagnosticResult, own: bytes | None, priced: int | None, new: int
+    ) -> None:
+        """I12 (E6): the result's new runs (its runs made under its approval) are exactly the approval's runs.
+
+        ``new`` counts the result's distinct runs whose approval is its own; ``priced`` is its approval's ``new``
+        (None without one). Every run the approval priced was made and is the result's: an evaluation interrupted
+        before all were made stores no result (C49), and its rerun's counts and approval are the rerun's (0054).
+        """
         if new != result.counts.new:
             raise ValueError(
                 f"result {result.result_id}: {result.counts.new} new runs counted, but {new} made under its approval (I12)"
+            )
+        if own is None or priced is None:
+            return
+        (made,) = c.execute(
+            "SELECT COUNT(*) FROM approval_points AS a JOIN runs AS r ON r.model_version_id = ? "
+            "AND r.point_hash = a.point_hash AND r.replicate = a.replicate AND r.approval_id = a.approval_id "
+            "WHERE a.approval_id = ?",
+            (bytes.fromhex(result.model_version_id), own),
+        ).fetchone()
+        if not new == made == priced:
+            raise ValueError(
+                f"result {result.result_id}: its approval priced {priced} new runs and {made} were made, but the "
+                f"result has {new} of them (I12, C49)"
             )
 
     def find_result(self, reuse_key_hash: str) -> DiagnosticResult | None:
@@ -1120,18 +1278,18 @@ class Store:
         while True:
             chunk = self._execute(
                 'SELECT run_id FROM result_runs WHERE result_id = ? AND "row" >= ? AND "row" < ? ORDER BY "row"',
-                (rid, start, start + self.chunk_rows),
+                (rid, start, start + self._chunk),
             )
             parts.extend(r[0] for r in chunk)
-            if len(chunk) < self.chunk_rows:
+            if len(chunk) < self._chunk:
                 break
-            start += self.chunk_rows
+            start += self._chunk
         run_ids = np.frombuffer(b"".join(parts), dtype=ID_DTYPE).copy()
         noisy = self._noisy(
             self._execute(f"SELECT {_NOISY_COLUMNS} FROM measured_noisy WHERE result_id = ?", (rid,)), made_at=False
         )
         return DiagnosticResult.from_columns(
-            result_id=result_id,
+            result_id=rid.hex(),
             model_version_id=mv.hex(),
             diagnostic=diagnostic,
             prediction=prediction,
@@ -1235,7 +1393,7 @@ class Store:
             rid = self._require_result(result_id)
             for table in ("measured_noisy", "result_runs", "results"):
                 c.execute(f"DELETE FROM {table} WHERE result_id = ?", (rid,))
-        directory = self.layout.result_dir(result_id)
+        directory = self.layout.result_dir(rid.hex())
         if os.path.isdir(directory):
             shutil.rmtree(directory)
 
@@ -1286,6 +1444,7 @@ class Store:
         """
         table, column, word = self._kind(kind)
         raw = _blob(id, word)
+        id = raw.hex()
         if not self._execute(f"SELECT 1 FROM {table} WHERE {column} = ?", (raw,)):
             raise NotFound(f"no {word} {id}")
         neighbors = self._execute(
