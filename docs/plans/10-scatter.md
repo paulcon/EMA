@@ -74,3 +74,9 @@ Each is record 0076's, numbered as there, one line each.
   0073's (items 1, 3), applied in the test.
 - **Size:** `scatter.py` 242 code lines against 250; `stats.py` 32 -> 59.
 - **Deferrals:** v1's numbers not run (the mock's are an independent computation, `docs/checks/scatter.py`).
+- **Review round 1** (0 blockers, 0 major, 3 minor, 3 nits; fixed on `demo-diagfix`, record 0076 items 13–16): a
+  model parameter named `Histogram` (any case) is drawn as `scatter-<name>` (`casefold()`); the figures at one and
+  two usable runs tested; `rank_correlations`' "exact" bounded to n ≲ 3·10⁵ (amends 0068 item 11); the contract's
+  lean interval method for the checks that don't test the intervals (record 0084, Review round 1). Left: two model
+  parameters differing only in case (`a`, `A`) share a figure file on a case-insensitive disk, for every
+  diagnostic (the model spec's reader or `ema.plotting.save`).

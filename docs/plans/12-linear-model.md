@@ -98,6 +98,12 @@ Each is record 0078's, numbered as there, one line each.
   `_fits.py` 59: 353 against the roadmap's 300. Ruff's formatter puts each of the parameter table's 8 arguments on a
   line of its own (34 lines for 5 parameters).
 - **v1:** nothing read, run, or ported; the independent numbers are `docs/checks/linear_model.py`'s.
-- **Deferrals:** none of the spec's items.
+- **Deferrals:** none of the spec's items; v1's numbers not run (record 0078, Deferrals: about 1–2 hours).
 - **Checked by eye:** the three figures on R3's mock (the shadow's curvature about the fitted line, the slopes with
   their bars and the model parameters' names, the residuals' 8 bins).
+- **Review round 1** (0 blockers, 0 major, 7 minor, 4 nits; fixed on `demo-diagfix`, record 0078 items 14–19):
+  the per-level coefficients' cells store their units, and the report leaves them out where the table's title
+  names them (`ema.report.render`; the mock and every other golden report unchanged); the rank-deficient and
+  LOO-undefined notes tested on crafted batches; the LOO note names leverage 1 only when a run has it exactly; the
+  rank from the fit itself; the JSON schema's patterns anchored; the contract's lean interval method (record 0084,
+  Review round 1): the linear model's contract share from about 84 s to 19 s of test time.

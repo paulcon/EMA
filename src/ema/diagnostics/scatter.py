@@ -73,10 +73,11 @@ def scatter_bins(n_usable: int) -> int:
 def figure_name(parameter: str) -> str:
     """Return a varied model parameter's figure name, ``scatter_<name>``.
 
-    A model parameter named ``histogram`` is drawn as ``scatter-histogram``, so it doesn't overwrite the histogram
-    (record 0076): a model parameter's name is an identifier, so no other name gives a ``-``.
+    A model parameter named ``histogram``, in any case (``Histogram``), is drawn as ``scatter-<name>``, so it doesn't
+    overwrite the histogram on a case-insensitive file system either (record 0076 item 10, Review round 1): a model
+    parameter's name is an identifier, so no other name gives a ``-``.
     """
-    return "scatter-histogram" if parameter == "histogram" else f"scatter_{parameter}"
+    return f"scatter-{parameter}" if parameter.casefold() == "histogram" else f"scatter_{parameter}"
 
 
 @dataclass(frozen=True)

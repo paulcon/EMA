@@ -76,9 +76,11 @@ def rank_correlation(x: np.ndarray, y: np.ndarray) -> float:
 def rank_correlations(X: np.ndarray, y: np.ndarray) -> np.ndarray:
     """Return Spearman's rho between each column of X and y: ``rank_correlation`` per column, in one pass.
 
-    y is ranked once. The centered ranks are multiples of 1/2, so their products and sums are exact: each value is
-    the one ``rank_correlation`` gives for its column, bit for bit, whatever the order of the sums (scatter's
-    bootstrap calls it 1000 times; record 0076).
+    y is ranked once. The centered ranks are multiples of 1/2, so their products and sums are exact while the sums
+    of squares, about n³/12 in quarters, fit in a double's 53 bits (n ≲ 3·10⁵): each value is then the one
+    ``rank_correlation`` gives for its column, bit for bit, whatever the order of the sums (scatter's bootstrap
+    calls it 1000 times; record 0076 item 11, amending 0068 item 11). Beyond that, the sums round, and the two may
+    differ in the last bits.
 
     Parameters
     ----------

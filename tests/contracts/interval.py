@@ -25,7 +25,7 @@ from ema.numerics import intervals
 from ema.numerics.intervals import Estimator
 from ema.types.identity import canonical_json
 from ema.types.streams import spawned
-from tests.support.fakes import FakeIntervalMethod, registered_interval_method
+from tests.support.fakes import FakeIntervalMethod, LeanIntervalMethod, registered_interval_method
 
 #: The usable runs: indices in the design's order, not contiguous (runs 1, 4, 7, ... failed).
 USABLE = np.array([i for i in range(45) if i % 3 != 1])
@@ -183,11 +183,13 @@ CHECKS = {
 }
 
 
-@pytest.fixture(params=["bootstrap", "fake_range"])
+@pytest.fixture(params=["bootstrap", "fake_range", "fake_lean"])
 def method(request: pytest.FixtureRequest) -> Iterator[Any]:
-    if request.param == "fake_range":
-        with registered_interval_method() as fake:
-            yield fake
+    """The bootstrap, the fake, and the diagnostic contract's lean fake (record 0084, Review round 1)."""
+    if request.param.startswith("fake_"):
+        fake = FakeIntervalMethod() if request.param == "fake_range" else LeanIntervalMethod()
+        with registered_interval_method(fake) as registered:
+            yield registered
     else:
         yield intervals.get(request.param)
 

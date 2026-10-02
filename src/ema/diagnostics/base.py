@@ -89,7 +89,7 @@ class Integer:
 
 
 #: A decimal number's text (0047): digits, an optional point, an optional exponent; no spaces, no "1/3".
-_DECIMAL = re.compile(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?")
+_DECIMAL = re.compile(r"^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$")  # anchored: a JSON schema's pattern searches
 
 
 @dataclass(frozen=True)

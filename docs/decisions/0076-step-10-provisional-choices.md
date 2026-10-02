@@ -77,6 +77,23 @@ We will, provisionally:
     timeout at once in the tests (`reference._Timeout`), not after 0.2 s. The known answers at n = 20,000 are slow
     (about 1.3 s each). SC4's "seeds where it is negative": R1's c at n = 200, seed 10, S = -0.0297.
 
+**Review round 1** (the independent review's three minors and a nit; fixed on `demo-diagfix`, each with a test)
+
+13. **A model parameter named `histogram` in any case** (`Histogram`, `HISTOGRAM`) is drawn as `scatter-<name>`
+    (amends item 10): `figure_name` compares `casefold()`, so on a case-insensitive disk (macOS's default)
+    `scatter_Histogram.png` no longer overwrites `scatter_histogram.png`. Not changed: two model parameters whose
+    names differ only in case (`a`, `A`) still share a figure file on such a disk; a model spec allows them (names
+    are unique as written), and every diagnostic names figures after model parameters, so the rule belongs to the
+    model spec's reader or to `ema.plotting.save`, not to scatter.
+14. **The figures at one and two usable runs are tested** (item 9): one usable run, a panel per varied model
+    parameter with its one point and its strip, no bin means, no histogram; two, the histogram too, of ⌊√2⌋ = 1 bin
+    from the minimum to the maximum holding both, its caption counting the runs not usable.
+15. **`rank_correlations`' "exact" is bounded** (nit; amends 0068 item 11, which this item 11 extends): the centered
+    ranks' products and sums are exact while the sums of squares, about n³/12 in quarters, fit in 53 bits, so for
+    n ≲ 3·10⁵; beyond that the column-wise and one-column forms may differ in their last bits. The docstring says so.
+16. **The fast tier's bootstrap cost** (the third minor): the contract's checks that don't test the intervals use a
+    lean fake (record 0084, Review round 1); scatter's contract share went from about 48 s to 15 s of test time.
+
 ## Deferrals
 
 - **v1's numbers** were not run: the mock report's numbers, computed by `docs/checks/scatter.py` (an independent
@@ -86,7 +103,9 @@ We will, provisionally:
 ## Spec edits on acceptance
 
 - **`diagnostics/scatter.md`, Figures:** the y limits (item 7), the cards' fields (items 7, 9), no histogram with
-  one usable run (item 9), `scatter-histogram.png` (item 10), the captions (items 8, 9). Mock report: record 0073's
+  one usable run (item 9), `scatter-<name>.png` for a model parameter named `histogram` in any case (items 10, 13),
+  the captions (items 8, 9).
+- **Record 0068, item 11:** `rank_correlations` equals `rank_correlation` bit for bit for n ≲ 3·10⁵ (item 15). Mock report: record 0073's
   edits (ρ, Sᵢ; "14 bins." first).
 - **`architecture.md` §4 (`ema.numerics.stats`):** `average_ranks`, `rank_correlations`, `binned_indices` (item 11).
 - **`designs.md`, G17:** the refusal comes from the design for a diagnostic parameter too (item 4).

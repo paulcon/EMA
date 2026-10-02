@@ -57,19 +57,22 @@ def registered(sampler: FakeSampler) -> Iterator[FakeSampler]:
 class FakeIntervalMethod:
     """An interval method that keeps every promise of C30, registered as ``fake_range`` (V7; record 0068 item 17).
 
-    400 resamples with replacement from the stream it is given, the interval the range of the defined values,
-    "none" under 10 defined; ``on_step(done, 400)`` after each resample. Its settings are a fresh plain dict of
-    JSON values, as the bootstrap's (record 0068 item 15). C30's broken toys subclass it, each overriding one step.
+    ``resamples`` (400) resamples with replacement from the stream it is given, the interval the range of the defined
+    values, "none" under ``min_defined`` (10) defined; ``on_step(done, resamples)`` after each resample. Its settings
+    are a fresh plain dict of JSON values, as the bootstrap's (record 0068 item 15). C30's broken toys subclass it,
+    each overriding one step.
     """
 
     name = "fake_range"
+    resamples = 400
+    min_defined = 10
 
     @property
     def settings(self) -> dict[str, Any]:
-        return {"resamples": 400, "min_defined": 10}
+        return {"resamples": self.resamples, "min_defined": self.min_defined}
 
     def draws(self, stream: np.random.Generator, n: int) -> np.ndarray:
-        return stream.integers(0, n, (400, n))
+        return stream.integers(0, n, (self.resamples, n))
 
     def distinct(self, sample: np.ndarray) -> np.ndarray:
         return np.unique(sample)
@@ -77,8 +80,9 @@ class FakeIntervalMethod:
     def summarize(self, values: np.ndarray) -> Any:
         defined = values[np.isfinite(values)]
         undefined = len(values) - len(defined)
-        if len(defined) < 10:
-            return Interval(None, f"{len(defined)} of 400 resamples defined, fewer than 10", undefined)
+        if len(defined) < self.min_defined:
+            reason = f"{len(defined)} of {self.resamples} resamples defined, fewer than {self.min_defined}"
+            return Interval(None, reason, undefined)
         return Interval((float(defined.min()), float(defined.max())), None, undefined)
 
     def intervals(
@@ -98,6 +102,21 @@ class FakeIntervalMethod:
             if on_step is not None:
                 on_step(b + 1, len(draws))
         return {e.name: tuple(self.summarize(values[e.name][:, j]) for j in range(len(e.labels))) for e in estimators}
+
+
+class LeanIntervalMethod(FakeIntervalMethod):
+    """The fake with 25 resamples and "none" under 5 defined: for the diagnostic contract's checks that don't test
+    the intervals themselves (record 0084, Review round 1).
+
+    It still calls the diagnostic's own estimators on resamples drawn from the stream it is given, so the checks of
+    a transform (an interval's ends are the min and max of estimates, exact under a·y with a a power of 2), of
+    determinism at memory offsets, and of the failures' independence keep their force, at about 1/40 of the
+    bootstrap's fits.
+    """
+
+    name = "fake_lean"
+    resamples = 25
+    min_defined = 5
 
 
 @contextmanager

@@ -275,6 +275,23 @@ def test_values_with_units():
     assert "| Minimum | 412.3 K |" in render(simple(observations=[table]), ABC)
 
 
+@pytest.mark.parametrize(
+    ("title", "cell"),
+    [
+        ("Coefficients in K. Each level is fitted on its runs.", "| Intercept | 412.3 |"),
+        ("Coefficients in kelvin. Each level is fitted on its runs.", "| Intercept | 412.3 K |"),
+        ("Of the levels", "| Intercept | 412.3 K |"),
+        ("Each level is fitted within K.", "| Intercept | 412.3 K |"),
+    ],
+)
+def test_units_left_out_where_the_title_names_them(title, cell):
+    """Record 0078 item 2 (Review round 1): a cell keeps its units in the result, and the report leaves them out
+    where its table's title says "in <units>."."""
+    table = otable("levels", ("The fit at each level", "Level 0"), [("Intercept", 412.34)], title=title, units="K")
+    assert table.rows[0][0].units == "K"
+    assert cell in render(simple(observations=[table]), ABC)
+
+
 # S4: the explanation once, and the line under each table (0042; V4, V6, V7)
 
 
