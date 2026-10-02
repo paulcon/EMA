@@ -61,6 +61,8 @@ MODULES += ["ema/diagnostics/_lines.py", "ema/diagnostics/coordinate_lines.py", 
 MODULES += ["ema/diagnostics/linear_model.py", "ema/diagnostics/_fits.py"]
 #: The CLI (step 16).
 MODULES += ["ema/cli.py"]
+#: The polynomial model (step 13).
+MODULES += ["ema/diagnostics/polynomial_model.py"]
 
 
 @pytest.mark.slow

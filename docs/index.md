@@ -89,6 +89,7 @@ The store (step 06):
 .. Step 10: scatter (a block of its own, to ease merging).
 .. Step 11: coordinate lines and lines (a block of its own, to ease merging).
 .. Step 12: the linear model (a block of its own, to ease merging).
+.. Step 13: the polynomial model (a block of its own, to ease merging).
 
 .. autosummary::
    :toctree: _autosummary
@@ -98,6 +99,7 @@ The store (step 06):
    ema.diagnostics.coordinate_lines
    ema.diagnostics.lines
    ema.diagnostics.linear_model
+   ema.diagnostics.polynomial_model
 ```
 
 The runner and approval (step 07):
