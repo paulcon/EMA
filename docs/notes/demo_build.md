@@ -206,3 +206,7 @@ State lives in git and on disk; nothing is only in the conversation.
   contract's batch builder per run). U2 passes on `demo`. Review round 1 started.
 - **Step 12** built and merged (the linear model; the mock matched exactly). Review round 1 started. The
   bootstrapped diagnostics make the fast tier slow (about 2,000 fits per bootstrap); to settle at the end.
+- **Round-2 fixes** for 04, 06, 08 merged (the reply limit scaled with a batch; waits capped at 60 s; a drawing
+  lock for two threads; W6 under its transaction). Steps 04+05, 06, 08 done. Left for the final cleanup: under
+  load averages of 30–67, the model contract's 0.25 s `TIMEOUT_S` and a 2 s timing test in designs fail
+  intermittently (pass alone).
