@@ -29,6 +29,17 @@ MODULES = [
     "ema/designs/uniform.py",
     "ema/designs/convergent.py",
     "ema/designs/lines.py",
+    "ema/diagnostics/__init__.py",
+    "ema/diagnostics/base.py",
+    "ema/diagnostics/point_run.py",
+    "ema/reference_models/__init__.py",
+    "ema/reference_models/r2/model.json",
+    "ema/reference_models/r2/ishigami.py",
+    "ema/reference_models/r2/space.json",
+    "ema/reference_models/r8/model.json",
+    "ema/reference_models/r8/r8.py",
+    "ema/reference_models/r8/x.in.template",
+    "ema/reference_models/r8/table.dat",
 ]
 
 

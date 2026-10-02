@@ -1,0 +1,12 @@
+{
+  "name": "r4a",
+  "description": "R4a: the constant 2.5",
+  "interface": "python_function",
+  "function": "r4a.py:f",
+  "parameters": [
+    {"name": "a", "units": "", "nominal": 0.0, "description": "a, in [-1, 1]: no effect"},
+    {"name": "b", "units": "", "nominal": 0.0, "description": "b, in [-1, 1]: no effect"},
+    {"name": "c", "units": "", "nominal": 0.0, "description": "c, in [-1, 1]: no effect"}
+  ],
+  "predictions": [{"name": "y", "units": "", "description": ""}]
+}

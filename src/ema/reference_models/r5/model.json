@@ -1,0 +1,15 @@
+{
+  "name": "r5",
+  "description": "R5: fails in known regions: an error where a + b > 1, a timeout where a and b < -0.8, z missing where b > 0.8",
+  "interface": "python_function",
+  "function": "r5.py:f",
+  "parameters": [
+    {"name": "a", "units": "", "nominal": 0.0, "description": "a, in [-1, 1]"},
+    {"name": "b", "units": "", "nominal": 0.0, "description": "b, in [-1, 1]"}
+  ],
+  "predictions": [
+    {"name": "y", "units": "", "description": ""},
+    {"name": "z", "units": "", "description": ""}
+  ],
+  "timeout_s": 0.2
+}

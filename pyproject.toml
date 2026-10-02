@@ -37,7 +37,7 @@ dev = [
 [tool.ruff]
 line-length = 120
 # Python files only: the Markdown documents are not formatted (they hold specs and guides, edited by hand).
-extend-exclude = ["docs/checks", "*.md"]
+extend-exclude = ["docs/checks", "*.md", "src/ema/reference_models"]
 
 [tool.ruff.lint]
 extend-select = ["B905", "NPY", "I", "D", "TID251"]
@@ -74,6 +74,8 @@ convention = "numpy"
 
 [tool.mypy]
 files = ["src"]
+# The reference models are data beside the layers: model files, not EMA's code (architecture.md §11).
+exclude = ["^src/ema/reference_models/"]
 
 [[tool.mypy.overrides]]
 module = ["scipy", "scipy.*"]
@@ -100,6 +102,7 @@ include_external_packages = true
 name = "AR1 One-way layers"
 type = "layers"
 layers = [
+    "(ema.runner) | (ema.approval) | ema.diagnostics",
     "ema.plotting | ema.report",
     "ema.models",
     "ema.numerics | ema.designs",
@@ -139,6 +142,7 @@ source_modules = [
     "ema.models.files",
     "ema.plotting",
     "ema.report",
+    "ema.diagnostics",
 ]
 forbidden_modules = [
     "ema.models.execute",
@@ -155,6 +159,7 @@ source_modules = [
     "ema.models",
     "ema.plotting",
     "ema.report",
+    "ema.diagnostics",
 ]
 forbidden_modules = [
     "sqlite3",
@@ -188,6 +193,7 @@ source_modules = [
     "ema.models",
     "ema.plotting",
     "ema.report",
+    "ema.diagnostics",
 ]
 forbidden_modules = [
     "ema.reference_models",

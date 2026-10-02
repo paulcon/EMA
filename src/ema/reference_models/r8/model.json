@@ -1,0 +1,21 @@
+{
+  "name": "r8",
+  "description": "R8: R7 as a command-line program, with an input deck, a shared file, and two model parameters with no effect",
+  "interface": "command_line",
+  "command": ["python3", "r8.py", "x.in"],
+  "input_decks": [{"template": "x.in.template", "writes": "x.in"}],
+  "files": ["r8.py", {"path": "table.dat", "shared": true}],
+  "parameters": [
+    {"name": "a", "units": "", "nominal": 0.0, "description": "a, in [-1, 1]: the kink, with e"},
+    {"name": "b", "units": "", "nominal": 0.0, "description": "b, in [-1, 1]: the jump at 0.2"},
+    {"name": "c", "units": "", "nominal": 0.0, "description": "c, in [-1, 1]: analytic"},
+    {"name": "e", "units": "", "nominal": 0.0, "description": "e, in [-1, 1]: the kink, with a"},
+    {"name": "f", "units": "", "nominal": 0.0, "description": "f, in [-1, 1]: no effect"},
+    {"name": "g", "units": "", "nominal": 0.0, "description": "g, in [-1, 1]: no effect"}
+  ],
+  "predictions": [
+    {"name": "y", "units": "", "description": "",
+     "parser": {"kind": "regex", "file": "out.txt", "pattern": "y = (\\S+)"}}
+  ],
+  "timeout_s": 60
+}

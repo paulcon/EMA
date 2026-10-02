@@ -1,0 +1,12 @@
+{
+  "name": "r4b",
+  "description": "R4b: the constant 2.5 with a deterministic wiggle of 1e-12",
+  "interface": "python_function",
+  "function": "r4b.py:f",
+  "parameters": [
+    {"name": "a", "units": "", "nominal": 0.0, "description": "a, in [-1, 1]"},
+    {"name": "b", "units": "", "nominal": 0.0, "description": "b, in [-1, 1]"},
+    {"name": "c", "units": "", "nominal": 0.0, "description": "c, in [-1, 1]"}
+  ],
+  "predictions": [{"name": "y", "units": "", "description": ""}]
+}

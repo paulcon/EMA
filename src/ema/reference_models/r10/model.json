@@ -1,0 +1,13 @@
+{
+  "name": "r10",
+  "description": "R10: a sparse Legendre polynomial, 2 psi1(a) + 0.5 psi2(b) + 1.5 psi1(a) psi1(c); e has no effect",
+  "interface": "python_function",
+  "function": "r10.py:f",
+  "parameters": [
+    {"name": "a", "units": "", "nominal": 0.0, "description": "a, in [-1, 1]"},
+    {"name": "b", "units": "", "nominal": 0.0, "description": "b, in [-1, 1]"},
+    {"name": "c", "units": "", "nominal": 0.0, "description": "c, in [-1, 1]: only with a"},
+    {"name": "e", "units": "", "nominal": 0.0, "description": "e, in [-1, 1]: no effect"}
+  ],
+  "predictions": [{"name": "y", "units": "", "description": ""}]
+}
