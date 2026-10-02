@@ -85,6 +85,13 @@ The store (step 06):
    ema.diagnostics.base
    ema.diagnostics.point_run
    ema.reference_models
+
+.. Step 12: the linear model (a block of its own, to ease merging).
+
+.. autosummary::
+   :toctree: _autosummary
+
+   ema.diagnostics.linear_model
 ```
 
 The runner and approval (step 07):

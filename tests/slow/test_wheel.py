@@ -53,6 +53,8 @@ MODULES += [
 ]
 #: The runner and approval (step 07).
 MODULES += ["ema/runner.py", "ema/approval.py"]
+#: The linear model (step 12).
+MODULES += ["ema/diagnostics/linear_model.py", "ema/diagnostics/_fits.py"]
 
 
 @pytest.mark.slow
