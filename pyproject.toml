@@ -110,7 +110,7 @@ exclude_type_checking_imports = true
 name = "AR1 One-way layers"
 type = "layers"
 layers = [
-    "ema.models",
+    "ema.models | ema.store",
     "ema.numerics | ema.designs",
     "ema.types",
 ]
@@ -154,6 +154,7 @@ source_modules = [
     "ema.models.processes",
     "ema.models.sandbox",
     "ema.models._worker",
+    "ema.store",
 ]
 forbidden_modules = [
     "ema.models.execute",
@@ -199,6 +200,7 @@ source_modules = [
     "ema.numerics",
     "ema.designs",
     "ema.models",
+    "ema.store",
 ]
 forbidden_modules = [
     "ema.reference_models",

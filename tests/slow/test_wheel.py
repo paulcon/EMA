@@ -30,6 +30,16 @@ MODULES = [
     "ema/designs/convergent.py",
     "ema/designs/lines.py",
 ]
+#: The store (step 06): its modules, and its schema as package data (data_model.md §10).
+MODULES += [
+    "ema/store/__init__.py",
+    "ema/store/schema.sql",
+    "ema/store/records.py",
+    "ema/store/layout.py",
+    "ema/store/lock.py",
+    "ema/store/migrations.py",
+    "ema/store/store.py",
+]
 
 
 @pytest.mark.slow
