@@ -48,4 +48,11 @@ The public names of the modules that exist so far (`architecture.md`), one page 
    ema.designs.lines
    ema.models.spec
    ema.models.files
+
+   ema.models.prepare
+   ema.models.execute
+   ema.models.collect
+   ema.models.parsers
+   ema.models.processes
+   ema.models.sandbox
 ```
