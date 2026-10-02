@@ -40,15 +40,25 @@ line-length = 120
 extend-exclude = ["docs/checks", "*.md"]
 
 [tool.ruff.lint]
-extend-select = ["B905", "NPY", "I", "D"]
+extend-select = ["B905", "NPY", "I", "D", "TID251"]
 # Docstrings are required of public names only: not of magic methods such as a dataclass's __post_init__.
 extend-ignore = ["D105"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
+# No vector-vector BLAS in EMA (record 0068 item 1): on Accelerate their results depend on the operands' addresses
+# mod 64 (docs/notes/blas_determinism_2026-10-01.md). Inner products and norms of 1-D arrays go through
+# ema.numerics._vector; `x @ y` of two 1-D arrays can't be caught here, and the 8-offset test catches it.
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"numpy.linalg.norm".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.norm (0068)"
+"numpy.dot".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot, or @ with a matrix (0068)"
+"numpy.inner".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot (0068)"
+"numpy.vdot".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot (0068)"
+"numpy.vecdot".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot (0068)"
+
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["D"]
+"tests/**" = ["D", "TID251"]
 "**/conftest.py" = ["D"]
 
 # ---------------------------------------------------------------------------------------------------------
@@ -82,7 +92,7 @@ include_external_packages = true
 name = "AR1 One-way layers"
 type = "layers"
 layers = [
-    "ema.designs",
+    "ema.numerics | ema.designs",
     "ema.types",
 ]
 
@@ -91,6 +101,7 @@ name = "AR2 No I/O in layers 0-1"
 type = "forbidden"
 source_modules = [
     "ema.types",
+    "ema.numerics",
     "ema.designs",
 ]
 forbidden_modules = [
@@ -112,6 +123,7 @@ type = "forbidden"
 allow_indirect_imports = true
 source_modules = [
     "ema.types",
+    "ema.numerics",
     "ema.designs",
 ]
 forbidden_modules = [
@@ -124,6 +136,7 @@ type = "forbidden"
 allow_indirect_imports = true
 source_modules = [
     "ema.types",
+    "ema.numerics",
     "ema.designs",
 ]
 forbidden_modules = [
@@ -153,6 +166,7 @@ name = "Reference models are data beside the layers"
 type = "forbidden"
 source_modules = [
     "ema.types",
+    "ema.numerics",
     "ema.designs",
 ]
 forbidden_modules = [
