@@ -33,14 +33,15 @@ independent agent reviews. The order of work is `docs/notes/build_roadmap.md`, i
    job, exhaustive degenerate cases beyond the important ones, slow-tier timing targets, PDF polish); list each
    deferral in the plan's Notes and in the record, with the effort to add it later and the seam kept for it.
    Never fake a number, a test, or an interval to get green (`none: reason` is better than a patched estimate).
-6. **Checks** (all must pass before you report): `uv run pytest -q && uv run lint-imports`;
+6. **Checks** (all must pass before you report): `uv run pytest -q -n auto && uv run lint-imports` (the fast
+   tier in parallel, record 0084);
    `uv run ruff check && uv run ruff format --check && uv run mypy`;
    `uv run sphinx-build -W --keep-going docs docs/_build/html` (add your modules to the API reference). Run the
    slow tier for your package if it has slow tests: `uv run pytest -q --slow -n auto <your tests>`.
 7. **Boundaries.** Touch only your step's packages, tests, plan, record, and the shared files your step must
    extend (`pyproject.toml`'s import contracts and dependencies, `docs/index.md`'s API list, `src/ema/__init__.py`
    re-exports, `ema/types/__init__.py`). Don't run git commands that change state (no commit, checkout, merge,
-   stash, reset); the coordinator commits. Never read `.env`. v1 (`../EMA-v1`, tag `v1-final`) is read-only
+   stash, reset; the permission system refuses them); the coordinator commits and merges. Never read `.env`. v1 (`../EMA-v1`, tag `v1-final`) is read-only
    reference: port only the files your roadmap row names, and name each port in your report. Run v1 only with
    `../EMA-v1/.venv/bin/python`. No paid API calls. Don't install anything outside the project's `.venv` (adding
    a Python dependency with `uv add` is fine; say so in the record).

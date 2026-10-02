@@ -154,3 +154,12 @@ State lives in git and on disk; nothing is only in the conversation.
   (T9), exact doubles, malicious replies, and the v1 port verified; the contract 8 of 8 runs green under load.
   Major: a Ctrl-C landing inside `Popen` leaked the program (21 of 40 tries); `pidfd_open` without a fallback on
   old Linux. Fixing round 1 started.
+- **Fixing round 1** for 04+05 (9ef9b89): both majors (Ctrl-C held around `Popen` and re-delivered; pidfd
+  fallback) and every minor fixed; a proposed M20 amendment (a finished program's group is killed) in 0071.
+- **Step 07** built (0ce0886): runner and approval; the runner's contracts with broken toys; 364 lines against
+  418. **Step 09** built (760584a): the diagnostic base and contract (C1–C19, with each compute at 8 memory
+  offsets), the point run, the reference models (v1's ishigami and borehole ported, bit-identical to v1).
+- **Merged into `demo`:** 04, 06, 08, 07, 09 (conflicts only in `pyproject.toml`'s import contracts and
+  `docs/index.md`; AR1's layers set to 3b over 3a over 2 over 1 over 0). 1,635 tests pass; every check green.
+  The fast tier takes 40–46 s serially, 19 s with `-n auto`: record 0084 (proposed) runs it in parallel and
+  measures the size budget at the end (7,560 lines so far).
