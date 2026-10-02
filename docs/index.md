@@ -103,3 +103,14 @@ The runner and approval (step 07):
    ema.runner
    ema.approval
 ```
+
+The workspace (step 14):
+
+```{eval-rst}
+.. Step 14: the workspace, the front door (a block of its own, to ease merging).
+
+.. autosummary::
+   :toctree: _autosummary
+
+   ema.workspace
+```

@@ -112,6 +112,7 @@ exclude_type_checking_imports = true
 name = "AR1 One-way layers"
 type = "layers"
 layers = [
+    "ema.workspace",
     "ema.runner | ema.approval | ema.diagnostics",
     "ema.plotting | ema.report",
     "ema.models | ema.store",
@@ -164,6 +165,8 @@ source_modules = [
     # Step 07: ema.runner is the one module that imports ema.models.execute; its sibling ema.approval may not.
     "ema.approval",
     "ema.diagnostics",
+    # Step 14: the workspace orchestrates the runs through ema.runner, and never runs a model itself.
+    "ema.workspace",
 ]
 forbidden_modules = [
     "ema.models.execute",
@@ -183,6 +186,7 @@ source_modules = [
     "ema.runner",
     "ema.approval",
     "ema.diagnostics",
+    "ema.workspace",
 ]
 forbidden_modules = [
     "sqlite3",
@@ -220,6 +224,7 @@ source_modules = [
     "ema.runner",
     "ema.approval",
     "ema.diagnostics",
+    "ema.workspace",
 ]
 forbidden_modules = [
     "ema.reference_models",

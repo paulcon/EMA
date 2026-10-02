@@ -1,8 +1,8 @@
 """EMA: diagnostics that find exploitable structure in computational models.
 
-The root package only re-exports, lazily (PEP 562), so ``import ema.types`` loads nothing else (AR7). So far
-its public names are the errors and ``ask``, the terminal approver (architecture.md §2, §6); the workspace and the
-result types join them with their build steps.
+The root package only re-exports, lazily (PEP 562), so ``import ema.types`` loads nothing else (AR7): the
+workspace (``open_workspace``, ``Workspace``, ``ResultRef``), ``ask``, the terminal approver, the result types the
+workspace returns, and the errors (architecture.md §2, §6, §7).
 """
 
 import importlib
@@ -29,23 +29,66 @@ _EXPORTS: dict[str, str] = {
     )
 }
 _EXPORTS["ask"] = "ema.approval"
+_EXPORTS.update(dict.fromkeys(("open_workspace", "Workspace", "ResultRef"), "ema.workspace"))
+_EXPORTS.update(
+    dict.fromkeys(
+        ("DiagnosticResult", "Provenance", "ResultSummary", "Reproduction", "Estimate", "EstimateTable",
+         "Observation", "ObservationTable", "Note", "Figure", "Counts"),
+        "ema.types.results",
+    )
+)  # fmt: skip
+_EXPORTS.update(
+    dict.fromkeys(
+        ("ModelSummary", "ModelDescription", "Proposal", "Report", "LoadingSummary", "DiagnosticSummary",
+         "DiagnosticParameterInfo", "RunInfo"),
+        "ema.types.summaries",
+    )
+)  # fmt: skip
+_EXPORTS.update(dict.fromkeys(("Price",), "ema.types.runs"))
+_EXPORTS.update(dict.fromkeys(("ApprovalRequest", "ConfirmationRequest", "Progress"), "ema.types.requests"))
 
 __all__ = [
     "AmbiguousId",
     "ApprovalDeclined",
+    "ApprovalRequest",
     "CannotAsk",
+    "ConfirmationRequest",
+    "Counts",
     "DesignTooLarge",
+    "DiagnosticParameterInfo",
+    "DiagnosticResult",
+    "DiagnosticSummary",
     "EMAError",
+    "Estimate",
+    "EstimateTable",
+    "Figure",
+    "LoadingSummary",
     "ModelChanged",
+    "ModelDescription",
+    "ModelSummary",
     "NotFound",
+    "Note",
+    "Observation",
+    "ObservationTable",
     "PandocMissing",
     "PathRefused",
     "PdfFailed",
+    "Price",
+    "Progress",
+    "Proposal",
+    "Provenance",
+    "Report",
+    "Reproduction",
     "RequestError",
+    "ResultRef",
+    "ResultSummary",
+    "RunInfo",
     "SpecError",
+    "Workspace",
     "WorkspaceBusy",
     "WorkspaceVersion",
     "ask",
+    "open_workspace",
 ]
 
 

@@ -479,6 +479,10 @@ class Store:
         n, name, mv, path, keep, batch, timeout, at = rows[0]
         return Loading(n, name, mv.hex(), path, Keep(keep), batch, timeout, parse_timestamp(at))
 
+    def model_names(self) -> tuple[str, ...]:
+        """Q3, every name: the model names loaded, sorted, for ``list_models`` (record 0080 item 3)."""
+        return tuple(row[0] for row in self._execute("SELECT DISTINCT name FROM loadings ORDER BY name"))
+
     def model_version(self, model_version_id: str) -> ModelVersion:
         """Q14: a model version's spec and tracked files, by its id (0056).
 
