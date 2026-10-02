@@ -26,6 +26,9 @@ mode  behaviour
 10    returns something that isn't model predictions: a string, or a batch's array of the wrong shape
 ====  ==========================================================================================================
 
+With ``TOY_CALLS`` set in its ``env``, each of the three toys appends each point it is called at to that file, one
+JSON list per line (step 07's tests: a call refused before it starts never reaches the toy).
+
 A test copies a model into a temporary directory before changing or loading it, so nothing is written beside the
 originals.
 """

@@ -40,6 +40,8 @@ MODULES += [
     "ema/store/migrations.py",
     "ema/store/store.py",
 ]
+#: The runner and approval (step 07).
+MODULES += ["ema/runner.py", "ema/approval.py"]
 
 
 @pytest.mark.slow

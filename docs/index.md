@@ -69,3 +69,13 @@ The store (step 06):
    ema.store.lock
    ema.store.migrations
 ```
+
+The runner and approval (step 07):
+
+```{eval-rst}
+.. autosummary::
+   :toctree: _autosummary
+
+   ema.runner
+   ema.approval
+```

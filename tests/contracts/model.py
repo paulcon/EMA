@@ -8,9 +8,10 @@ the batch model, the Python models, or the command-line model; ``check_parser`` 
 parsers. Every check has broken toys, each an ``Adapter`` (or a parser) that differs from the real one in one way,
 and ``test_every_check_fails_on_its_broken_toy`` is the meta-test.
 
-Step 03 wrote C33; steps 04 and 05 add the rest. Finished in step 07 (the runner): C34's call refused through
-``run_new``, C37's calls sized to ``batch_size`` and to what remains approved, and C41's stopped run through
-``run_new``'s Ctrl-C (record 0071).
+Step 03 wrote C33; steps 04 and 05 add the rest. Finished in step 07 (the runner), in ``tests/contracts/runner.py``:
+C34's call refused through ``run_new`` (``check_refused_call``), C37's calls sized to ``batch_size`` and to what
+remains approved (``check_batch_sizes``), and C41's ``keep`` and stopped run through ``run_new``
+(``check_keep_applied``) (records 0071, 0074).
 """
 
 from __future__ import annotations
@@ -291,7 +292,7 @@ def tracked_file(kind: str) -> str:
 def check_rehash(adapter: Any) -> None:
     """C34, M16: the tracked files are hashed again before a call; after an edit the next call is refused, naming
     the file, and the run already made is kept (its directory and ``run.json``). (The runner's refusal of the call
-    is step 07's.)"""
+    is ``tests/contracts/runner.py``'s ``check_refused_call``.)"""
     with bench(adapter) as b:
         model = b.model()
         (first,) = b.runs(model, point())[:1]
@@ -354,7 +355,7 @@ def check_batch(adapter: Any) -> None:
     """C37, M8 (0025): a batch call gives the same model predictions as the same function one point at a time; a
     non-finite row is missing for its run only; an exception or a wrong shape fails every run in the call, with one
     reason; each run records the call's time divided by its size, and the call's id. (Calls sized to ``batch_size``
-    and to what remains approved are the runner's, step 07.)"""
+    and to what remains approved are ``tests/contracts/runner.py``'s ``check_batch_sizes``.)"""
     with bench(adapter) as b:
         model = b.model()
         points = [point(0, a=x / 7, b=1 / (x + 3)) for x in range(5)]

@@ -108,6 +108,8 @@ include_external_packages = true
 name = "AR1 One-way layers"
 type = "layers"
 layers = [
+    # ema.diagnostics joins layer 3b with its step (09): import-linter refuses a layer member that doesn't exist.
+    "ema.runner | ema.approval",
     "ema.models | ema.store",
     "ema.numerics | ema.designs",
     "ema.types",
@@ -152,6 +154,8 @@ source_modules = [
     "ema.models.sandbox",
     "ema.models._worker",
     "ema.store",
+    # Step 07: ema.runner is the one module that imports ema.models.execute; its sibling ema.approval may not.
+    "ema.approval",
 ]
 forbidden_modules = [
     "ema.models.execute",
@@ -166,6 +170,8 @@ source_modules = [
     "ema.numerics",
     "ema.designs",
     "ema.models",
+    "ema.runner",
+    "ema.approval",
 ]
 forbidden_modules = [
     "sqlite3",
@@ -198,6 +204,8 @@ source_modules = [
     "ema.designs",
     "ema.models",
     "ema.store",
+    "ema.runner",
+    "ema.approval",
 ]
 forbidden_modules = [
     "ema.reference_models",

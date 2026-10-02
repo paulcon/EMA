@@ -13,6 +13,9 @@ print("printed at import")
 
 
 def f(a, b, mode):
+    if os.environ.get("TOY_CALLS"):  # the runner's tests: each point the toy is called at (tests/support/runner.py)
+        with open(os.environ["TOY_CALLS"], "a") as calls:
+            calls.write(json.dumps([a, b, mode]) + "\n")
     mode = int(mode)
     y = a + 2 * b + scale()
     if mode == 1:
