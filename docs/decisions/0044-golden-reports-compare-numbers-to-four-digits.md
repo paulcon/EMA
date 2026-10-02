@@ -1,6 +1,6 @@
 # 0044. Compare golden reports by their numbers to four digits; print ASCII minus signs and whole integers
 
-**Date:** 2026-10-01. **Status:** accepted. **Resolves:** none (consistency review, Q2).
+**Date:** 2026-10-01. **Status:** accepted; its golden points amended by 0061 (across machines). **Resolves:** none (consistency review, Q2).
 
 ## Context
 

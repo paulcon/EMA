@@ -1,6 +1,6 @@
 # 0042. Explain variability intervals once per report, and fix three step-6 slips
 
-**Date:** 2026-10-01. **Status:** accepted. **Resolves:** none (step 7's third consistency check).
+**Date:** 2026-10-01. **Status:** accepted; its glossary row for observation amended by 0061. **Resolves:** none (step 7's third consistency check).
 
 ## Context
 

@@ -1,6 +1,6 @@
 # 0028. Collect every run from files, and keep the run directories of incomplete runs
 
-**Date:** 2026-09-30. **Status:** accepted. **Resolves:** none (TODO step 4; details of 0015 and 0020).
+**Date:** 2026-09-30. **Status:** accepted; its rerun's new id amended by 0061 (the same id). **Resolves:** none (TODO step 4; details of 0015 and 0020).
 
 ## Context
 

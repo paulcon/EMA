@@ -1,6 +1,6 @@
 # 0031. Add "run directory" to the glossary, and say in P3 which files the model version covers
 
-**Date:** 2026-09-30. **Status:** accepted. **Resolves:** none (TODO step 4; wording that follows 0015, 0020,
+**Date:** 2026-09-30. **Status:** accepted; its P3 wording amended by 0057 (`pass_env` values). **Resolves:** none (TODO step 4; wording that follows 0015, 0020,
 0028, 0029, 0030).
 
 ## Context

@@ -1,6 +1,6 @@
 # 0035. Call a model prediction constant only when every usable run gives the same value
 
-**Date:** 2026-09-30. **Status:** accepted. **Resolves:** none (TODO step 6, the diagnostic specs' shared parts).
+**Date:** 2026-09-30. **Status:** accepted; its P6 wording amended by 0051 (the point run's exception). **Resolves:** none (TODO step 6, the diagnostic specs' shared parts).
 
 ## Context
 

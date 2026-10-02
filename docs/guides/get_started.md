@@ -7,7 +7,7 @@ Python blocks run as written on R2, from an installed EMA, in the slow tier (C53
 > Outline now, full text once the code exists. Each step shows what the user types and what they see; `<…>`
 > marks text to write then, and the numbers shown are placeholders until the test computes them. The guide is
 > in Python: the CLI can't name a reference model (`ema.cli` doesn't import `ema.reference_models`,
-> `architecture.md` §10), and the other guides show the CLI with the analyst's own files.
+> `architecture.md` §10), and the other guides show the CLI with the user's own files.
 
 1. **Install EMA** with uv, on Python 3.13 or newer (0059). Read access to the repository is needed (a
    GitHub login, or a token).
@@ -60,7 +60,7 @@ Python blocks run as written on R2, from an installed EMA, in the slow tier (C53
    #   ishigami@<12 hex>: test run at the nominal point
    #   Price: 1 new run, 0 reused, time unknown
    #   (the first approval for a model version also shows the function, the child's interpreter, the files,
-   #   and the environment: trust.md, What needs the analyst's yes)
+   #   and the environment: trust.md, What needs the user's yes)
    #   Approve? [y/N] y
    #   Run <short id>: ok; y = 0 (x1 = x2 = x3 = 0)
    ```

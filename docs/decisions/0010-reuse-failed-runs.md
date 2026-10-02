@@ -1,6 +1,6 @@
 # 0010. Reuse failed runs unless the user asks to retry them
 
-**Date:** 2026-09-29. **Status:** accepted. **Resolves:** none (TODO step 2, use case U3).
+**Date:** 2026-09-29. **Status:** accepted; its name `estimate` amended by 0056 (`price`). **Resolves:** none (TODO step 2, use case U3).
 
 ## Context
 

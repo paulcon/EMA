@@ -20,7 +20,7 @@ can be used to:
 - **Run the use cases' "Done when" tests.** Each use case names the reference model its workspace contract
   test runs on: U1 on R2, U2 on R8, U3 on R5, U4 on R10 and R2, U7 on R6 and R1 (`../design/use_cases.md`).
 - **Check prices, reuse, and determinism.** A cheap Python reference model makes P3's and P4's tests fast: the
-  same request twice, nested designs, a changed file, and golden reports compared exactly (P4).
+  same request twice, nested designs, a changed file, and golden reports compared to four digits (P4, 0044).
 - **Compare v2 with v1.** Where v1 has the same function (`../EMA-v1`, `src/ema/testfunctions/library.py`),
   running v1 at the same seed, in v1's own virtual environment, is an independent source of numbers
   (`../../CLAUDE.md`, "v1").

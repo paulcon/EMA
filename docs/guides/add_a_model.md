@@ -142,7 +142,7 @@ beam and U2's heat solver, which the use cases run on reference models.
 
 4. **What you approve, and why.** The first approval for a model version shows the command and the
    program's resolved path, the input deck templates, the files, and the environment the spec sets (U2,
-   `trust.md`, What needs the analyst's yes; 0029, 0057); later ones show only the model version and the
+   `trust.md`, What needs the user's yes; 0029, 0057); later ones show only the model version and the
    price. Every question and answer is recorded (T3). <…>
 
    ```text

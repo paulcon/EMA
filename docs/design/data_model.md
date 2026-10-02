@@ -1,7 +1,9 @@
 # Data model
 
 **Status:** accepted. **Updated:** 2026-10-01, from an interview (TODO step 8); Q13–Q15, W5 on a stored id, and connections by
-0056; the confirmation's path and Q4's first approval by 0057. **Schema version:** 1.
+0056; the confirmation's path and Q4's first approval by 0057; doubles, the run id's bytes, Q7's tails, and replay's
+point check by 0061; replays from stored points, Q15's points, and the hashed objects' shapes by 0062; the design's structure in the
+provenance by 0063. **Schema version:** 1.
 **Depends on:** P1, P3–P7; `model_interface.md`, `designs.md`, `diagnostics/shared.md`, `point_run.md`,
 `uncertainty.md`, `contracts.md` (C17, C46–C52, C56), `export.md`; records 0006, 0010, 0011, 0015, 0020–0022,
 0025, 0028–0030, 0032, 0041, 0043, 0044, 0046, 0049, 0050, 0054, 0055, and 0056.
@@ -45,7 +47,7 @@
 | Q4 | Has this model version had an approval answered yes? | the first approval shows the command (or a Python function's `function`), templates, files, and the environment the spec sets (U2, `trust.md`) | yes |
 | Q5 | Is a diagnostic result stored for this reuse key? | a repeated request (C50, 0054) | yes |
 | Q6 | A diagnostic result: its numbers, request, design, provenance, and approval | `get_result`, `report`, `reproduce`, export, MCP | yes |
-| Q7 | A diagnostic result's runs, in design order, with their points, status, kind, reason, model predictions, time, host, program, and approval | export (E2), `failed_runs` (U3) | yes: 10⁶ rows in seconds |
+| Q7 | A diagnostic result's runs, in design order, with their points, status, kind, reason, stderr tail, model predictions, time, host, program, and approval (the tail, 0061) | export (E2), `failed_runs` (U3) | yes: 10⁶ rows in seconds |
 | Q8 | Which diagnostic results exist, by model name, model version, diagnostic, or model prediction, newest first? | `list_results` (U6), MCP | no |
 | Q9 | A run, by its id, or the runs of a diagnostic result at a point (one per replicate): each one's record, run directory, and batch call | the run-directory lookup (0020) | no |
 | Q10 | Which point runs measured this model version noisy in this model prediction, newest first? | notes on later diagnostic results (PT4, C52) | yes |
@@ -98,13 +100,18 @@
   allow_nan=False)`. A double is written by Python's `repr`, the shortest decimal that reads back exactly, so
   every double round-trips, −0.0 and subnormals included (C17, verified in the review). Integers stay
   integers. NaN and infinity can't be written: a missing value is `null`, with its reason beside it.
+- **Doubles for model parameter values** (0061): every value in model parameter units (nominal values,
+  limits, range ends, held values, a point's `x`, anchors) and every given direction (in unit coordinates) becomes a double when parsed,
+  from a model spec, a space, or a diagnostic parameter, before anything is hashed. So `45` and `45.0`, or a
+  space from `--space FILE` and the same space in Python, give one model version and one reuse key. Integer
+  diagnostic parameters (`n`, `repeats`, the seed) stay integers; alpha keeps its decimal string (0047).
 - **A point** is its doubles in the model spec's order of model parameters, held ones included (0023).
   - **Point hash:** the SHA-256 of those doubles as little-endian IEEE float64 bytes, 8·d bytes. Exact bits:
     −0.0 and 0.0 are different points, as any two doubles that differ are (P3); a model may treat them
     differently (1/x).
   - **Stored** as a JSON list of doubles, in the same order.
-  - **Across machines:** a log range's points can differ by one unit in the last place between CPUs
-    (`designs.md`, Determinism). Such a point is a different point, so a design rebuilt there makes new runs,
+  - **Across machines:** a log range's points, and random lines' points, can differ in their last bits
+    between machines (`designs.md`, Determinism; 0062). Such a point is a different point, so a design rebuilt there makes new runs,
     which its price shows; correctness is unaffected. This answers 0044's question: runs are matched by exact
     point only, as P3 says (0051).
 - **A model version's hash** (its id): the SHA-256 of the canonical JSON of `{"spec": …, "files": […]}`.
@@ -122,16 +129,17 @@
   `{"test_run": {"point": […]}}`.
 - **A design's identity** (0046, 0032): the request's design part (kind, space, generator parameters, seed,
   sampler and its version, generator version) and the model version. Stored with each diagnostic result and
-  approval, so a design can be rebuilt without today's code deciding it.
+  approval; with the provenance's design structure and the stored runs' points, a replay needs no generator,
+  and with today's generator at the identity's versions the design can also be rebuilt (0063).
 - **Ids:** every id is the SHA-256 of what identifies its row, so the same work in two fresh workspaces gets
   the same ids. Then a report holding ids, such as U9's, is byte-identical to U1's.
 
   | Row | Its id is the SHA-256 of |
   |---|---|
   | model version | its canonical JSON (above) |
-  | run | the model version id, the point hash, the replicate, and the attempt (8-byte little-endian integers) |
+  | run | the model version id and the point hash as hex text (UTF-8), then the replicate and the attempt (8-byte little-endian integers) (0061) |
   | batch call | its runs' ids, in call order |
-  | approval | the canonical JSON of the model version id, what it is for, the request, the counts of new and reused runs, and the number of approvals stored before it in the workspace |
+  | approval | the canonical JSON of the object `{"model_version_id", "asked_for", "request", "new", "reused", "n_before"}`: the model version id, what it is for (`asked_for`), the request, the counts of new and reused runs, and the number of approvals stored before it in the workspace (0062) |
   | diagnostic result | its reuse key (below) |
 
   Loadings and confirmations have no id: nothing names them.
@@ -144,9 +152,10 @@
   - **in the CLI, the MCP server, and Python's printed summaries:** by the shortest prefix of at least 4 hex
     digits that is unique among ids of its kind, as git shows commits. A typed prefix of at least 4 digits
     that names one id is accepted; one that names several is refused, listing them.
-- **The reuse key** of a diagnostic result (C50, 0054): the canonical JSON of the model version id, the
-  canonical request, the ids of the runs the design resolves to, in design order, and the versions of EMA,
-  numpy, scipy, and matplotlib. Changing any of these makes a new diagnostic result. The design's identity
+- **The reuse key** of a diagnostic result (C50, 0054): the canonical JSON of the object
+  `{"model_version_id", "request", "run_ids", "versions"}`: the model version id, the canonical request, the
+  ids of the runs the design resolves to, in design order, and the versions of EMA, numpy, scipy, and
+  matplotlib, an object with the keys `ema`, `numpy`, `scipy`, and `matplotlib` (0062). Changing any of these makes a new diagnostic result. The design's identity
   needs no place of its own: the request and EMA's version decide it. The measured-noisy records read are not
   part of the key: a repeated request made before a point run returns the stored result, without the note
   (`point_run.md`).
@@ -171,7 +180,8 @@
 | Run used | one design row of a diagnostic result, and the run it used | `result_runs` | |
 | Measured noisy | one point run that measured a model version noisy in one model prediction | `measured_noisy` | noisy |
 
-No `designs` table: a design is rebuilt from its identity, stored with each diagnostic result and approval,
+No `designs` table: a design is built from its identity, stored with each diagnostic result and approval (a
+replay's from the stored points and the provenance's design structure, 0063),
 and its rows are tied to runs by `result_runs`. Shared model files need no table: they are named by their
 hash (§6).
 
@@ -374,10 +384,10 @@ predictions are missing, for its run's reason. **Rows:** runs × model predictio
 | `diagnostic` | `name` | no | | W5 |
 | `prediction` | `name` | no | the model prediction analyzed | W5 |
 | `request` | `json(Request)` | no | canonical (§3.4) | W5 |
-| `design` | `json(DesignIdentity)` | no | the design's identity, so export and `reproduce` don't depend on today's code | W5 |
+| `design` | `json(DesignIdentity)` | no | the design's identity; with the provenance's design structure and the stored runs' points, export and `reproduce` don't depend on today's code (0063) | W5 |
 | `approval_id` | `id` | yes: no new runs | the approval of its own new runs (0054) | W5 |
 | `result` | `json(DiagnosticResult)` | no | estimates (a "none" interval is null, with its reason, 0041), observations, counts, notes, and figures' names; the polynomial model's coefficients and multi-indices with their intervals (0041) | W5 |
-| `provenance` | `json(Provenance)` | no | EMA's and the libraries' versions, the spawn tags (0041), and each measured-noisy record read, in full | W5 |
+| `provenance` | `json(Provenance)` | no | EMA's and the libraries' versions, the spawn tags (0041), each measured-noisy record read, in full, and the design's structure (a convergent design's level sizes; each line's anchor, direction, ends, and rows; 0063) | W5 |
 | `made_at` | `timestamp` | no | when | W5 |
 
 - **Primary key:** `result_id`; so one result per reuse key (C50). **Index:** `(model_version_id, made_at)`
@@ -479,9 +489,9 @@ result (Q5), and returns it, with no approval asked.
 | Q2 | `run_times(model_version_id) -> (int, float \| None)` | the number of stored runs, any status, and their mean `time_s`; None when there is none | `SELECT COUNT(*), AVG(time_s) FROM runs WHERE model_version_id = ?` | `(model_version_id, time_s)` |
 | Q3 | `current_loading(name) -> Loading \| None` | | `… FROM loadings WHERE name = ? ORDER BY loading DESC LIMIT 1` | `(name, loading)` |
 | Q4 | `has_approval(model_version_id) -> bool` | | `SELECT 1 FROM approvals WHERE model_version_id = ? AND answer = 1 LIMIT 1` | `(model_version_id, answer)` |
-| Q5 | `find_result(reuse_key_hash) -> Result \| None` | | by primary key | primary key |
-| Q6 | `get_result(result_id) -> Result` | with its full `Provenance`, the run ids included | by primary key, and `result_runs` | primary keys |
-| Q7 | `result_runs(result_id) -> list[RunUsed]` | each row's run with its model predictions, in design order | `result_runs JOIN runs LEFT JOIN predictions … ORDER BY row` | `result_runs` key, `runs` key |
+| Q5 | `find_result(reuse_key_hash) -> DiagnosticResult \| None` | | by primary key | primary key |
+| Q6 | `get_result(result_id) -> DiagnosticResult` | with its full `Provenance`, the run ids included | by primary key, and `result_runs` | primary keys |
+| Q7 | `result_runs(result_id) -> RunColumns` | each row's run with its model predictions and its stderr tail (0061), in design order | `result_runs JOIN runs LEFT JOIN predictions … ORDER BY row` | `result_runs` key, `runs` key |
 | Q8 | `list_results(name=None, model_version_id=None, diagnostic=None, prediction=None)` | summaries, newest first | `results JOIN model_versions …` | `(model_version_id, made_at)`, `(name)` |
 | Q9 | `get_run(run_id)`; `runs_at(result_id, point_hash)` | the run, or the result's runs at the point (one per replicate), each with its directory and batch call | by key; or `result_runs JOIN runs WHERE point_hash = ? ORDER BY replicate` | keys |
 | Q10 | `measured_noisy(model_version_id, prediction)` | newest first | `… ORDER BY made_at DESC` | its index |
@@ -489,18 +499,20 @@ result (Q5), and returns it, with no approval asked.
 | Q12 | `approvals()`, `confirmations()` | in order | `ORDER BY asked_at` | none (small) |
 | Q13 | `approval_coverage(approval_id, keys) -> Coverage` | the approval's model version and answer, and which of one call's keys it covers and has no run for yet | `approvals` by key; per key, `approval_points` by key and `runs` by its unique key with that approval | primary keys; the runs' unique key |
 | Q14 | `model_version(model_version_id) -> ModelVersion` | its spec and tracked files | by key | primary key |
-| Q15 | `runs_by_id(run_ids) -> RunColumns` | one row per id given, in the order given, with their model predictions; an unknown id is `NotFound` | per chunk of 30,000 distinct ids, as Q1, then laid out in the order given | primary keys; `predictions` by its key's prefix |
+| Q15 | `runs_by_id(run_ids, *, points=False) -> RunColumns` | one row per id given, a repeated id repeated (rows share runs, E2), in the order given, with their model predictions, and their points when asked (a replay, 0062); an unknown id is `NotFound` | per chunk of 30,000 distinct ids, as Q1, then laid out in the order given | primary keys; `predictions` by its key's prefix |
 
 Q7 and Q15 return `ema.types.RunColumns`, columns with no object per row (`architecture.md` §3), and read in
 chunks of 30,000 rows, one statement each, so a writer in another connection waits at most one chunk (0056).
 
 ## 9. Invariants
 
-Each is a check in `tests/contracts/store.py`, and each store contract promise cites it.
+Each is a check in `tests/contracts/store.py`. The Contract column names what each backs; the store contract
+promises (C46–C52, C56) cite the invariants they rest on, and I6, I11, and I12 back records and a spec's
+requirements instead (0022, 0043; C17; E6).
 
 | Id | Invariant | Enforced by | Contract | Test |
 |---|---|---|---|---|
-| I1 | No row is updated; only W6 deletes, and only a diagnostic result's rows. | the store has no update function | C49, C51, C52 | `check_append_only` |
+| I1 | No row is updated; only W6 deletes, and only a diagnostic result's rows. | the store has no update function | C49 | `check_append_only` |
 | I2 | At each key (model version, point, replicate), the attempts are 0 … k with no gap; every one but the last failed; the current run is the last. | the unique key; W4's precondition | C46, C47 | `check_retry_beside_failed` |
 | I3 | A run's point hash is its point's, and its id is its key's hash. | W4 computes both | C46 | `check_run_keys` |
 | I4 | Every run's approval said yes for its model version and covers its point and replicate; no two runs of one approval share a key; so no approval has more runs than its `new`. | W4's precondition; `approval_points` | C48, P3 | `check_approval_cap` |
@@ -517,7 +529,12 @@ Each is a check in `tests/contracts/store.py`, and each store contract promise c
 caller, or read from an export's `result.json`) and the stored runs it names, as `reproduce` does: the same
 runs, approval, and measured-noisy records give a result identical to the original, header counts included.
 W6 keeps every run, so a deleted result replays. A fresh request after deletion is a new diagnostic
-evaluation, with its own counts.
+evaluation, with its own counts. The diagnostic is given a design built from the stored identity, the stored runs'
+points and replicates (Q15 reads them for a replay), and the provenance's design structure, with no generator,
+so the replay recomputes what was computed, across generator versions too (0062, 0063). When the identity's
+generator and sampler versions are today's, the design is also rebuilt as a check, coordinate by coordinate
+with `architecture.md`'s per-range tolerances; rows beyond are named among the provenance's differences, and
+with another version nothing is rebuilt and the versions are named. A replay never raises for either.
 
 ## 10. Mapping to code
 
@@ -594,4 +611,5 @@ evaluation, with its own counts.
 - **Architecture (step 9):** done (`architecture.md`, 0056).
 - **Trust (step 10):** done (`trust.md`, 0057): T3 is met by `approvals` and `confirmations`; the run lock
   makes the price shown the price run.
-- **Contracts:** done (0054, 0055): C46–C52 and C56 cite I1–I12, and C50 and C51 carry the reuse key and replay.
+- **Contracts:** done (0054, 0055): C46–C52 and C56 cite the invariants they rest on (§9), and C50 and C51 carry
+  the reuse key and replay.

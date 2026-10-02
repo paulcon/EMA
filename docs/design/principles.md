@@ -1,6 +1,6 @@
 # Principles
 
-**Status:** accepted. **Updated:** 2026-10-01 (P1 clarified by 0019; P7's "Open" settled by 0021; held candidate updated by 0026; P3's hash settings by 0029, and its tracked files by 0031; P2's list by 0034; P6's constant by 0035, and its check by 0036; P3's budgets by 0050; P3, P4, P6, and P7 worded by 0051; the candidate "One-way layers" answered by architecture rules, and P2's pointer, by 0056; P3's uncovered values and file comparison, and the candidate "User code runs isolated" answered by trust rules, by 0057).
+**Status:** accepted. **Updated:** 2026-10-01 (P1 clarified by 0019; P7's "Open" settled by 0021; held candidate updated by 0026; P3's hash settings by 0029, and its tracked files by 0031; P2's list by 0034; P6's constant by 0035, and its check by 0036; P3's budgets by 0050; P3, P4, P6, and P7 worded by 0051; the candidate "One-way layers" answered by architecture rules, and P2's pointer, by 0056; P3's uncovered values and file comparison, and the candidate "User code runs isolated" answered by trust rules, by 0057; "user" in P1's instructions by 0061; P4's "on one machine" by 0062).
 
 ## Accepted
 
@@ -17,7 +17,7 @@ text, and the report is the reference (0019).
 - **Enforced by:** an import-linter contract: no module in `ema` imports an LLM SDK
   (`architecture.md` §1). The report renderer and the figure code accept only stored diagnostic results.
   The MCP server's tools return result ids and text that EMA renders from the store. The server's
-  instructions ask the client to quote that text and to point the analyst to the report, rather than restate
+  instructions ask the client to quote that text and to point the user to the report, rather than restate
   numbers (0016, 0019).
 - **Tested by:** the import-linter contract, in the fast tier; a test that rebuilds a report from the store
   alone and requires byte-identical output; with a scripted MCP client, every number in a tool result equals
@@ -46,11 +46,11 @@ constant, documented in the spec that uses it.
 
 ### P3 Everything that decides a run is hashed; every new run is priced and approved
 
-Everything that decides what a run does (the model's spec, the contents of its files, and the point) is part
-of the run's key and of its approval. A stored run is reused only when its model version and point match
-(0005, 0006). A new run happens only after the user approves that diagnostic evaluation's new runs (0006).
-The approval shows the price (how many runs are new, how many are reused, and the estimated time, or
-"unknown"), and EMA never makes more new runs than it approved.
+Everything that decides what a run does (the model's spec, the contents of its files, and the point) is part of the
+run's key and of its approval. A stored run is reused only when its model version and point match (0005, 0006). A
+new run happens only after the user approves it: a diagnostic evaluation's new runs, or the test run (0006, 0049).
+The approval shows the price (how many runs are new, how many are reused, and the estimated time, or "unknown"),
+and EMA never makes more new runs than it approved.
 
 - **Why:** a run can take hours on the user's computer, and `purpose.md` promises both reuse of runs and a
   question before running. A model is arbitrary code, so an approval is informed only if it covers everything
@@ -60,28 +60,28 @@ The approval shows the price (how many runs are new, how many are reused, and th
   estimate before running; an approval is informed only if it shows how many runs and how long; and making
   more runs than approved spends the user's time without their yes.
 - **Enforced by:** the store keys runs by model version hash and point hash, and has no other lookup for reuse
-  (0051). The model version hash covers the spec, except the settings `keep`, `batch_size`, and `timeout_s`
-  (0020, 0025, 0029), and the contents of every file the model spec names: the Python function's file, the
-  input deck templates, and the listed files; modules found elsewhere, installed packages, programs outside
-  the model's files, and the values of variables passed by name (`pass_env`, `trust.md`) are not covered, and each run records its program's path (`model_interface.md`, 0029).
-  The scheduler is the only code that runs a model: it checks the store first, and refuses a new run unless an
-  approval matches its model version hash and point. One approval module, from day 1 (`trust.md`); an
-  approval records the model version hash and the new points it covers. Model files are compared as files
-  (samefile; case-folded where the file system is), never as strings. The workspace prices the design against the store (new vs reused)
-  before asking, and the approval records that price; the scheduler stops at the approved number of new
-  runs. The time estimate comes from stored run durations for that model version, and is "unknown" when
-  there are none.
+  (0051). The model version hash covers the spec, except the settings `keep`, `batch_size`, and `timeout_s` (0020,
+  0025, 0029), and the contents of every file the model spec names: the Python function's file, the input deck
+  templates, and the listed files; modules found elsewhere, installed packages, programs outside the model's files,
+  and the values of variables passed by name (`pass_env`, `trust.md`) are not covered, and each run records its
+  program's path (`model_interface.md`, 0029). The runner (`ema.runner`, AR4) is the only code that runs a model:
+  it checks the store first, and refuses a new run unless an approval matches its model version hash and point. One
+  approval module, from day 1 (`trust.md`); an approval records the model version hash and the new points it
+  covers. Model files are compared as files (samefile; case-folded where the file system is), never as strings. The
+  workspace prices the design against the store (new vs reused) before asking, and the approval records that price;
+  the runner stops at the approved number of new runs. The time estimate comes from stored run durations for that
+  model version, and is "unknown" when there are none.
 - **Tested by:** change one byte in a model file: the model version changes, and no run is reused. Run the
   same diagnostic evaluation twice: the second makes no new runs and asks for no approval. Two designs in
   different model parameter spaces reuse runs at their shared points. Approve, change one byte in a model
   file, and run: the run is refused. A design with k of its n points stored: the price says n−k new, and
-  exactly n−k runs are made. The scheduler refuses one run more than the approval states. With no stored
+  exactly n−k runs are made. The runner refuses one run more than the approval states. With no stored
   durations, the price says the time is unknown.
 - **Budgets:** not in v2.0 (0050).
 
 ### P4 Diagnostic evaluations are deterministic
 
-With the same EMA and library versions, the same request gives the same design, and with the same runs, the
+On one machine, with the same EMA and library versions, the same request gives the same design, and with the same runs, the
 same diagnostic result, including its variability intervals. Every random draw is seeded from the request.
 
 - **Why:** `purpose.md` promises that each diagnostic evaluation and its diagnostic result can be reproduced.
@@ -91,10 +91,11 @@ same diagnostic result, including its variability intervals. Every random draw i
   `SeedSequence`; when the user gives no seed, the seed is 0, and is recorded (P5; `designs.md`, 0051). Layers
   0–1 take a seed argument for any randomness (`architecture.md` §1), and Ruff's NPY002 bans numpy's legacy
   global random functions.
-- **Tested by:** the design generator contract: the same arguments give bit-identical points, and a different
-  seed gives different points. The diagnostic contract: the same request with the same runs gives an
-  identical diagnostic result, intervals included. Golden reports for the reference models, compared exactly in
-  the slow tier.
+- **Tested by:** the design generator contract: the same arguments give bit-identical points, and a different seed
+  gives different points. The diagnostic contract: the same request with the same runs gives an identical
+  diagnostic result, intervals included. Golden reports for the reference models in the slow tier, compared by
+  structure and by numbers within one unit in the 4th significant digit (`diagnostics/shared.md`, 0044); data cards
+  byte-identical on rerun (S10).
 
 ### P5 Every diagnostic result records its provenance
 
@@ -108,10 +109,11 @@ the approvals.
   comparing the two provenance records says why: a new model version, a new library, or a new seed.
 - **Enforced by:** `DiagnosticResult` can't be constructed without a `Provenance` (a required field, with no
   default). The store writes a diagnostic result and its provenance in one transaction.
-- **Tested by:** delete a stored diagnostic result, rerun it from its provenance and the stored runs, and
-  require an identical result. The store contract: no diagnostic result without provenance, and no
-  provenance without its runs and approvals. Change the seed, or the model version, and rerun: the two
-  provenance records differ in exactly that field.
+- **Tested by:** delete a stored diagnostic result, replay the provenance it had with the stored runs, and
+  require an identical result (C51, 0054, 0055). The store contract: no diagnostic result without provenance,
+  and no provenance without its runs and approvals. Change the seed, or the model version, and rerun: the two
+  provenance records differ in that field and in what it decides (the runs used and their approvals), and in
+  nothing else (C51).
 
 ### P6 No data, no estimates; no dependence on units
 
@@ -137,7 +139,7 @@ a > 0) changes no note.
   (0036).
 - **Tested by:** the diagnostic contract, over every diagnostic: too few runs, all runs failed, and a constant
   model prediction (but for the point run, 0051) each give counts and a note, with no estimates; a constant plus
-  a 10⁻¹² wiggle (R4b) gives estimates (0035). A constant model among the reference models, with its expected
+  a 10⁻¹² wiggle (R4b) gives estimates from each diagnostic that has them (0035). A constant model among the reference models, with its expected
   report. Known-answer tests one run below, and at, the minimum number of usable runs. The diagnostic contract:
   y → a·y + b leaves every note unchanged, and transforms each estimate as the diagnostic's spec says.
 
@@ -154,11 +156,12 @@ as replicates, and the diagnostic result reports the measured variation.
 - **Enforced by:** the model spec has a `noisy` field, false by default, and the store key includes a
   replicate number: 0 for a deterministic model, except the point run's repeats, which are numbered 1, 2, …
   (0011). The point run diagnostic (OD-5) repeats runs at one point and stores the measured variation with
-  the model version. Every diagnostic result for a model version measured noisy in the model prediction it
-  analyzes carries a note saying so (0051).
-- **Tested by:** the store contract: for a deterministic model, EMA never makes a second run at a stored
-  point, except the point run's repeats (0011). A noisy reference model: the point run reports its
-  variation, and later diagnostic results carry the note. A model declared deterministic that returns
+  the model version. Every diagnostic result made after its model version was measured noisy in the model
+  prediction it analyzes carries a note saying so (0051); a stored earlier result is returned unchanged (C50,
+  C52).
+- **Tested by:** the store contract: for a deterministic model, EMA never makes a second run at a stored point,
+  except the point run's repeats (0011) and a retry of a failed run (0010). A noisy reference model: the point run
+  reports its variation, and later diagnostic results carry the note. A model declared deterministic that returns
   different values on repeats is caught by the point run, and gets a note.
 - **Open (settled):** models declared noisy are not in v2.0; `noisy: true` is refused, and the point run still
   measures noise (0021).

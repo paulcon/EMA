@@ -1,12 +1,12 @@
 # Architecture: packages, layers, and modules
 
-**Status:** accepted (TODO step 9; 0056). **Updated:** 2026-10-01 (0057: the trust rules placed; 0060: the
-guides). **Depends on:** P1–P7; `scope.md`; `use_cases.md` (U1–U9); `model_interface.md` (M1–M21); `designs.md`
-(G1–G17); `diagnostics/shared.md` (S1–S10) and the six diagnostic specs; `uncertainty.md` (V1–V7); `contracts.md`
-(C1–C56); `data_model.md` (Q1–Q12, W1–W6, I1–I12; Q13–Q15 added by 0056); `export.md` (E1–E7); records 0005, 0008,
-0010, 0015–0022, 0024–0030, 0032–0036, 0040, 0041, 0046, 0047, 0049, 0050, 0053–0055, 0057; `trust.md` (T1–T10).
-Rewritten from the specs' "Architecture (step 9)" asks and the consistency review's "Step 9 inputs"; the draft of
-2026-09-28 (`api_spec_draft.md`) is replaced.
+**Status:** accepted (TODO step 9; 0056). **Updated:** 2026-10-01 (0057: the trust rules placed; 0059: the tooling;
+0060: the guides; 0061: generators called with an identity, `ema.cli` over `ema.mcp`, the stderr tail, `remove_tree`; 0062: replays from stored points, `GOLDEN_UNIT_TOL`; 0063: `DesignStructure` in the provenance; 0064: §11's estimates). **Depends on:** P1–P7; `scope.md`; `use_cases.md` (U1–U9); `model_interface.md` (M1–M21);
+`designs.md` (G1–G17); `diagnostics/shared.md` (S1–S10) and the six diagnostic specs; `uncertainty.md` (V1–V7);
+`contracts.md` (C1–C56); `data_model.md` (Q1–Q12, W1–W6, I1–I12; Q13–Q15 added by 0056); `export.md` (E1–E7);
+records 0005, 0008, 0010, 0015–0022, 0024–0030, 0032–0036, 0040, 0041, 0046, 0047, 0049, 0050, 0053–0055, 0057;
+`trust.md` (T1–T10). Rewritten from the specs' "Architecture (step 9)" asks and the consistency review's "Step 9
+inputs"; the draft of 2026-09-28 (`api_spec_draft.md`) is replaced.
 
 > Every package and module in v2.0, what each is for, its layer, and its public names, with signatures, so
 > each module's code and contract tests can be written against it. Signatures are Python stubs (`...` for the
@@ -14,7 +14,7 @@ Rewritten from the specs' "Architecture (step 9)" asks and the consistency revie
 > `dict`. A mapping field is made read-only (`MappingProxyType`) in `__post_init__`, and a default mapping is
 > `field(default_factory=dict)`. A class holding numpy arrays is `eq=False` (a dataclass's own equality can't
 > compare arrays); the results compare by their JSON (§3), and contract tests compare designs and batches with
-> `np.array_equal`, field by field (C14, C20). Every type with a `text` field prints as that text. Array shapes are in
+> `np.array_equal`, field by field (C14, C20; C14 compares a design's arrays, not its identity, 0061). Every type with a `text` field prints as that text. Array shapes are in
 > comments: `(n, d)` is n points in d model parameters.
 >
 > **Words.** The *workspace layer* (`ema.workspace`, layer 4) is the front door that users, the CLI, and the
@@ -32,14 +32,15 @@ Rewritten from the specs' "Architecture (step 9)" asks and the consistency revie
 | 3a: output | `ema.plotting` \| `ema.report` | figures with their data cards \| the Markdown report, and a PDF through pandoc | files |
 | 3b: services | `ema.runner` \| `ema.approval` \| `ema.diagnostics` | new runs, one call at a time, under an approval \| asking for and recording approvals and confirmations \| the six diagnostics and the shared precheck | through layers 2 and 3a |
 | 4: workspace | `ema.workspace` | the front door; the one place that orchestrates | through layers 2–3 |
-| 5: interfaces | `ema.cli` \| `ema.mcp` | parse the input, call one workspace function, show EMA's text | terminal, stdio |
+| 5: interfaces | `ema.cli` over `ema.mcp` | parse the input, call one workspace function, show EMA's text | terminal, stdio |
 
-`|` separates siblings, which never import each other. `ema.reference_models` (§11) is data beside the
+`|` separates siblings, which never import each other. In layer 5, `ema.cli` sits above `ema.mcp`: its `mcp`
+command imports `ema.mcp.server` lazily, and `ema.mcp` never imports `ema.cli` (0061). `ema.reference_models` (§11) is data beside the
 layers: no module in `ema` imports it (a forbidden contract, §10). Layer 3 is split in two so that the diagnostics can draw
 figures; the numbers 0–5 stay as the other specs cite them ("layers 0–1", "layer 4").
 
 ```text
-ema.cli   ema.mcp                                   5  interfaces
+ema.cli ──▶ ema.mcp                                 5  interfaces (0061)
       \     /
    ema.workspace                                    4  workspace
    /     |        \
@@ -59,8 +60,8 @@ ema.numerics   ema.designs                          1  pure
 | Id | Rule | Why | Enforced by |
 |---|---|---|---|
 | AR1 | **One-way imports.** A module imports only from layers below its own, and from its own package; siblings (`\|`) never import each other. | The notebook, the CLI, and the MCP server behave the same, and a lower layer can be tested without the upper ones. | import-linter's layers contract (§10) |
-| AR2 | **No I/O in layers 0–1:** no files, processes, database, clock, or randomness without a seed argument. | Layers 0–1 are checked with known-answer tests and no fixtures; P4. | a forbidden contract on `os`, `pathlib`, `subprocess`, `sqlite3`, `shutil`, `tempfile`, `time`, `socket`, the standard library's `random`, and `matplotlib` (or an AST test, §10); Ruff's NPY002 |
-| AR3 | **The interfaces hold no logic.** `ema.cli` and `ema.mcp` import only `ema.workspace` and `ema.types`; every number they show is text EMA rendered (C54, C55; P1). | A computation in an interface would differ between the notebook, the CLI, and the agent. | a forbidden contract |
+| AR2 | **No I/O in layers 0–1:** no files, processes, database, clock, or randomness without a seed argument. | Layers 0–1 are checked with known-answer tests and no fixtures; P4. | a forbidden contract on `os`, `pathlib`, `subprocess`, `sqlite3`, `shutil`, `tempfile`, `time`, `socket`, the standard library's `random`, and `matplotlib` (§10); Ruff's NPY002 |
+| AR3 | **The interfaces hold no logic.** `ema.cli` and `ema.mcp` import only `ema.workspace` and `ema.types`, and `ema.cli` imports `ema.mcp` lazily, in its `mcp` command only, which needs the `ema[mcp]` extra (0061); every number they show is text EMA rendered (C54, C55; P1). | A computation in an interface would differ between the notebook, the CLI, and the agent. | a forbidden contract |
 | AR4 | **Only `ema.runner` runs a model:** it is the only importer of the execute phase, `ema.models.execute` (P3). | One place checks the approval before every run. | a forbidden contract |
 | AR5 | **Only `ema.store` opens the database,** and only the main process writes it (0015). | The store's invariants (I1–I12) hold in one module. | a forbidden contract on `sqlite3` |
 | AR6 | **No LLM SDK anywhere** (P1). | No number EMA produces can come from an LLM. | a forbidden contract on `anthropic`, `openai`, `google` (its SDKs), `langchain`, `langchain_core`, `litellm`, `mistralai`, `cohere`, `ollama` |
@@ -91,7 +92,7 @@ src/ema/
     model.py                  ModelParameter, Limits, PredictionSpec, parsers' settings, PythonFunction,
                               CommandLine, InputDeck, FileEntry, Keep, ModelSpec
     space.py                  Scale, Range, ModelParameterSpace
-    design.py                 DesignIdentity, Line, Design
+    design.py                 DesignIdentity, Line, Design, DesignStructure
     runs.py                   RunStatus, FailureKind, Run, RunKey, Resolution, RunColumns, RunBatch,
                               Price
     results.py                Estimate, IntervalInfo, EstimateTable, Observation, ObservationTable, Note,
@@ -116,7 +117,7 @@ src/ema/
     point.py  uniform.py  convergent.py  lines.py      the generators
   models/                     layer 2
     spec.py                   LoadedModel, load_spec, stored_model, save_spec, resolve_program
-    files.py                  hash_files, same_file, is_within, check_files
+    files.py                  hash_files, same_file, is_within, check_files, remove_tree
     prepare.py  execute.py  collect.py                  the three phases of a call (0015)
     parsers.py                OutputParser, the registry, regex, json, csv (0027)
     processes.py              ModelProcesses: the model versions' children, owned by the workspace
@@ -131,7 +132,7 @@ src/ema/
   report/                     layer 3a
     render.py                 render (S1–S4), EXPLAIN_INTERVALS
     pdf.py                    to_pdf, through pandoc (0018)
-  runner.py                   layer 3b: resolve, price, run_new, read_batch
+  runner.py                   layer 3b: resolve, price, run_new, read_batch, replay_batch
   approval.py                 layer 3b: ask_approval, ask_confirmation, ask
   diagnostics/                layer 3b
     base.py                   Diagnostic, DiagnosticParameter, Transform, AnalysisContext, Computation,
@@ -147,7 +148,7 @@ src/ema/
   mcp/                        layer 5
     server.py                 the tools and resources; ELICITATION_TIMEOUT_S
     tools.md                  the tool descriptions and the server's instructions, one reviewed file (0019)
-  reference_models/           not counted in the 8,000 lines (scope); §11
+  reference_models/           not counted in the 8,300 lines (scope); §11
 tests/
   contracts/                  one module of check_* functions per interface (§9)
   unit/  integration/  slow/
@@ -157,7 +158,7 @@ tests/
 
 The vocabulary of the whole application: data, and pure functions of it. It imports only the standard
 library's pure modules (`dataclasses`, `enum`, `json`, `hashlib`, `struct`, `fractions`, `math`, `types`,
-`typing`, `unicodedata` for the spec's hidden-character check (0057), `datetime` for the type of stored
+`typing`, `collections.abc`, `re` and `keyword` for the model spec's own checks (0061), `unicodedata` for the spec's hidden-character check (0057), `datetime` for the type of stored
 timestamps, never for the clock) and numpy.
 
 ### `types/identity.py`
@@ -202,7 +203,14 @@ def spawned(seed: int, *key: int) -> np.random.Generator: ...
 
 ```python
 def fmt(x: float) -> str: ...          # format(x, ".4g") with an ASCII minus (S3, 0044)
-def duration(seconds: float) -> str: ...   # "about 3 h 12 min"; the price's wording (U2)
+def duration(seconds: float) -> str: ...   # the price's wording (U2), one rule (0061, 0062): rounded first,
+    # then the unit chosen: under 10 s one significant digit ("about 0.2 s", "about 4 s"); under a minute whole
+    # seconds; under an hour whole minutes ("about 40 min"); otherwise "about 3 h 12 min", or "about 2 h"
+    # when the minutes are 0; each rounding half up on the decimal repr of the value, and a value that
+    # rounds to its unit's limit written in the next unit; below 0.01 s, before rounding, "under 0.01 s"
+    # (0063). Known answers: 0.004 s "under 0.01 s", 0.04 s "about 0.04 s", 0.2 s "about 0.2 s", 2.5 s
+    # "about 3 s", 4.4 s "about 4 s", 9.96 s "about 10 s", 59.7 s "about 1 min", 90 s "about 2 min",
+    # 3599 s "about 1 h", 7200 s "about 2 h", 11,520 s "about 3 h 12 min"
 ```
 
 ### `types/model.py`
@@ -298,7 +306,7 @@ class ModelSpec:
         # one-line strings with no hidden character, duplicate keys) and T8 (variable names), and an env
         # PATH's empty or relative entries (T2)
     def to_json(self) -> str: ...                       # every field, defaults filled in, paths with "/"
-    def versioned_json(self) -> str: ...                # without keep, batch_size, timeout_s (§3.4)
+    def versioned_json(self) -> str: ...                # without keep, batch_size, timeout_s (data_model.md §3.4)
     def parameter(self, name: str) -> ModelParameter: ...
     def prediction(self, name: str | None) -> PredictionSpec: ...   # None: the only one, or refused
 ```
@@ -358,7 +366,7 @@ class ModelParameterSpace:
     def validate(self, spec: ModelSpec) -> None: ...   # G15, M6: names, lo < hi, log lo > 0, limits; RequestError
     def varied(self, spec: ModelSpec) -> tuple[str, ...]: ...   # in the spec's order (G16)
     def complete(self, spec: ModelSpec, Xv: np.ndarray) -> np.ndarray: ...   # (n, d_varied) → (n, d_all), held filled
-    def to_unit(self, spec: ModelSpec, X: np.ndarray) -> np.ndarray: ...     # z in [-1, 1] (0047)
+    def to_unit(self, spec: ModelSpec, X: np.ndarray) -> np.ndarray: ...     # z in [-1, 1]; clamped, lo and hi exact (0047, 0061)
     def from_unit(self, spec: ModelSpec, Z: np.ndarray) -> np.ndarray: ...   # clamped; faces exact
     def from_cube(self, spec: ModelSpec, U: np.ndarray) -> np.ndarray: ...   # the sampler's [0, 1)^d rows → points
                                                        # (designs.md: sampling the unit cube)
@@ -373,14 +381,17 @@ class ModelParameterSpace:
 ```python
 @dataclass(frozen=True)
 class DesignIdentity:
-    """A design's identity (0046, data_model.md §3.4): stored with each result and approval, so a design can
-    be rebuilt without today's code deciding it."""
+    """A design's identity (0046, data_model.md §3.4): stored with each result and approval. With the
+    provenance's DesignStructure and the stored runs' points, a replay needs no generator; with today's
+    generator at the identity's versions, the design can also be rebuilt (0063)."""
     model_version_id: str
     kind: str                                 # "point", "uniform", "convergent", "lines",
                                               # "coordinate_lines", "random_lines"
     space: Mapping[str, Any]                  # canonical form
-    params: Mapping[str, Any]                 # the generator's parameters; alpha as its decimal string
-    seed: int
+    params: Mapping[str, Any]                 # the generator's parameters that aren't fields here (no seed,
+                                              # sampler, or versions); alpha as its decimal string
+    seed: int                                 # the request's seed, for every kind; only seeded generators
+                                              # use it (0061)
     sampler: str | None                       # with its version, for uniform and convergent
     sampler_version: str | None
     generator_version: str
@@ -401,6 +412,13 @@ class Design:
     levels: tuple[int, ...] | None            # convergent: n_0 … n_L
     lines: tuple[Line, ...] | None            # lines: anchor, direction, ends, and rows, each
     def __len__(self) -> int: ...
+
+@dataclass(frozen=True)
+class DesignStructure:
+    """What a diagnostic reads from a design beyond its points and replicates (0063); kept in a
+    result's provenance, so a replay builds its Design with no generator."""
+    levels: tuple[int, ...] | None            # convergent: n_0 … n_L
+    lines: tuple[Line, ...] | None            # lines: anchor, direction, ends, and rows, each
 ```
 
 ### `types/runs.py`
@@ -450,7 +468,7 @@ class Resolution:
     row_runs: np.ndarray                      # (n,) each design row's stored run id (32 bytes), or zeros when new
     row_keys: np.ndarray                      # (n,) each new row's index into new_keys, or -1 when stored
     new_keys: tuple[RunKey, ...]              # distinct (point, replicate) keys to run, attempts set (C47);
-                                              # each RunKey.run_id is known before the run (§3.4)
+                                              # each RunKey.run_id is known before the run (data_model.md §3.4)
     reused_failed: int
 
 @dataclass(frozen=True, eq=False)
@@ -458,13 +476,16 @@ class RunColumns:
     """Stored runs, one row each, in the order asked for (Q7, Q15): columns, so 10⁷ rows (the design cap) cost
     tens of bytes each, not a Run object each."""
     run_ids: np.ndarray                       # (n,) 32-byte ids
-    points: np.ndarray | None                 # (n, d): Q7 fills it (export, failed_runs); a run batch uses
-                                              # its design's points, and Q15 leaves it None
+    points: np.ndarray | None                 # (n, d): Q7 fills it (export, failed_runs), and Q15 for a replay
+                                              # (0062); a diagnostic reads its points from batch.design, which
+                                              # a replay builds from these (0063)
     replicates: np.ndarray                    # (n,)
     status: np.ndarray                        # (n,) RunStatus codes
     kind: np.ndarray                          # (n,) FailureKind codes; -1 when ok
     values: Mapping[str, np.ndarray]          # model prediction → (n,); NaN where missing or failed
     reasons: Mapping[str, str]                # failed run id (hex) → its one-line reason
+    stderr_tails: Mapping[str, str]           # failed run id (hex) → its stderr tail; Q7 fills it, Q15
+                                              # leaves it empty (0061)
     missing: Mapping[str, Mapping[str, str]]  # model prediction → ok run id (hex) → why it is missing
                                               # ("plate.out: pattern not found"), so y's note never shows z's
     time_s: np.ndarray                        # (n,)
@@ -565,7 +586,7 @@ class MeasuredNoisy:
     point: tuple[float, ...]
     runs: int
     std: float | None
-    made_at: datetime | None                  # set by W5, read by Q10; copied whole into a provenance (§5.12)
+    made_at: datetime | None                  # set by W5, read by Q10; copied whole into a provenance (data_model.md §5.12)
 
 @dataclass(frozen=True, eq=False)
 class Provenance:
@@ -583,6 +604,7 @@ class Provenance:
     approval_id: str | None                   # its own new runs' approval (0054)
     spawn_tags: tuple[int, ...]
     measured_noisy_read: tuple[MeasuredNoisy, ...]
+    design_structure: DesignStructure          # so a replay needs no generator (0063)
 
 @dataclass(frozen=True, eq=False)
 class DiagnosticResult:
@@ -640,7 +662,7 @@ class Reproduction:
 ```python
 @dataclass(frozen=True)
 class Request:
-    """What one diagnostic evaluation is asked for (glossary); canonical, defaults filled in (§3.4)."""
+    """What one diagnostic evaluation is asked for (glossary); canonical, defaults filled in (data_model.md §3.4)."""
     diagnostic: str
     prediction: str
     space: Mapping[str, Any] | None           # canonical; None for the point run (U7)
@@ -735,7 +757,7 @@ class LoadingSummary:
 @dataclass(frozen=True)
 class DiagnosticParameterInfo:
     name: str
-    type: str                                 # "integer ≥ 1", "decimal in (0, 1)", "model parameter space", …
+    type: str                                 # "integer ≥ 1", "integer ≥ 0", "decimal in (0, 1)", …
     default: Any | None
     default_text: str                         # "2(d + 1)", "the only one"
     meaning: str
@@ -760,6 +782,8 @@ class RunInfo:
     status: RunStatus
     kind: FailureKind | None
     reason: str | None
+    stderr_tail: str | None                   # a failed run's last 15 lines of stderr, shown in text as
+                                              # quoted model output (trust.md, Model output and the MCP client; 0061)
     predictions: Mapping[str, float | None]   # an ok run's model predictions; None where missing
     run_dir: str | None                       # None when not kept (0020)
     batch_dir: str | None                     # a batch call's directory, when kept (0025)
@@ -777,7 +801,7 @@ Each error carries `retryable` as a class attribute, so the interfaces can say w
 |---|---|---|
 | `EMAError` | the base of every error EMA raises on purpose | |
 | `SpecError` | a model spec doesn't validate (field named) | no |
-| `RequestError` | a space, a diagnostic parameter, or a design request is refused (G14, G15, M6) | no |
+| `RequestError` | a space, a diagnostic parameter, or a design's identity is refused (G14, G15, M6) | no |
 | `DesignTooLarge` (a `RequestError`) | the size is over `MAX_DESIGN_POINTS` (G5) | no |
 | `ApprovalDeclined` | the answer was no, or none came; nothing ran | yes |
 | `CannotAsk` (an `ApprovalDeclined`) | `approve=None` or `confirm=None`: nobody can be asked (an MCP client without elicitation); nothing asked or recorded | no |
@@ -798,7 +822,8 @@ Pure functions of arrays (AR2). Every random draw takes a seed, or a `np.random.
 ### The four interfaces kept as seams
 
 Each has a registry (`register`, `get`, `names`), its v2.0 implementation, and a fake registered in the tests
-through the same `register`, removed by a fixture: no monkeypatching (C19, C28–C30). A name with no
+through the same `register`, removed by a fixture: no monkeypatching (C19, C28–C30). `register` refuses a name
+already taken; a fixture that registers a second version of a generator (C51) removes the first and restores it. A name with no
 implementation is refused with "<kind> X comes in a later version" (`designs.md`, `polynomial_model.md`).
 There are no plugin entry points in v2.0; adding them later is about 30 lines, on these registries.
 
@@ -814,12 +839,15 @@ class Sampler(Protocol):
 
 # designs/generators.py (designs.md, Generators; C20–C27)
 MAX_DESIGN_POINTS = 10_000_000
+GOLDEN_UNIT_TOL = 1e-12                       # golden points across machines, in unit coordinates (G1, 0062)
 class DesignGenerator(Protocol):
     name: str
     version: str
-    def size(self, request: DesignIdentity, spec: ModelSpec) -> int: ...      # closed form (G3)
-    def build(self, request: DesignIdentity, spec: ModelSpec,
+    def size(self, identity: DesignIdentity, spec: ModelSpec) -> int: ...     # closed form (G3)
+    def build(self, identity: DesignIdentity, spec: ModelSpec,
               start: int = 0, stop: int | None = None) -> Design: ...       # refuses over the cap first (G5, G6)
+    # stateless (0061): everything comes from the identity, whose params hold the names listed below; an
+    # identity of another generator or sampler version is refused, naming both (RequestError; 0062)
 
 # numerics/basis.py (polynomial_model.md; C29)
 class Basis(Protocol):
@@ -873,9 +901,9 @@ class IntervalMethod(Protocol):
 | `samplers.py` | `Sampler`, `register`, `get`, `names`, `Random` | `designs.md`, Samplers (0032) |
 | `generators.py` | `DesignGenerator`, `register`, `get`, `names`, `MAX_DESIGN_POINTS` | `designs.md`, Shared rules |
 | `point.py` | `Point`: `x`, `repeats` | Point (0011, 0049) |
-| `uniform.py` | `Uniform`: `n`, `seed`, `sampler` | Uniform |
-| `convergent.py` | `Convergent`: `n_min`, `alpha` (a `Fraction`), `level`, `seed`, `sampler`; sizes ⌈n_min·alpha^(−l/r)⌉ in exact arithmetic | Convergent (0047) |
-| `lines.py` | `GivenLines`: `lines`, `n`; `CoordinateLines`: `n`, `anchor`; `RandomLines`: `m`, `n`, `seed` | Lines (0047, 0051) |
+| `uniform.py` | `Uniform`: `n` | Uniform |
+| `convergent.py` | `Convergent`: `n_min`, `alpha` (its decimal string, read with `decimal_fraction`), `level`; sizes ⌈n_min·alpha^(−l/r)⌉ in exact arithmetic | Convergent (0047) |
+| `lines.py` | `GivenLines`: `lines`, `n`; `CoordinateLines`: `n`, `anchor`; `RandomLines`: `m`, `n`; `SHARED_ANCHOR_TOL` | Lines (0047, 0051) |
 
 ## 5. Layer 2: `ema.models` and `ema.store`
 
@@ -916,6 +944,8 @@ def is_within(path: str, directory: str) -> bool: ...   # the resolved path, or 
     # is the directory or below it, as files (T1, T5); a named file whose link resolves to a credentials
     # file is refused at loading (T7)
 def check_files(model: LoadedModel) -> None: ...    # before every call; ModelChanged naming the file (M16, C34)
+def remove_tree(path: str) -> None: ...             # deletes a run or batch directory without following links;
+    # used by prepare (a leftover directory) and ema.runner (keep) (trust.md, T9; 0061)
 
 # models/processes.py
 class ModelProcesses:                    # not frozen; owned by the Workspace, passed to execute
@@ -972,7 +1002,7 @@ again for the next call (0026, M9). Ported from v1's `core/models/_sandbox.py` a
 re-review; the environment it passes is `trust.md`'s. The child runs in its own process group, killed whole;
 it is started by its worker's path, and replaces its `sys.path` with EMA's, made absolute, received over its
 pipe; its streams never reach EMA's stdout. `run.json` and `predictions.json` are written without following a
-link the model left there, and run and batch directories deleted without following links (`trust.md`, T9).
+link the model left there, and run and batch directories deleted without following links, by `remove_tree` (`trust.md`, T9; 0061).
 `load_spec` never imports the function's file: M17 parses it (`ast`).
 
 ### `ema.store`
@@ -998,11 +1028,8 @@ point"); Q14, so a result's report, export, and replay use its own model version
 latest (U6: "the old diagnostic result's report is unchanged"); and Q15, so a replay reads the runs a
 provenance names after its result is deleted (U8, C51, §9 there).
 
-| Q | Store function | Returns | SQL sketch | Index |
-|---|---|---|---|---|
-| Q13 | `approval_coverage(approval_id, keys) -> Coverage` | the approval's model version and answer, and which of one call's keys it covers and has no run for yet | `approvals` by key; per key, `approval_points` by key and `runs` by its unique key with that approval | primary keys; the runs' unique key |
-| Q14 | `model_version(model_version_id) -> ModelVersion` | its spec and tracked files | by key | primary key |
-| Q15 | `runs_by_id(run_ids) -> RunColumns` | one row per id given, a repeated id repeated (rows share runs, E2), in the order given, with their model predictions; an unknown id is `NotFound` | per chunk of 30,000 distinct ids, as Q1, then laid out in the order given | primary keys; `predictions` by its key's prefix |
+Q13 (`approval_coverage`), Q14 (`model_version`), and Q15 (`runs_by_id`) are in `data_model.md` §8, their one
+home.
 
 Q7 and Q15 return `RunColumns` (`ema.types`), with no object per row: Q7 for export and `failed_runs` (points,
 time, host, program, batch call, approval), Q15 for every run batch, through `read_batch`. Both read in chunks
@@ -1029,12 +1056,12 @@ class Store:                                          # not frozen: holds the co
     def close(self) -> None: ...
 ```
 
-- **Record classes:** where `ema.types` has the class, the store returns it: `Run` (its model predictions
-  folded in, for §10's `Run` and `Prediction`), `DiagnosticResult` (for §10's `Result`), `MeasuredNoisy`, and
-  `DesignIdentity` (§3.4's JSON shape). `records.py` holds the store's own rows: `ModelVersion`, `Loading`,
-  `Confirmation`, `Approval`, `ApprovedPoint`, `BatchCall`, `RunUsed` (W5's rows; Q7 and Q9 join it), `Coverage`. One class per concept;
-  the workspace's `LoadingSummary` is what a user sees of a `Loading` (record 0056 updated `data_model.md`
-  §10's table).
+- **Record classes:** where `ema.types` has the class, the store returns it: `Run` (its model predictions folded
+  in, for the `runs` and `predictions` tables), `DiagnosticResult` (for `results`), `MeasuredNoisy`,
+  and `DesignIdentity` (`data_model.md` §3.4's JSON shape). `records.py` holds the store's own rows:
+  `ModelVersion`, `Loading`, `Confirmation`, `Approval`, `ApprovedPoint`, `BatchCall`, `RunUsed` (W5's rows; Q7 and
+  Q9 join it), `Coverage`. One class per concept; the workspace's `LoadingSummary` is what a user sees of a
+  `Loading` (record 0056 updated `data_model.md` §10's table).
 - **W6, `delete_result`,** has no workspace name in v2.0 (record 0056): no use case deletes a result, and U8's
   test deletes through the store (`data_model.md`).
 
@@ -1086,10 +1113,13 @@ def run_new(model: LoadedModel, resolution: Resolution, approval_id: str, store:
     # deleted, and KeyboardInterrupt re-raised, with every finished run stored (C49). Returns the runs made.
 def read_batch(design: Design, run_ids: np.ndarray, store: Store, *, new_approval: str | None) -> RunBatch: ...
     # the given run for each design row, in design order (C56; Q15): the ids the workspace builds (the
-    # resolution's row_runs, each new row's RunKey.run_id filled in through row_keys), or a provenance's ids
-    # on a replay; a row is new when its
+    # resolution's row_runs, each new row's RunKey.run_id filled in through row_keys); a row is new when its
     # run's approval is new_approval (E6). Never "the current run now", so another process's retry can't
     # slip in.
+def replay_batch(provenance: Provenance, store: Store) -> RunBatch: ...
+    # a replay's batch (U8, 0063): the provenance's run ids through Q15 with points=True, and a Design built
+    # from its identity, those points and replicates, and its design_structure, with no generator; a row is
+    # new when its run's approval is the provenance's approval_id
 ```
 
 ### `ema.approval` (3b)
@@ -1229,7 +1259,8 @@ once. A `Workspace` object (OD-16, decided 2026-10-01) holds the open store and 
 def open_workspace(path: str | os.PathLike = "ema_workspace", *, root: str | os.PathLike | None = None) -> "Workspace": ...
     # creates it, or opens it (an older schema migrated, a newer refused: data_model.md §11); with root,
     # every method that takes a path refuses one outside the root or inside a workspace, and a drafted
-    # spec's file resolving outside the root (PathRefused; trust.md, T5; the MCP server's, 0057)
+    # spec's file resolving outside the root (PathRefused; trust.md, T5; the MCP server's, 0057); a root
+    # that is inside a workspace, or is one, is refused here too (PathRefused; 0061)
 
 ResultRef = DiagnosticResult | str            # a result, or its id: any unique prefix of ≥ 4 hex digits (Q11)
 
@@ -1268,7 +1299,7 @@ class Workspace:                              # not frozen; a context manager; c
         # rebuilds a missing result directory from the store (data_model.md §6); pdf through pandoc (0018)
     def failed_runs(self, result: ResultRef) -> list[RunInfo]: ...
         # every run not usable for the result's model prediction: failed, or missing it, with its reason
-        # (U3); the note's "lists each one" (shared.md)
+        # and a failed run's stderr tail (U3; trust.md, Model output and the MCP client; 0061); the note's "lists each one" (shared.md)
     def run_dirs(self, id: str, *, point: Mapping[str, float] | None = None) -> list[RunInfo]: ...
         # a run id: that run; a result and a point: its runs there, one per replicate (0020, Q9)
     def reproduce(self, result: ResultRef | Provenance) -> Reproduction: ...          # U8, 0055: replays, no runs
@@ -1330,7 +1361,8 @@ directory (`DiagnosticResult.figures`), and the MCP server serves them as resour
    and 7 both use it), with each new row's `RunKey.run_id` filled in by the workspace through `row_keys`, in design order (C56); the reuse key from those ids; the measured-noisy records for this model prediction (Q10).
 8. **The analysis:** `ema.diagnostics.evaluate` (precheck, compute, figures) into the store's temporary result
    directory; `ema.report.render`; then one transaction: the result, its provenance, its runs, and a point
-   run's measured-noisy rows (W5, C51, I8). If another process stored a result with the same id meanwhile
+   run's measured-noisy rows (W5, C51, I8); the provenance's `design_structure` is the batch design's levels and
+   lines (0063). If another process stored a result with the same id meanwhile
    (two identical requests at once), the stored result is returned and nothing more is written
    (`Store.result_directory`, §5; I7; record 0056 adds this to `data_model.md` §6 and W5).
 9. **Return** the `DiagnosticResult`.
@@ -1340,12 +1372,21 @@ with no identity, the test run's request (a `TestRunRequest`, `data_model.md` §
 approval (W3's `design` is NULL for the test run).
 
 **`reproduce`** (`workspace/_reproduce.py`; U8, `data_model.md` §9 Replay, 0055) takes a result (stored, or
-read from an export's `result.json` with `DiagnosticResult.from_json`) or a bare `Provenance`, and writes
+read from the `result` key of an export's `result.json` with `DiagnosticResult.from_json`) or a bare `Provenance`, and writes
 nothing:
 
-- the design is rebuilt from the provenance's `design` identity; the batch is its run ids, in its order
-  (`read_batch`, Q15, so a deleted result's runs are found); a row is new when its run's approval is the
-  provenance's approval, so the header's counts are the original's;
+- the batch is the provenance's run ids, in its order (`replay_batch`, which reads Q15 with `points=True`, so a
+  deleted result's runs are found, and builds the `Design`); its `Design` is built from the provenance's identity, the stored runs' points and
+  replicates, and its `design_structure`, with no generator, so the replay recomputes what was computed, across
+  generator versions too (0062, 0063); a row is new when its run's approval is the provenance's approval, so the
+  header's counts are the original's;
+- when the identity's generator and sampler versions are today's, the design is also rebuilt, as a check, and
+  compared coordinate by coordinate: a linear-range coordinate within `GOLDEN_UNIT_TOL`, a log-range one within
+  max(`GOLDEN_UNIT_TOL`, 32·2⁻⁵²·(1 + |ln lo| + |ln hi|)/(ln hi − ln lo)) in unit coordinates, held coordinates,
+  replicates, levels, and lines' rows exactly; rows beyond go into `provenance_differences` ("design points
+  differ at rows 3, 17"; or "design sizes differ", "design levels differ", "line 2's rows differ"); with
+  another version, or no generator registered for the identity's kind, nothing is rebuilt, and
+  `provenance_differences` names the versions; neither raises (0062, 0063);
 - the model version's spec is Q14's, from the provenance's model version;
 - the measured-noisy records are the provenance's `measured_noisy_read`, not Q10's, so a later point run
   changes no note;
@@ -1391,9 +1432,10 @@ formats a number (C54, C55; P1).
 - **Approval:** the price and the question on stderr, then `Approve? [y/N]`. `--yes` approves the price in
   advance: the approval is still priced, shown, and recorded with its question and answer (W3). With no
   terminal and no `--yes`, there is no answer, which is a no.
-- **Exit codes:** 0 success; 1 an `EMAError` (a declined approval included); 2 bad usage; 130 Ctrl-C.
+- **Exit codes:** 0 success; 1 an `EMAError` (a declined approval included); 2 bad usage, and `ema mcp`'s
+  root refused at start (`PathRefused` from `open_workspace`; T5, 0061); 130 Ctrl-C.
 - **Not in the CLI:** `propose_model` and `save_model`, which serve an MCP client; on the command line the
-  analyst writes the spec and runs `ema model add`.
+  user writes the spec and runs `ema model add`.
 
 ### `ema.mcp`
 
@@ -1433,11 +1475,11 @@ Started by `ema mcp`; needs the `ema[mcp]` extra (`scope.md`). Each tool is one 
   constant in `mcp/server.py`, chosen here), which frees
   the run lock.
 - **A client without elicitation** can't be asked, so `save_model`, `test_model`, and a run with new runs are
-  refused before any question ("this client can't ask the analyst; use the CLI or Python"; P3), and no
+  refused before any question ("this client can't ask the user; use the CLI or Python"; P3), and no
   approval is recorded, since none was asked (T3). Reads, prices, and repeated requests work.
 - **`params`** is one JSON object, described by `diagnostics(name)` (C55); `space` is `designs.md`'s JSON form.
 - **The tool descriptions and the server's instructions** are one reviewed file, `ema/mcp/tools.md` (0019).
-  The instructions ask the client to quote EMA's text, give result ids, and point the analyst to the report,
+  The instructions ask the client to quote EMA's text, give result ids, and point the user to the report,
   rather than restate numbers (P1).
 - **No tool writes a file that EMA runs** (U9): `save_model` writes a model spec only (0016).
 - **Confined** (`trust.md`, T5): every path argument lies inside the root and outside any workspace;
@@ -1479,7 +1521,8 @@ include_external_packages = true
 name = "AR1 One-way layers"
 type = "layers"
 layers = [
-    "ema.cli | ema.mcp",
+    "ema.cli",
+    "ema.mcp",
     "ema.workspace",
     "ema.runner | ema.approval | ema.diagnostics",
     "ema.plotting | ema.report",
@@ -1545,31 +1588,32 @@ forbidden_modules = ["ema.reference_models"]
 - **`ema.experimental`:** none in v2.0 (0017). P2's contract (nothing in layers 0–3 imports it) is added here
   with the package.
 - **One AST test** in the fast tier checks what import-linter can't express: AR7 (no module imports the root
-  `ema`), and that `ema/models/__init__.py` doesn't import `execute`, so AR4 can't be bypassed through the
+  `ema`), that `ema.cli` imports `ema.mcp` only inside its `mcp` command (AR3, 0061), and that
+  `ema/models/__init__.py` doesn't import `execute`, so AR4 can't be bypassed through the
   package's re-exports.
 - `uv run lint-imports` runs in the fast tier (CLAUDE.md's fast-tier command, 0059).
 
 ## 11. Size
 
-Source lines estimated per package against `scope.md`'s 8,000 (2026-10-01), from v1's counterparts and the
+Source lines estimated per package against `scope.md`'s 8,300 (2026-10-01, 0064), from v1's counterparts and the
 specs:
 
 | Package | Estimate | Main parts |
 |---|---|---|
-| `ema.types` | 775 | the model spec's validation (~200, and ~75 for `trust.md`'s checks), the result types, `identity.py` (~100) |
-| `ema.numerics` | 550 | the basis (ported, ~150), fits and PRESS, the bootstrap, the Gram spectrum |
-| `ema.designs` | 350 | the `random` sampler, six generators (lines ~150) |
-| `ema.models` | 1,300 | the sandbox and worker (ported, ~435 without v1's limits and withheld variables), the environment and path checks (~35), the three phases, parsers, `ModelProcesses` |
-| `ema.store` | 700 | `data_model.md` §10 |
+| `ema.types` | 860 | the model spec's validation (~200, and ~75 for `trust.md`'s checks), the result types, `identity.py` (~100); values as doubles, `DesignStructure`, `duration()`'s rule (~85, 0061–0063) |
+| `ema.numerics` | 553 | the basis (ported, ~150), fits and PRESS, the bootstrap, the Gram spectrum |
+| `ema.designs` | 388 | the `random` sampler, six generators (lines ~150); the map back and version refusals (~38, 0061–0063) |
+| `ema.models` | 1,323 | the sandbox and worker (ported, ~435 without v1's limits and withheld variables), the environment and path checks (~35), the three phases, parsers, `ModelProcesses`; `remove_tree` and the stderr tail (~23, 0061) |
+| `ema.store` | 715 | `data_model.md` §10 |
 | `ema.plotting`, `ema.report` | 540 | escaping text EMA didn't write (~10) |
-| `ema.runner`, `ema.approval` | 410 | the questions' rendering (`trust.md`) |
-| `ema.diagnostics` | 2,000 | base and precheck ~300; the six, 150–400 each |
-| `ema.workspace` | 610 | the evaluation's order ~250; export ~120 (E1–E7); reproduce ~60; the root (~10) |
-| `ema.cli`, `ema.mcp` | 705 | `--root` |
-| **Total** | **7,940** | 60 under the budget (0057 added about 80): tight, so each plan reports its package's count |
+| `ema.runner`, `ema.approval` | 418 | the questions' rendering (`trust.md`) |
+| `ema.diagnostics` | 2,004 | base and precheck ~300; the six, 150–400 each |
+| `ema.workspace` | 685 | the evaluation's order ~250; export ~120 (E1–E7); reproduce ~130 (0062, 0063); the root (~15) |
+| `ema.cli`, `ema.mcp` | 714 | `--root`; the lazy `ema mcp` import (0061) |
+| **Total** | **8,200** | 100 under the budget (0057 added about 80; 0061–0063 about 260, by the middle of an estimate of 173–343): each plan reports its package's count |
 
 - **Reference models ship with `ema`,** in `ema/reference_models/` (each a model spec with its function or
-  program), counted against their own 1,000 lines, not the 8,000. The get-started guide and the use cases'
+  program), counted against their own 1,000 lines, not the 8,300. The get-started guide and the use cases'
   "Done when" tests load them from an installed EMA; `ema.reference_models.path(id)` gives one's model spec
   (its `model.json`; 0060).
 - **Each build step's plan** measures its package against its line here, and reports an overrun.

@@ -1,6 +1,6 @@
 # Point run
 
-**Status:** accepted. **Updated:** 2026-10-01. **Module:** `ema/diagnostics/point_run.py`. **Depends on:**
+**Status:** accepted. **Updated:** 2026-10-01 (the seed row, 0061). **Module:** `ema/diagnostics/point_run.py`. **Depends on:**
 `shared.md`; P7; records 0011, 0021, 0022, 0034, 0035, 0036, 0044, 0049, 0051, 0052.
 
 > The model prediction at one point, and its measured variation over repeated runs there (0012, P7, 0011).
@@ -10,7 +10,7 @@
 
 | | |
 |---|---|
-| **User provides** | a point x (nominal), repeats (4), the model prediction (the only one, if one) |
+| **User provides** | a point x (nominal), repeats (4), the model prediction (the only one, if one); a seed (0) is recorded and changes nothing |
 | **Design** | point (`../designs.md`): x, with replicates 0 to repeats |
 | **Compute** | no estimates; observations of the runs at the point; whether the model prediction varies; if it does, the model version is recorded as measured noisy in that model prediction |
 | **Plots** | the deviation from replicate 0 against the replicate number |
@@ -23,12 +23,15 @@
 | `x` | mapping of model parameter names to values | `{}` (the nominal point) | the point; unnamed model parameters at their nominal values; each value inside its limits (G9) | yes |
 | `repeats` | integer ≥ 0 | 4 | the number of runs after replicate 0: replicates 1 to `repeats` | yes |
 | `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
+| `seed` | integer ≥ 0 | 0 | recorded; the point run makes no random draws (0061) | no |
 
 - **The point's model parameter space** (0049): the user gives `x`, not a space (U7), and EMA builds the space
   that holds every model parameter at the point's value, with none varied (`../designs.md`, Point). The
   header's **Space** row shows it, with no Held row: every model parameter's value, marked "given" or
   "nominal", every one held.
-- **No seed:** the point run makes no random draws. The request's seed, 0, is recorded (`shared.md`).
+- **The seed** changes nothing: the point run makes no random draws. The request's seed, 0 by default, is
+  recorded (`shared.md`), and a request with another seed is another diagnostic evaluation with the same numbers
+  (C8, 0061).
 - **Replicates** (0011): replicate 0 is the ordinary run at x, reused when stored (for example, the test run at
   the nominal point); replicates 1 to `repeats` are new runs the first time, and reused when the same repeats
   are asked for again. A point run with more repeats reuses the fewer (G4).
@@ -86,7 +89,7 @@ a property of the model, so there is no interval method.
 
 ## Minimum runs and degenerate cases
 
-- **Fewest usable runs:** 1 for the value, the mean, and the distinct values; 2 for the standard deviation;
+- **Fewest usable runs** (`POINT_RUN_MIN_RUNS`): 1 for the value, the mean, and the distinct values; 2 for the standard deviation;
   and for "varies", 2 usable runs, or 1 usable and 1 not.
 - **All runs failed:** counts by kind, and the note; no observations. The model prediction is not recorded as
   varying, even when the failures are of different kinds.
@@ -163,9 +166,9 @@ spread 0, no note, and no "measured noisy" line.
 | R1, nominal, repeats 4 | replicate 0; mean; standard deviation; distinct values | 10; 10; 0; 1 | exact | analytic (log₁₀ 10 = 1 exactly in IEEE doubles) |
 | R1, nominal, repeats 4 | varies; notes | no; none | exact | analytic |
 | R4a, repeats 4 | distinct values; notes | 1; none (no "constant" note) | exact | trivial |
-| R6a, nominal, repeats 100 | standard deviation | 0.05 | within [0.6735, 1.360] × 0.05 | χ² with 100 degrees of freedom, two-sided probability 10⁻⁶ |
+| R6a, nominal, repeats 100 | standard deviation | 0.05 | within [0.6735, 1.3603] × 0.05 | χ² with 100 degrees of freedom, two-sided probability 10⁻⁶ |
 | R6a, nominal, repeats 4 | varies | yes | exact | by construction (equal draws have probability 0) |
-| R6b, nominal, repeats 100 | standard deviation | 10⁻⁷ | within [0.6735, 1.360] × 10⁻⁷ | as R6a |
+| R6b, nominal, repeats 100 | standard deviation | 10⁻⁷ | within [0.6735, 1.3603] × 10⁻⁷ | as R6a |
 | R6b, nominal, repeats 4 | varies | yes | exact | by construction |
 | R5, x = {a: 0.9, b: 0.9}, repeats 4 | runs; observations | 5 failed (error); none | exact | by construction (a + b > 1) |
 | R5, nominal, prediction z, repeats 4 | runs usable for z | 5 | exact | by construction |
@@ -175,6 +178,7 @@ spread 0, no note, and no "measured noisy" line.
 | Name | Value | Meaning | Why this value |
 |---|---|---|---|
 | `POINT_RUN_REPEATS` | 4 | the default number of repeats | 5 runs: enough to see variation and a rough spread; U7 asks for 10 when it wants more |
+| `POINT_RUN_MIN_RUNS` | 1 | the fewest usable runs for observations | one run is the point's value (P6 names each diagnostic's minimum, 0035) |
 
 There are no tolerances: "varies" is exact (0035).
 

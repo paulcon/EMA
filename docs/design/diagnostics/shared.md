@@ -1,6 +1,6 @@
 # What every diagnostic shares
 
-**Status:** accepted. **Updated:** 2026-10-01 (0054, 0055, 0057). **Depends on:** P1, P2, P4, P5, P6; records 0004, 0010,
+**Status:** accepted. **Updated:** 2026-10-01 (0054, 0055, 0057, 0061). **Depends on:** P1, P2, P4, P5, P6; records 0004, 0010,
 0018, 0022, 0034, 0035, 0040, 0042, 0044, 0049, 0051, 0052, 0054, 0055, 0057.
 
 > The parts of a diagnostic's spec that are the same for all six: the report's layout, how numbers are
@@ -19,7 +19,7 @@ One report per diagnostic evaluation, in Markdown with TeX math and PNG figures 
    - **Space:** each varied model parameter's range and units, with "log" for a log range.
    - **Held:** each held model parameter and its value, marked "held value" or "nominal" (0023, 0033).
    - **Design:** the design generator and its parameters, with the sampler, its version, and the seed where
-     the design has them.
+     the generator is seeded; every request's seed is in the Provenance line (0061).
    - **The diagnostic's own rows,** only where its spec adds them, after Design: the polynomial model's Fit
      (degree, basis, and number of terms).
    - **Runs:** the total; new and reused; failed, by kind (error, timeout, unread); missing this model
@@ -160,10 +160,12 @@ differences: which estimates use distinct runs, what is undefined, and its tag (
 
 ## Golden reports
 
-A diagnostic spec's mock report is its **golden report** (0044); there is no separate golden file. The golden
+A diagnostic spec's mock report is its **golden report** (0044); there is no separate golden file. The point
+run has none: its mock is on a noisy model, and its tests check sampling bounds (`point_run.md`). The golden
 report's test renders the report on the mock's reference model and request, and parses it. It has the mock's
 sections, rows, labels, and notes, and each number is within one unit in the 4th significant digit of the
-mock's. Ids, hashes, dates, and library versions are not compared. Within one machine, reruns are still exact:
+mock's. Ids, hashes, dates, library versions, and the model's name are not compared (the mocks write the reference
+model's id as its name, 0061). Within one machine, reruns are still exact:
 the data cards are byte-identical (S10).
 
 ## Figures
@@ -201,12 +203,12 @@ the data cards are byte-identical (S10).
 | S1 | Every report has the sections above, in that order; an empty section is left out, with its opening sentence (0051). | A report for each diagnostic on R1: the section headings, in order. |
 | S2 | The header states the model version, the model prediction, the space with scales, the held model parameters with their values, the design with its seed, and the run counts by kind. | U3's `r1` on R5: 200 runs, failed by kind, missing z, usable. R1 with one model parameter held at a value and one at nominal: the held rows (0051). |
 | S3 | Every computed number in the report is `format(x, ".4g")` of the stored double, with an ASCII minus; counts, sizes, seeds, degrees, and levels are printed in full; ids and hashes are not numbers (0044). | Parse the report's numbers, skipping ids and hashes; compare with the diagnostic result. |
-| S4 | Each estimates table is followed by one line naming its interval method and settings; the Estimates section opens with `EXPLAIN_INTERVALS`, the report's only use of "confidence interval" (0042). | Every table in each diagnostic's report on R2; the sentence once in each report with estimates, and absent from the point run's and the lines' reports. |
-| S5 | A model prediction is constant only when every usable run gives the same double; then counts, a note, and the observations, with no estimates. | R4a: the note, for every diagnostic but the point run (PT6, 0051); R4b: estimates, and a relative spread of 8·10⁻¹³. |
+| S4 | Each estimates table is followed by one line naming its interval method and settings; the Estimates section opens with `EXPLAIN_INTERVALS`, the report's only use of "confidence interval" (0042). | Every table in each diagnostic's report on R2; the sentence once in each report with estimates, and absent from the point run's, the coordinate lines', and the lines' reports. |
+| S5 | A model prediction is constant only when every usable run gives the same double; then counts, a note, and the observations, with no estimates. | R4a: the note, for every diagnostic but the point run (PT6, 0051); R4b: estimates from each diagnostic that has them, and a relative spread of 8·10⁻¹³ from scatter. |
 | S6 | Fewer usable runs than a diagnostic's minimum give counts and a note, with no estimates. | Each diagnostic one run below, and at, its minimum. |
 | S7 | The note on runs not usable counts them by kind, and lists at most 5 reasons verbatim, with counts. | R5, y and z: counts by kind; a fixture with 7 distinct reasons: 5 listed, the rest summed. |
 | S8 | A diagnostic's own random draws come from its spawned streams; changing its tag changes its intervals, and not its design. | Two tags, one request: the same design, different resamples. |
-| S9 | Every plotted point has its run id in the data card, and every run that isn't usable appears once, with its kind. | Scatter on R5: counts in the card equal the header's. |
+| S9 | Every plotted point drawn from a run has its run id in the data card (one drawn from a computed number has none, C12), and every run that isn't usable appears once, with its kind. | Scatter on R5: counts in the card equal the header's. |
 | S10 | Data cards are byte-identical on rerun. | Each diagnostic, twice. |
 
 ## What this file asks of other documents

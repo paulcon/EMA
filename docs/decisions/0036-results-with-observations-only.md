@@ -1,6 +1,6 @@
 # 0036. Let a diagnostic result hold observations without estimates or a note
 
-**Date:** 2026-09-30. **Status:** accepted. **Resolves:** none (TODO step 6, the point run's spec).
+**Date:** 2026-09-30. **Status:** accepted; its "only the point run" amended by 0038 and 0040 (coordinate lines and lines). **Resolves:** none (TODO step 6, the point run's spec).
 
 ## Context
 

@@ -4,7 +4,7 @@
 `shared.md`; `coordinate_lines.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0049,
 0051, 0052, 0058.
 
-> The model prediction along m random lines, or along lines the analyst gives, and the spectrum of each line
+> The model prediction along m random lines, or along lines the user gives, and the spectrum of each line
 > (0012; U2's finer line through a kink). Written from an interview on 2026-09-30 (TODO step 6). Each line is
 > analyzed as a coordinate line is (`coordinate_lines.md`); this spec states what differs. Everything not
 > stated here follows `shared.md`.

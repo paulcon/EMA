@@ -5,7 +5,8 @@
 ## Now
 
 - Writing the design documents by hand (`TODO.md`): steps 1–13 done.
-- Next: "Before the first line of code" (`TODO.md`): the specs checked against each other, and the first plan.
+- "Before the first line of code" (`TODO.md`): the specs checked against each other, and the contradictions
+  resolved (records 0061–0064). Next: the first plan.
 
 ## Done
 
@@ -68,15 +69,29 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   outside contributors too; the MIT license, `LICENSE`; C53–C55 accepted), applied to `architecture.md`,
   `contracts.md`, `trust.md`, `model_interface.md`, `reference_models.md`, `docs/plans/_template.md`, `README.md`,
   `TODO.md`, and the decisions index; three independent reviews (28, 11, then 9 findings, all fixed).
+- 2026-10-01: the specs checked against each other before code, by eight independent reviewers (76 findings),
+  then three rounds on the fixes (33, 9, then 7; `docs/notes/consistency_review_2026-10-01_before_code.md`):
+  plain errors corrected in place; records 0061 (a `seed` parameter for every diagnostic; "user", not
+  "analyst"; generators called with a design's identity; model parameter values hashed as doubles; the map
+  back to unit coordinates; `ema.cli` over `ema.mcp`; the stderr tail in `RunInfo`; `remove_tree`; and smaller
+  rules), 0062 (golden points across machines compared in unit coordinates; replays from the stored runs'
+  points; five details for step 01), 0063 (a design's structure stored with its result; the rebuild check per
+  range; `duration()`'s edges), and 0064 (the source-line budget raised to 8,300; `architecture.md` §11 about
+  8,200), applied to the specs and guides; "amended by" marks on 0006, 0010, 0017, 0028, 0031, 0035, 0036,
+  0042, 0044, 0049, 0056, 0058, 0061, and 0062.
 
 ## Next
 
-- "Before the first line of code" (`TODO.md`): a consistency check of the specs, and the first plan
-  (`docs/plans/01-…`).
+- "Before the first line of code" (`TODO.md`): the first plan (`docs/plans/01-…`): the scaffolding (0059),
+  and probably `ema.types` and the design generators, with their contracts.
 - For the first plan of `ema.numerics`: the coordinate lines' Lanczos basis must be the same bit for bit on
   every call (C7). With numpy on Accelerate (this Mac), the matrix products in its reorthogonalization gave two
-  different bases in 50 calls in one process (step 11's round 3 review). Build the basis without BLAS
-  reductions, or from the exact Gram basis rounded to doubles and cached per n, and test it.
+  different bases in 50 calls in one process (step 11's round 3 review). The same exposure reaches the linear
+  and polynomial models' QR fits, their bootstrap refits, and the Gram coefficients' `Q.T @ y`
+  (`docs/notes/consistency_review_2026-10-01_before_code.md`, D). Measure `qr`, `lstsq`, the Lanczos process,
+  and `Q.T @ y` at the polynomial model's size (50 calls, in one process and across processes), and propose a
+  record for any that varies. Building the basis from the exact Gram basis would contradict
+  `coordinate_lines.md` ("computed by the Lanczos process") and needs a record too.
 
 ## Specs
 

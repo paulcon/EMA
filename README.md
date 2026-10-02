@@ -70,9 +70,11 @@ docs/design/
 docs/decisions/               README.md (how, and the index), 0000-template.md, 0001…, 0002…
 docs/plans/                   README.md, _template.md
 docs/guides/                  get_started.md, add_a_model.md, run_a_diagnostic.md, add_a_diagnostic.md (outlines)
+docs/checks/                  step 11's scripts for the expected answers, and their outputs
 docs/notes/
   decision_workflow.md        how open decisions, decision records, and specs fit together
   adding_a_use_case.md        how to add a use case, with a template
   adding_a_reference_model.md how to add a reference model, what it can be used for, a template
+  consistency_review_*.md     consistency reviews of the design documents, and what came of them
   v1/                         v1's working notes and the lessons learned (not maintained)
 ```

@@ -50,7 +50,7 @@ outside contributors. **Specs:** `../design/diagnostics/_template.md`, `../desig
 8. **Write the module,** `ema/diagnostics/<name>.py`, implementing the `Diagnostic` protocol; its members are
    listed in `architecture.md` §6, the one place they are kept.
    - What it declares, from its spec: its name and title, whether it takes a space, a `DiagnosticParameter` per
-     row of the spec's parameter table but `space` and `prediction` (which are `run`'s own arguments), its
+     row of the spec's parameter table but `space` and `prediction` (every table has a `seed` row, 0061) (which are `run`'s own arguments), its
      interval method and spawn tags (C8). <…>
    - What it computes: its minimum runs (C3), its design, its estimates, observations, and notes from the
      usable runs only (P6), and its figures from the stored runs and result only (P1). <…>

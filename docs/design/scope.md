@@ -1,7 +1,7 @@
 # Scope of v2.0
 
-**Status:** accepted. **Updated:** 2026-10-01 (0022, 0025, 0037, 0039, 0050, 0057). **Depends on:** OD-2 (0006),
-OD-5 (0012), OD-6 (0014), OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
+**Status:** accepted. **Updated:** 2026-10-01 (0022, 0025, 0037, 0039, 0050, 0057, 0059, 0061, 0064). **Depends on:** OD-2
+(0006), OD-5 (0012), OD-6 (0014), OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
 
 > What the first release does, what it explicitly doesn't, and the size budgets that keep it small. When
 > something new comes up, the question is "is it in this file?", and if not, it waits for a later version.
@@ -24,7 +24,7 @@ OD-5 (0012), OD-6 (0014), OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 
 | Export | the runs a diagnostic result used, its design, and the result with its provenance, as CSV and JSON (U5; `export.md`, 0050) |
 | Reproduce | a stored diagnostic result recomputed from its provenance (U8, 0050) |
 
-- **Lines** draws m random lines, or takes lines the analyst gives, each an anchor and a direction (0012).
+- **Lines** draws m random lines, or takes lines the user gives, each an anchor and a direction (0012).
 - **The polynomial model's report** has U4's lean set (the residual and cross-validated error, the Sobol
   first-order and total indices, the model prediction against the fitted and held-out predictions, a histogram
   of the residuals) and the decay of its coefficients (0012, 0039).
@@ -55,7 +55,7 @@ OD-5 (0012), OD-6 (0014), OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 
   its diagnostic result, exported with it (0041, 0050).
 - **v1's other diagnostics** (finite differences, Fourier, Morris, nonsmoothness, sampled Sobol, 2-D surfaces,
   surrogate checks): later, each with its own spec and known answers (0012).
-- **Deleting kept run directories from EMA** (a clean-up command): the analyst deletes them by hand (0020).
+- **Deleting kept run directories from EMA** (a clean-up command): the user deletes them by hand (0020).
 - **Interpretation, advice, and next steps:** later, labeled experimental and kept apart, under P2's rules
   (0017).
 - **An own chat loop:** not planned; the agent is an MCP server (0016).
@@ -82,7 +82,7 @@ OD-5 (0012), OD-6 (0014), OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 
 | Measure | Budget |
 |---|---|
 | Diagnostics | 6 (0012) |
-| Source lines in `ema` (without tests and reference models) | 8,000 |
+| Source lines in `ema` (without tests and reference models) | 8,300 (0064) |
 | Source lines of reference models | 1,000 |
 | Public names in `ema.workspace` (`open_workspace` and the `Workspace` methods) | 20 |
 | CLI commands (`ema model add` and `ema model test` count as two) | 15 |

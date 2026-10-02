@@ -1,6 +1,6 @@
 # Model interface
 
-**Status:** accepted. **Updated:** 2026-10-01 (0043, 0052, 0053, 0054, 0056, 0057). **Depends on:** OD-3 (0003, 0005), OD-6 (0014),
+**Status:** accepted. **Updated:** 2026-10-01 (0043, 0052, 0053, 0054, 0056, 0057, 0061). **Depends on:** OD-3 (0003, 0005), OD-6 (0014),
 OD-9 (0022), OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0015, 0020, 0021, 0024, 0025, 0028, 0029, 0030,
 0031, 0057.
 
@@ -24,8 +24,8 @@ OD-9 (0022), OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0015, 0020, 0021,
 - **Names:** a model's name is lowercase letters, digits, `_`, and `-`. Model parameter and model prediction
   names are Python identifiers, unique across both lists, so they work as keyword arguments and in templates;
   none may start with `ema_`, the prefix of EMA's columns in an export (`export.md`, 0053).
-- **The model version id** is `name@` and the first 12 hexadecimal digits of the version hash; the store keeps
-  the full hash.
+- **The model version id** is the full version hash (`data_model.md`); it is shown as its label, `name@` and
+  the first 12 hexadecimal digits of the hash.
 - **`noisy`** is allowed only as `false` (the default); `noisy: true` is refused at loading, with a message
   that models declared noisy come in a later version (0021).
 - **No run-time field:** the price's time comes only from stored run durations, and is "unknown" without them
@@ -81,7 +81,7 @@ A Python function model (U1's beam):
   out, and each may be strict or not (`gt`, `ge`, `lt`, `le`). The nominal value is inside them. A space that
   crosses a limit is refused when its design is built, so no run is refused at its point.
 - **Continuous only:** every model parameter takes real values (0024).
-- **Held model parameters** (0023): a variable the analyst usually doesn't vary (a mesh size, a solver
+- **Held model parameters** (0023): a variable the user usually doesn't vary (a mesh size, a solver
   tolerance) is an ordinary model parameter, with its nominal value. A design whose model parameter space
   leaves it out holds it at its nominal value. The model spec has no separate list of fixed values or
   constants.

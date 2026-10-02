@@ -32,9 +32,9 @@
 
 - **d** is the number of varied model parameters; the fit has d + 1 coefficients.
 - **The defaults:** n_min = 2(d + 1), twice the coefficients, as U4 assumes; alpha = 0.7072, just above 1/√2, so
-  the points about double per level (r = ½ for `random`: 18, 36, 72, 144, 288, 576, 1151 at d = 8); level 2,
-  so 8(d + 1) points: 72 at d = 8, 32 at d = 3. With alpha = 0.5 the error halves per level and the points grow
-  4× (18, 72, 288).
+  the points about double per level (r = ½ for `random`: 18, 36, 72, 144, 288, 576, 1151 at d = 8); level 2, so
+  about 8(d + 1) points (exactly, for d ≤ 236; G7's formula decides): 72 at d = 8, 32 at d = 3. With alpha = 0.5
+  the error halves per level and the points grow 4× (18, 72, 288).
 - **A small n_min** is accepted (`../designs.md` refuses only sizes that aren't strictly increasing): the
   estimates need 2(d + 1) usable runs at level L (below), and a smaller level has "none" in the per-level table.
 - **Nested** in level with the same space, seed, and sampler (G7): level 3 after level 2 reuses every run, and
@@ -99,7 +99,8 @@ bootstrap) states it, from the linear model's stream (`LINEAR_BOOT_TAG`). What d
   and 0.263 on distinct runs; on R7 at 40, 0.725, 0.691, and 0.767.
 - **Undefined resamples:** a resample whose A has rank below d + 1, or whose distinct runs are fewer than d + 2
   for LOO. The rank is numpy's `matrix_rank` rule: the number of singular values above max(n_u, d + 1)·ε·σ_max,
-  ε the double's machine epsilon (0051).
+  ε the double's machine epsilon (0051). R², the relative residual, and the LOO error are also undefined on a
+  resample whose y is constant (0/0, `../uncertainty.md`'s bootstrap step 3).
 - **Three tables,** each with one line under it (`shared.md`): the coefficients; the fit (relative residual and
   R²); the LOO error ("… recomputed on the distinct runs of each resample").
 - **Why not the levels:** nested levels share runs, so their estimates move together. Over 100 designs, the span
@@ -304,7 +305,7 @@ designs (seeds 1–100) at 20,000 runs, recomputed at step 11 by `../../checks/l
 |---|---|---|---|
 | `LINEAR_NMIN` | 2(d + 1) | the default size of level 0 | twice the coefficients, as U4 assumes |
 | `LINEAR_ALPHA` | 0.7072 | the default error factor per level | just above 1/√2: the points about double per level |
-| `LINEAR_LEVEL` | 2 | the default last level | U4's: 8(d + 1) points |
+| `LINEAR_LEVEL` | 2 | the default last level | U4's: about 8(d + 1) points (G7) |
 | `LINEAR_MIN_RUNS` | 2(d + 1) | the fewest usable runs for estimates | resamples keep about 1.3(d + 1) distinct runs, so few are rank-deficient |
 | `LINEAR_BOOT_TAG` | 2³² + 2 | the spawn key of the linear model's bootstrap stream | the next diagnostic tag after scatter's (`shared.md`) |
 

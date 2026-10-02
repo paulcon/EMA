@@ -30,7 +30,9 @@
 - <fast tier passes in under 30 s>
 - <slow tier passes>
 - <lint and layer checks pass>
-- <size budgets in `docs/design/scope.md` still met>
+- <docs build with `-W` passes>
+- <the package's lines against its `docs/design/architecture.md` §11 estimate; size budgets in
+  `docs/design/scope.md` still met>
 
 ## Stop condition
 

@@ -36,7 +36,8 @@
 - **d** is the number of varied model parameters; **P** = C(d + p, p) is the number of terms, and of
   coefficients.
 - **The defaults**, as the linear model's with P in place of d + 1: n_min = 2P, twice the coefficients, as U4
-  assumes; alpha = 0.7072, so the points about double per level; level 2, so 8P points:
+  assumes; alpha = 0.7072, so the points about double per level; level 2, so about 8P points (exactly 8P for P ≤
+  237; G7's formula decides):
 
   | d, p | P | level 0 (2P) | level 2 (8P) | cond(A) at 2P, median of 50 designs |
   |---|---|---|---|---|
@@ -49,10 +50,10 @@
 - **Degree:** 2 by default, the smallest step past the linear model, and U5's; degree 3 is an explicit request
   (U3, U4), and its price is in the approval (P3). p = 1 is accepted: it gives the linear fit's Sobol indices,
   with coefficients scaled by ψ₁(u) = √3·u rather than the linear model's slopes.
-- **The basis:** `total_degree` is the only value v2.0 accepts; any other is refused with "basis X comes in a
-  later version", as `sampler` is (0032). Later index sets (hyperbolic cross, which has 65 terms against 165 at
-  d = 8, p = 3; a sparse fit by orthogonal matching pursuit) are about 30–80 lines each, with a record and known
-  answers. The basis is not part of the design, but is part of the request's identity.
+- **The basis:** `total_degree` is the only value v2.0 accepts; any other is refused with "basis X comes in a later
+  version", as `sampler` is (0032). Later index sets (hyperbolic cross, which has 53 terms (Π(αᵢ + 1) ≤ p + 1)
+  against 165 at d = 8, p = 3; a sparse fit by orthogonal matching pursuit) are about 30–80 lines each, with a
+  record and known answers. The basis is not part of the design, but is part of the request's identity.
 - **A small n_min** is accepted (`../designs.md` refuses only sizes that aren't strictly increasing): the
   estimates need 2P usable runs at level L (below), and a smaller level has "none" in the per-level table.
 - **Nested** in level with the same space, seed, and sampler (G7), and across degrees: a convergent design's
@@ -164,8 +165,10 @@ OD-12, for the polynomial model: **the bootstrap over the usable runs of level L
 
 - **On distinct runs:** the LOO error, as the linear model's. The coefficients, relative residual, R², Sobol
   indices, and √E_k are refitted on each resample as drawn, duplicates included (the pairs bootstrap).
-- **Undefined resamples:** a resample whose A has rank below P (numpy's `matrix_rank` rule, as at level L,
-  below), or whose distinct runs are fewer than P + 1 for LOO.
+- **Undefined resamples:** a resample whose A has rank below P (numpy's `matrix_rank` rule, as at level L, below),
+  or whose distinct runs are fewer than P + 1 for LOO. R², the relative residual, the LOO error, and the Sobol
+  indices are also undefined on a resample whose y or fitted polynomial is constant (0/0, `../uncertainty.md`'s
+  bootstrap step 3).
 - **Checked** against the spread over 200 designs (R3, p = 2, 360 runs; a scratch script, 2026-09-30): the
   intervals' widths are 0.85–2.3 times 5.15 standard deviations over designs, across the 20 estimates.
   Refitting on distinct runs gave 0.66–1.7, and was not chosen, so that the two fits' bootstraps stay alike.
@@ -190,11 +193,12 @@ OD-12, for the polynomial model: **the bootstrap over the usable runs of level L
   | 8, 4 | 495 | 2.2 min |
   | 20, 3 | 1771 | 54 min |
 
-- **Progress:** the analysis reports its progress through the same `on_progress(done, total)` hook as runs
-  (`../architecture.md`): "bootstrap: 230 of 1000 refits, about 6 min left", the time left from the refits so
-  far, about once a second. The CLI shows it as a progress line, and the MCP server as progress notifications.
+- **Progress:** the analysis reports its progress through the same `on_progress(Progress)` callback as runs, with
+  its `done`, `total`, and `text` (`../architecture.md`): "bootstrap: 230 of 1000 refits, about 6 min left", the
+  time left from the refits so far, about once a second. The CLI shows it as a progress line, and the MCP server as
+  progress notifications.
 - **The matrix's size:** before the bootstrap starts, the progress shows A's shape and memory ("A: 14161 × 1771,
-  200 MB"). There is no refusal: memory is the analyst's to judge (d = 20, p = 4 at the defaults is 84,964 ×
+  200 MB"). There is no refusal: memory is the user's to judge (d = 20, p = 4 at the defaults is 84,964 ×
   10,626, 7.2 GB). If numpy can't allocate it, the diagnostic evaluation fails with that reason, and keeps its
   runs.
 - **The price is unchanged** (P3): runs and their time. An analysis-time estimate in the price, from timing one
@@ -426,7 +430,7 @@ would put some of them off by more than their tolerance.
 | `POLY_DEGREE` | 2 | the default degree | the smallest step past the linear model; U5's |
 | `POLY_NMIN` | 2P | the default size of level 0 | twice the coefficients, as U4 assumes |
 | `POLY_ALPHA` | 0.7072 | the default error factor per level | as the linear model's: the points about double per level |
-| `POLY_LEVEL` | 2 | the default last level | as the linear model's: 8P points |
+| `POLY_LEVEL` | 2 | the default last level | as the linear model's: about 8P points (G7) |
 | `POLY_MIN_RUNS` | 2P | the fewest usable runs for estimates | resamples keep about 1.26P distinct runs |
 | `POLY_BOOT_TAG` | 2³² + 3 | the spawn key of the polynomial model's bootstrap stream | the next diagnostic tag after the linear model's (`shared.md`) |
 
@@ -443,7 +447,7 @@ would put some of them off by more than their tolerance.
 | PM7 | Fewer than 2P usable runs, or A of rank below P: counts and a note, no estimates; the observations stay. | R5 in a space where 2P − 1 runs are usable; 2P; a fixture whose usable runs take p values along one model parameter. |
 | PM8 | y → a·y + b (a a power of 2) maps c_0, the c_α, and √E_k as stated, and leaves the relative residual, R², LOO, the Sobol indices, and the notes unchanged: exactly under a·y; within C5's tolerances under the shift (0048). | R2 at p = 4 with a = 2⁻¹⁰, b = 3. |
 | PM9 | Four figures: the fit's two panels with their strips, the Sobol indices with intervals, √E_k on a log axis with values below its lower limit as open markers on the bottom edge (0048), the residual histogram with ⌊√n_u⌋ bins. | R5 at the defaults: each strip's count equals the header's; a constructed spectrum with one value below `SPECTRUM_YMIN`: 1 open marker (0048). |
-| PM10 | Progress: the analysis calls `on_progress` with the refits done and the total, and reports A's shape and size before the bootstrap; an interrupt keeps every run and stores no diagnostic result. | A recording callback on R2 at p = 4: 1000 refits counted, monotone; an interrupt raised from the callback, then a rerun: 0 new runs, the same result. |
+| PM10 | Progress: the analysis calls `on_progress` with the refits done and the total, and reports A's shape and size before the bootstrap; an interrupt keeps every run and stores no diagnostic result. | A recording callback on R2 at p = 4: 1000 refits counted, monotone; an interrupt raised from the callback, then a rerun: 0 new runs, the same estimates (its counts and approval are the rerun's, 0054). |
 | PM11 | Nesting: level L + 1 after level L reuses every run; degree p + 1 after degree p with the same seed reuses the runs of the smaller design. | R3: degree 3, level 1 after degree 2, level 2 makes 300 new runs (U4). |
 | PM12 | The known answers at 20,000 runs, and the golden report. | Expected answers. |
 

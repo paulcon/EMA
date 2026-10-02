@@ -1,6 +1,6 @@
 # 0056. Make the layers architecture rules, use a Workspace object, serve figures as MCP resources, type the use cases against the workspace, add three store reads, and allow a Store per thread
 
-**Date:** 2026-10-01. **Status:** accepted. **Resolves:** OD-16; the held candidate principle "One-way layers"
+**Date:** 2026-10-01. **Status:** accepted; its layer 5 and AR3 amended by 0061 (`ema.cli` over `ema.mcp`). **Resolves:** OD-16; the held candidate principle "One-way layers"
 (TODO step 9).
 
 ## Context

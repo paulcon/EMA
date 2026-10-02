@@ -3,9 +3,9 @@
 **Status:** accepted. **Updated:** 2026-10-01 (U9 added by 0016; U2's model spec follows `model_interface.md`;
 U3's failure map dropped by 0037; U2's per-line numbers by 0038; U4's polynomial figures by 0039; U4's budget
 dropped, and the features no use case exercises named, by 0050; asks trimmed by 0052; typed steps follow
-`architecture.md` §7 by 0056; the first approval's environment, and `ema mcp --root`, by 0057).
+`architecture.md` §7 by 0056; the first approval's environment, and `ema mcp --root`, by 0057; "user", and U4's durations, by 0061; U8 on another machine by 0062).
 
-> Each use case is a short scenario from the analyst's side: who they are, what model they have, what they
+> Each use case is a short scenario from the user's side: who they are, what model they have, what they
 > want to learn, what they type (in Python or the CLI), what EMA asks them, and the report they get. Write
 > them before the workspace functions: they become the guides, and the workspace's contract tests.
 >
@@ -33,13 +33,13 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
 
 ## U1 First look at a cheap Python model
 
-- **Analyst and model:** a domain scientist with their own Python function: milliseconds per run, a handful
+- **User and model:** a domain scientist with their own Python function: milliseconds per run, a handful
   of model parameters, and one scalar model prediction (OD-9). In the example, a cantilever beam: Young's
   modulus `E`, length `L`, and load `P`; the model prediction is the tip deflection. The "Done when" test runs
   the same steps on reference model R2 (Ishigami), whose answers are known.
 - **Question:** over this model parameter space, which model parameters does the model prediction change
-  with, and how: trends, spread, anything odd? The answer is the analyst's to draw from the figures (P2).
-- **Steps, as typed:** the price is shown in the approval question; `price` exists for an analyst who
+  with, and how: trends, spread, anything odd? The answer is the user's to draw from the figures (P2).
+- **Steps, as typed:** the price is shown in the approval question; `price` exists for a user who
   wants the price without being asked, but U1 doesn't need it.
 
   ```python
@@ -73,7 +73,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
   - choose which model parameters to carry into a later study, and which to hold at their nominal values;
     possibly run U2 or U4 on them next;
   - narrow or widen the model parameter space and run scatter again, as a separate diagnostic evaluation;
-    comparing the two reports is the analyst's job, not EMA's, in v2.0 (0005, 0006);
+    comparing the two reports is the user's job, not EMA's, in v2.0 (0005, 0006);
   - share the report and its figures with colleagues, or in a paper's supplement;
   - if something looks wrong (an unphysical value, a jump), fix the model function; loading it again makes a
     new model version (U6).
@@ -91,7 +91,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
 
 ## U2 Is a slow simulator smooth along each model parameter?
 
-- **Analyst and model:** an engineer with a command-line simulation code, a steady heat-conduction solver for
+- **User and model:** an engineer with a command-line simulation code, a steady heat-conduction solver for
   a plate: about 2 minutes per run, an input deck written from a template, 6 model parameters, and one scalar
   model prediction, the peak temperature, read by an output parser (OD-6, OD-9, OD-20). U2 includes writing
   the model spec, so it doubles as the add-a-model guide's example. The "Done when" test uses a reference
@@ -132,7 +132,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
 
   2. Load it, test it at the nominal point, and run coordinate lines with 17 points per line. Each line's
      points include the nominal point, which the six lines share (`designs.md`, step 5): 97 distinct points,
-     one of them the test run, so 96 new runs, about 3.2 hours. The analyst stops after 40 runs, and runs the
+     one of them the test run, so 96 new runs, about 3.2 hours. The user stops after 40 runs, and runs the
      same command the next day. The model parameter space is given on the command line as a JSON file,
      `--space FILE` (`designs.md`).
 
@@ -200,7 +200,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
 
 ## U3 A simulator that fails in part of its model parameter space
 
-- **Analyst and model:** the engineer and heat solver from U2, over a wider model parameter space. At low
+- **User and model:** the engineer and heat solver from U2, over a wider model parameter space. At low
   conductivity and high heat flux, the solver doesn't converge and exits with an error; a few runs time out.
   The "Done when" test uses a reference model that fails in a known region, in both ways.
 - **Question:** where in the model parameter space does the model fail, why, and what do the runs that
@@ -229,7 +229,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
   - `r2`: in 6 model parameters, a cubic has 84 coefficients, and at U4's illustrative sizes its level-0
     design has 168 points. In the wider space 100 of them fail, which leaves 68 usable runs, fewer than the
     168 the polynomial model's spec requires (2P, twice the 84 coefficients; `POLY_MIN_RUNS`).
-  - `r3` and `r4`: a stored failed run is reused, like any stored run, unless the analyst asks to retry
+  - `r3` and `r4`: a stored failed run is reused, like any stored run, unless the user asks to retry
     (record 0010).
   - `r5`: a uniform design in a different model parameter space shares almost no points with the first, so
     nothing is reused.
@@ -266,7 +266,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
 
 ## U4 Does a low-degree polynomial fit?
 
-- **Analyst and model:** an analyst planning an uncertainty study, who wants to know whether a cheap
+- **User and model:** a user planning an uncertainty study, who wants to know whether a cheap
   polynomial surrogate is worth building first. The model is a Python function of about 5 seconds per run:
   the focal shift of a lens assembly under thermal load, with 8 model parameters (material properties,
   temperatures, mount stiffness) and one scalar model prediction (OD-9). The "Done when" test uses reference
@@ -275,7 +275,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
   space, and how is its variation split among the model parameters and their interactions (Sobol indices)?
 - **Steps, as typed:** a linear model, then polynomial models of degree 2 and 3, on convergent designs with
   the same seed. Convergent designs with the same seed and model parameter space are nested, so each larger
-  design reuses the runs of the smaller ones (OD-13). The analyst declines the degree-3 run at level 2 as too
+  design reuses the runs of the smaller ones (OD-13). The user declines the degree-3 run at level 2 as too
   long (0050).
 
   ```python
@@ -284,7 +284,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
   r2 = ws.run("lens", "polynomial_model", space, degree=2, level=2, seed=3, approve=ema.ask)
   try:
       r3 = ws.run("lens", "polynomial_model", space, degree=3, level=2, seed=3, approve=ema.ask)
-      #   asks: 960 new runs, about 80 min; the analyst declines
+      #   asks: 960 new runs, about 1 h 20 min; the user declines
   except ema.ApprovalDeclined:
       pass                             # declined: no runs made
   r3 = ws.run("lens", "polynomial_model", space, degree=3, level=1, seed=3, approve=ema.ask)
@@ -295,7 +295,7 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
   2 × (number of coefficients) points at level 0, doubling at each level.
   - `r1`: 72 new, 0 reused, about 6 min;
   - `r2`: 288 new, 72 reused, about 24 min;
-  - `r3` at level 2: 960 new, 360 reused, about 80 min; the analyst declines, and no run is made;
+  - `r3` at level 2: 960 new, 360 reused, about 1 h 20 min; the user declines, and no run is made;
   - `r3` at level 1: 300 new, 360 reused, about 25 min.
 - **What they get:** three reports. The polynomial model's numbers and figures are settled in its spec
   (step 6); the lean set is:
@@ -312,11 +312,11 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
   - build a polynomial surrogate of the chosen degree in a UQ tool, and use it for the uncertainty study;
   - export the stored runs, and fit the surrogate in their own tool (U5);
   - hold at their nominal values, in the uncertainty study, the model parameters with small total Sobol
-    indices (the analyst's judgment, P2);
+    indices (the user's judgment, P2);
   - if no degree fits, look at lines (U2) or failures (U3) to see why, and choose another method.
 - **Done when:** on the polynomial reference model and on R2:
   - each price counts as reused exactly the points shared with the earlier designs;
-  - the level-2 price shows 960 new runs, about 80 min; declining makes no run;
+  - the level-2 price shows 960 new runs, about 1 h 20 min; declining makes no run;
   - running the same steps again gives identical diagnostic results, intervals included (P4);
   - y → a·y + b leaves every note and the Sobol indices unchanged (P6).
 
@@ -325,10 +325,10 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
 
 ## U5 A second diagnostic reuses stored runs
 
-- **Steps, as typed:** after U1, the analyst runs a degree-2 polynomial model in the same model parameter
+- **Steps, as typed:** after U1, the user runs a degree-2 polynomial model in the same model parameter
   space, with the same seed. The convergent design starts from the same seeded uniform stream as scatter's
   design (OD-13), so scatter's 200 points are its first 200. At U4's illustrative sizes, 3 model parameters,
-  degree 2, and level 4 make 320 points. Then the analyst runs the same request again, and exports the runs.
+  degree 2, and level 4 make 320 points. Then the user runs the same request again, and exports the runs.
 
   ```python
   # after U1
@@ -338,9 +338,9 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
   ```
 
   The export holds the runs that diagnostic result used, with its design, and the diagnostic result with its
-  provenance: a CSV of runs (one row per run: the model parameter values, the model predictions, the status,
-  the reason for a failure, and the run time) and a JSON file for the rest. Model predictions that are arrays
-  (OD-9) will need another format.
+  provenance: a CSV of runs (one row per design row, E2: the model parameter values, the model predictions, the
+  status, the reason for a failure, and the run time) and a JSON file for the rest. Model predictions that are
+  arrays (OD-9) will need another format.
 - **What EMA asks, and when:** `r2` asks once: 120 new, 200 reused, and a time estimated from the stored run
   durations. `r3` has no new runs, so it asks nothing (P3).
 - **Done when:**
@@ -352,8 +352,8 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
 ## U6 The model changes
 
 - **Steps, as typed:**
-  1. After U1, the analyst fixes a bug in `beam.py`, and runs scatter again before loading the model again.
-     EMA re-hashes the model's files before every run, and refuses. The analyst loads the model again, which
+  1. After U1, the user fixes a bug in `beam.py`, and runs scatter again before loading the model again.
+     EMA re-hashes the model's files before every run, and refuses. The user loads the model again, which
      makes a new model version, and runs scatter.
 
      ```python
@@ -423,7 +423,7 @@ written.
 
 ## U8 Reproduce a stored diagnostic result
 
-- **Steps, as typed:** a colleague reviewing the analyst's paper gets a copy of the workspace directory from
+- **Steps, as typed:** a colleague reviewing the paper from U1 gets a copy of the workspace directory from
   U1, and checks the scatter result. `reproduce` recomputes the diagnostic result from its provenance and the
   stored runs, with no new runs, and compares.
 
@@ -442,21 +442,24 @@ written.
   - in a copy of the workspace, with the same EMA and library versions, reproducing gives an identical
     diagnostic result, intervals included, and a byte-identical report (P1, P4), and makes no run;
   - a deleted diagnostic result is recomputed identical from its provenance and the stored runs (P5);
-  - with one library version changed, the check names exactly that provenance field.
+  - with one library version changed, the check names exactly that provenance field;
+  - on another machine, or after a design generator's version changed, reproducing uses the stored runs'
+    points and reports any difference in the rebuilt design among the provenance's differences; it never
+    refuses (0062).
 
 ## U9 The same through an MCP client
 
-- **Steps, as typed:** the analyst from U1 uses an MCP client (such as Claude Desktop) with EMA's MCP
+- **Steps, as typed:** the user from U1 uses an MCP client (such as Claude Desktop) with EMA's MCP
   server, in a fresh workspace, and asks in their own words to set up `beam.py` as a model, test it, and
   run scatter over the same model parameter space with n = 200 and seed 1. The client's agent calls:
   `propose_model` (a model spec for `beam.py`), `save_model`, `test_model`, `run_diagnostic`, and
-  `results`, and the analyst opens the report through its resource, `ema://results/{id}/report`.
+  `results`, and the user opens the report through its resource, `ema://results/{id}/report`.
 - **What EMA asks, and when:** three elicitations: the model spec, before it is saved (the model
   parameters, units, nominal values, and the file); the test run: 1 new, 0 reused, time unknown; and
   scatter: 200 new, 0 reused, about 0.2 s. The client's agent answers none of them.
 - **What they get:** tool results with result ids and EMA's rendered text; the same report as U1.
 - **Done when:** on R2, with a scripted MCP client (no LLM, so no API cost):
-  - the scripted client starts the server with `ema mcp --root` naming the analyst's project directory
+  - the scripted client starts the server with `ema mcp --root` naming the user's project directory
     (`trust.md`);
   - the three elicitations come in that order, with U1's prices;
   - a declined elicitation saves no model spec, or makes no run;

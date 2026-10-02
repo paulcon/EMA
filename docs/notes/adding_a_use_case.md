@@ -6,10 +6,10 @@ those files differ, those files win.
 
 ## When to add one
 
-Add a use case when an analyst would use EMA in a way that no use case covers yet. For example: a new kind of
-model, a new diagnostic in the analyst's workflow, or a new promise that a principle makes and no use case
+Add a use case when a user would use EMA in a way that no use case covers yet. For example: a new kind of
+model, a new diagnostic in the user's workflow, or a new promise that a principle makes and no use case
 tests. Use cases come before the workspace functions. They become the guides and the workspace's contract
-tests, so a feature with no use case behind it has no test of the path an analyst takes.
+tests, so a feature with no use case behind it has no test of the path a user takes.
 
 If the scenario is an existing use case with one thing changed, extend that use case, or write a short one
 that starts from it ("after U2, …").
@@ -48,7 +48,7 @@ that starts from it ("after U2, …").
 - **Every new run is approved (P3),** including a test run at the nominal point. A request with no new runs
   asks nothing.
 - **"What they get" holds no interpretation (P2).** It lists figures, estimates with variability intervals,
-  counts, and notes. What they mean is the analyst's to say, under "What they do next".
+  counts, and notes. What they mean is the user's to say, under "What they do next".
 - **"Done when" checks the flow, not the numerics.** Known answers for a diagnostic belong to that
   diagnostic's spec (`../design/diagnostics/`). The use case checks what EMA asks, the counts, reuse,
   determinism (P4), and what the report contains, on a reference model (`../design/reference_models.md`).
@@ -61,9 +61,9 @@ that starts from it ("after U2, …").
 The full form:
 
 ````markdown
-## U<n> <short name: the analyst's question, or the situation>
+## U<n> <short name: the user's question, or the situation>
 
-- **Analyst and model:** <who they are; their model: Python function or command line, time per run, number
+- **User and model:** <who they are; their model: Python function or command line, time per run, number
   of model parameters, model predictions (OD-9); the reference model the "Done when" test uses>
 - **Question:** <what they want to learn, in their words; the answer is theirs to draw (P2)>
 - **Steps, as typed:** <one line on what they do>

@@ -2,7 +2,9 @@
 
 **Status:** accepted. **Updated:** 2026-10-01 (the lines' spectra named by 0038; OD-12's questions answered by
 0040; the design's identity by 0046; the maps, the order of a line's points, and alpha by 0047; the point
-design's space by 0049; the anchor's refusal by 0051; asks trimmed by 0052). **Depends on:** OD-13 (0032);
+design's space by 0049; the anchor's refusal by 0051; asks trimmed by 0052; the map back, golden points across
+machines, and generators called with an identity by 0061; golden points in unit coordinates, the sampler version's
+refusal, and given lines' fixed coordinates by 0062; the structure kept with the result by 0063). **Depends on:** OD-13 (0032);
 records 0005, 0012, 0013, 0023, 0024, 0033.
 
 > The design generators in v2.0, from `../notes/v1/ema-redesign.md` and scope's Designs row (point, uniform,
@@ -36,7 +38,10 @@ records 0005, 0012, 0013, 0023, 0024, 0033.
   - a linear range: x = lo + (hi − lo)·u;
   - a log range: x = exp(ln lo + (ln hi − ln lo)·u), clamped to [lo, hi];
   - a point on a face of the space has that coordinate set to lo or hi exactly, not computed;
-  - lines are built in z and mapped through u.
+  - lines are built in z and mapped through u;
+  - **the map back** (0061), for stored runs' points (the fits, the shared anchor, a given line's anchor): a
+    linear range z = (2x − (lo + hi))/(hi − lo); a log range the same in ln x; clamped to [−1, 1], and lo and
+    hi map exactly to −1 and 1.
 
 ### JSON form
 
@@ -58,17 +63,32 @@ at that value.
 
 - **Seeds:** a seeded generator takes the seed from the request; when the request gives none, the seed is 0,
   as in v1, and is recorded (P4, P5). Two requests without a seed get the same points, so they reuse runs.
+  Every design's identity holds the request's seed; an unseeded generator ignores it (0061).
+- **Called with an identity** (0061): a generator is stateless, `size(identity, spec)` and `build(identity,
+  spec, start, stop)`, and everything it needs is in the design's identity: the kind, the space, the seed,
+  the sampler and its version, and `params`, the request's other names below. The short forms below and in the
+  tests (`uniform(n=…)`, `point({"k": 50}, repeats=3)`) each build an identity. An identity of another
+  generator or sampler version is refused, naming both (`RequestError`; 0061, 0062). Log ranges use numpy's
+  `log` and `exp` (0062). The design contract's inputs (seeded or not, the nesting claimed,
+  an example identity, one over the cap) are a table keyed by generator name in `tests/contracts/design.py`.
 - **Size:** every generator computes its size in closed form, from the request alone, before building. A
   design of more than 10,000,000 points is refused then, with `DesignTooLarge` naming the size and the cap.
   At the cap, a design of 20 model parameters is 1.6 GB of points, and pricing hashes every point.
-- **Determinism** (G1): the same request gives the same points, bit for bit. The `random` sampler builds its
-  doubles from PCG64's raw output, which numpy keeps stable across versions (NEP 19), so a design's points in
-  the unit cube, and its points in linear ranges (lo + (hi − lo)·u), are the same across numpy versions and
-  machines. A log range goes through `exp` and its clamp (Unit coordinates, 0047); `exp` can differ in the last
-  bit between CPUs, so its points are promised only with the same machine and library versions (P4). So are
-  random lines' directions, which use numpy's `Generator.standard_normal`: NEP 19 lets its stream change in a
-  feature release. A golden-points test pins all of these; a change after an upgrade loses reuse, never
-  correctness, since runs are keyed by their points.
+- **Determinism** (G1): the same request gives the same points, bit for bit, on one machine with the same
+  library versions (P4). Across machines (0061, 0062):
+  - the `random` sampler's unit rows and points in linear ranges (lo + (hi − lo)·u) are bit for bit on every
+    machine and numpy version, except a line's points in a space with a log range, whose clipping and anchor
+    go through `log` (compared as below): the sampler builds its doubles from PCG64's raw output, which numpy keeps
+    stable (NEP 19);
+  - points in log ranges (through `log`, `exp`, and the clamp; Unit coordinates, 0047), and random lines'
+    points (their directions from numpy's `Generator.standard_normal`), are compared in unit coordinates, by
+    the map back, within `GOLDEN_UNIT_TOL` = 10⁻¹² absolute, coordinate by coordinate. `log` and `exp` can
+    differ in their last bits between machines; for |ln lo|, |ln hi| ≤ 64 and ln hi − ln lo ≥ 1, as the golden
+    requests have, that is about 10⁻¹³ in z. NEP 19 lets `standard_normal`'s stream change in a feature
+    release; such a change moves the points far more, fails the golden-points test, and needs a record.
+
+  A golden-points test pins all of these, on every machine the checks run on (0059). A change after an
+  upgrade loses reuse, never correctness, since runs are keyed by their exact points (0051).
 - **Ready for chunked designs** (a later version): a design larger than the cap, built, priced, run, and
   analyzed a block of rows at a time. v2.0 keeps the seams:
   - every point is a function of the request and its row index, so rows [a, b) can be made without rows
@@ -144,7 +164,9 @@ Shared by given, coordinate, and random lines (0012):
   refining 17 → 33 points reuses all 17 runs.
 - **Rows and runs:** the size counts rows, line by line. Rows at the same point (lines crossing at a shared
   anchor) share one run, and the price counts distinct points.
-- **Recorded** with the design, for each line: its anchor, its direction, and its two ends.
+- **Recorded** with the design, for each line: its anchor, its direction, and its two ends, kept in the
+  diagnostic result's provenance with the line's rows (`DesignStructure`, 0063), as a convergent design's level
+  sizes are.
 
 **Given lines** (the lines diagnostic, U2's line through a kink): `lines(space, lines, n)`, where each line is
 an anchor and a direction.
@@ -154,6 +176,9 @@ an anchor and a direction.
   is one of its points only if it falls on the grid t_j.
 - **The direction** is in unit coordinates (`{"k": 1, "q": -0.5}`); unnamed components are 0. It must be
   nonzero, and may not name a held model parameter or a name that isn't a model parameter.
+- **Fixed coordinates** (0062): a varied model parameter whose direction component is 0 keeps the anchor's
+  value on every point of the line, bit for bit, as coordinate lines' other coordinates do; it is not mapped
+  back and forth.
 
 **Coordinate lines** (U2): `coordinate_lines(space, n, anchor)`, one line per varied model parameter, in the
 model spec's order, each varying that model parameter over its whole range with the others at the anchor's
@@ -162,16 +187,16 @@ values.
 - **The anchor** is a partial mapping in model parameter units; unnamed model parameters are at their nominal
   values (held ones at their held values). It must be inside the space: when a nominal value is outside its
   range, the request is refused, naming it, and the anchor has to be given.
-- **Shared anchor:** when n is odd and the anchor's unit coordinate along a line is 0 to within 10⁻¹² (the
+- **Shared anchor:** when n is odd and the anchor's unit coordinate along a line, by the map back, has |z| ≤ 10⁻¹² (the
   range's center; the geometric center for a log range), that line's middle point is set exactly to the anchor's
   value. All other coordinates are the anchor's values exactly, so lines that each meet this rule share the
   anchor's run; the anchor is the only point two coordinate lines can share. U2 (nominal values at the centers,
   n = 17, 6 model parameters) has 102 rows and 97 distinct points. An anchor that equals, bit for bit, a point
   of a coordinate line along which it is off center (an end at lo or hi, or another grid point) is refused,
-  naming the model parameter; the analyst gives another anchor, as when a nominal value is outside its range
+  naming the model parameter; the user gives another anchor, as when a nominal value is outside its range
   (0051). A line along which the anchor is off center, or any line when n is even, doesn't contain the anchor,
   and shares no point with the others; the coordinate lines spec (step 6) says how the report shows it. The
-  10⁻¹² is a named constant.
+  10⁻¹² is the named constant `SHARED_ANCHOR_TOL`.
 
 **Random lines** (the lines diagnostic): `random_lines(space, m, n, seed)`.
 
@@ -231,7 +256,7 @@ values.
 
 | Id | Requirement | Test |
 |---|---|---|
-| G1 | The same request gives the same points, bit for bit; a different seed gives different points (P4). | Each generator built twice; golden points for fixed requests (the `random` sampler's unit rows, a linear range, a log range, random lines); seeds 1 and 2 differ. |
+| G1 | The same request gives the same points, bit for bit on one machine; across machines, as Determinism says (0061, 0062); a different seed gives different points (P4). | Each generator built twice; golden points for fixed requests, on every machine the checks run on: the `random` sampler's unit rows and a linear range bit for bit, a log range, random lines, and every coordinate of a line in a space with a log range in unit coordinates within `GOLDEN_UNIT_TOL`; seeds 1 and 2 differ. |
 | G2 | Every point is inside the space, and inside every model parameter's limits. | Random requests to each generator, log ranges included: every point in the closed ranges; held values exact. |
 | G3 | The size computed before building, from the request alone, equals the number of rows built. | Each generator over a grid of requests. |
 | G4 | Where nesting is claimed, the smaller design's points are points of the larger, bit for bit: its first rows (uniform and convergent in n or level, point in repeats, random lines in m), or every other point of each line (lines refined n → 2n − 1). | Each claim in the Generators table, compared bit for bit. |
@@ -240,7 +265,7 @@ values.
 | G7 | A convergent design's level l is the first n_l points of the uniform design of n_L points with the same seed, space, and sampler; n_l = ⌈n_min · alpha^(−l/r)⌉, in exact rational arithmetic from alpha's decimal. | n_min = 18, level 3: alpha = 0.7072 gives 18, 36, 72, 144; alpha = 0.7071 gives 18, 37, 73, 145; alpha = 0.5, level 2, gives 18, 72, 288; the points equal `uniform(n=n_L)`. |
 | G8 | A convergent request with alpha outside (0, 1), sizes not strictly increasing, or a sampler that isn't nested is refused before building. | alpha = 1 and alpha = 0; n_min = 2, alpha = 0.95, level 2; the fake non-nested sampler. |
 | G9 | A point design has the point, complete, with replicates 0 to repeats; unnamed model parameters are at nominal; a value outside its limits is refused. | `point({"k": 50}, repeats=3)` on the heat model: 4 rows, q at nominal, replicates 0–3; `{"k": -1}` with `gt: 0`: refused. |
-| G10 | A line's points are evenly spaced in unit coordinates, from one face of the space to another; an end on a face is exactly that range's end. | A diagonal given line in a space with one log range: equal steps in unit coordinates; ends exactly lo or hi; a log range whose computed end, exp(ln lo + (ln hi − ln lo)·1), misses hi: the end is exactly hi (0047). |
+| G10 | A line's points are evenly spaced in unit coordinates, from one face of the space to another; an end on a face is exactly that range's end. | A diagonal given line in a space with one log range: equal steps in unit coordinates; ends exactly lo or hi; a log range whose computed end, exp(ln lo + (ln hi − ln lo)·1), misses hi: the end is exactly hi (0047). The map back: lo of linear [0.1, 0.7] and of [0.3, 1.1] gives exactly −1, hi of log [10⁻⁶, 10] exactly 1 (0061). A given line with a zero direction component through 0.3 on [−1, 1]: that coordinate is 0.3 on every point (0062). |
 | G11 | A line of 2n − 1 points contains the line of n points, bit for bit. | n = 17 and 33, for each kind of line. |
 | G12 | With n odd, the coordinate lines along which the anchor is at the center share the anchor exactly; the other lines, or all of them when n is even, share no point. | 6 model parameters, n = 17: 102 rows, 97 distinct points; the anchor off center in one model parameter: 98 distinct; in all six: 102; n = 16: 96 rows, 96 distinct; an anchor at a range's end, or on another grid point of its line: refused, naming the model parameter (0051). |
 | G13 | Random lines: the first m lines of m + 1 are the m-line design; line j made alone equals line j of the whole. | m = 5 and 6, seed 1; line 3 alone. |

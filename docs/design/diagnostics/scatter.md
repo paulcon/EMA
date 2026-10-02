@@ -224,7 +224,7 @@ recomputed at step 11 by `../../checks/scatter.py` (its output, with sizes and s
 | `SCATTER_N` | 200 | the default number of points | v1's default; U1's example |
 | `SCATTER_MIN_RUNS` | 10 | the fewest usable runs for estimates | every estimate defined with room to spare |
 | `SCATTER_BOOT_TAG` | 2³² + 1 | the spawn key of scatter's bootstrap stream | the first diagnostic tag above `SPAWN_TAG_BASE` (`shared.md`) |
-| `SCATTER_HIST_BINS` | ⌊√n⌋ | the number of bins of the binned index and the histogram | the usual balance of bias and resolution; one rule for both |
+| `SCATTER_HIST_BINS` | ⌊√n_u⌋ | the number of bins of the binned index and the histogram | the usual balance of bias and resolution; one rule for both |
 
 ## Requirements
 

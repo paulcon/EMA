@@ -1,6 +1,6 @@
 # 0049. Widen approval and price to every new run, give the point design a space, and add the review's glossary rows
 
-**Date:** 2026-10-01. **Status:** accepted. **Resolves:** none (consistency review, Q7).
+**Date:** 2026-10-01. **Status:** accepted; its glossary rows for request, approval, and confirmation amended by 0061. **Resolves:** none (consistency review, Q7).
 
 ## Context
 

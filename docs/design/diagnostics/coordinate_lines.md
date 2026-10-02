@@ -1,6 +1,6 @@
 # Coordinate lines
 
-**Status:** accepted. **Updated:** 2026-10-01 (the mock's Provenance, 0054; step 11, 0058). **Module:**
+**Status:** accepted. **Updated:** 2026-10-01 (the mock's Provenance, 0054; step 11, 0058; the seed row, 0061). **Module:**
 `ema/diagnostics/coordinate_lines.py`. **Depends on:**
 `shared.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0051, 0052, 0058.
 
@@ -12,7 +12,7 @@
 
 | | |
 |---|---|
-| **User provides** | a model parameter space, n (17), the anchor (nominal), the model prediction |
+| **User provides** | a model parameter space, n (17), the anchor (nominal), the model prediction; a seed (0) is recorded and changes nothing |
 | **Design** | coordinate lines (`../designs.md`): one line per varied model parameter, n evenly spaced points end to end, through the anchor |
 | **Compute** | for each line, its Gram spectrum (the discrete Legendre coefficients on its n points) and the spectrum's decay rate, as observations; no estimates |
 | **Plots** | for each line, one PNG: the model prediction along it, and its Gram spectrum |
@@ -26,6 +26,7 @@
 | `n` | integer ≥ 7 | 17 | the number of points on each line, end to end | yes |
 | `anchor` | mapping of model parameter names to values | `{}` (the nominal point) | the point every line passes through; unnamed model parameters at their nominal values, held ones at their held values (`../designs.md`) | yes |
 | `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
+| `seed` | integer ≥ 0 | 0 | recorded; coordinate lines make no random draws (0061) | no |
 
 - **Which model parameters:** every varied one gets a line, in the model spec's order; there is no separate
   parameter. To leave one out, hold it in the space (0023, 0033). A space with no varied model parameter is
@@ -33,7 +34,9 @@
 - **n ≥ 7** (`COORD_MIN_N`), refused below before building: a rate needs 3 degrees in the window, K = ⌊(n − 1)/2⌋
   ≥ 3. Any n ≥ 7 is accepted, even or odd. The default, 17 = 2⁴ + 1, is U2's; reruns at 33 and 65 reuse every
   run (G11). U2 (d = 6, the anchor at the centers): 97 distinct points.
-- **No seed:** coordinate lines make no random draws. The request's seed, 0, is recorded (`shared.md`).
+- **The seed** changes nothing: coordinate lines make no random draws. The request's seed, 0 by default, is
+  recorded (`shared.md`), and a request with another seed is another diagnostic evaluation with the same numbers
+  (C8, 0061).
 - **The anchor and the lines** (`../designs.md`, Coordinate lines): the header's Design row gives the anchor's
   values, and which lines contain it: "all 6 lines share the anchor's run" (n odd, the anchor at the center of
   each range); "lines through the anchor: a, b, e" (the anchor off center along the others' model
@@ -42,7 +45,7 @@
   or not it is one of the line's points.
 - **An anchor on another point of a line** is refused before building (0051): an anchor equal, bit for bit, to
   a point of a coordinate line along which it is off center (an end at lo or hi, or another grid point), naming
-  the model parameter. The analyst gives another anchor, as when a nominal value is outside its range
+  the model parameter. The user gives another anchor, as when a nominal value is outside its range
   (`../designs.md`). So a line along which the anchor is off center shares no point with the others.
 - **Nested** in n → 2n − 1 with the same space and anchor (G11): coordinate lines at 33 reuse the 17-point
   lines' runs.
@@ -140,7 +143,7 @@ where y = 0 exactly.)
 ## Uncertainty
 
 OD-12, for coordinate lines: **none**. The decay rate is an observation of the n runs on its line (0034), with
-no variability interval, like the point run's numbers. Refinement is the analyst's check: a rerun at 2n − 1
+no variability interval, like the point run's numbers. Refinement is the user's check: a rerun at 2n − 1
 points per line reuses every run (G11), and its rates show whether they converge.
 
 - A diagnostic result with observations only, and no estimates, is valid (0036).

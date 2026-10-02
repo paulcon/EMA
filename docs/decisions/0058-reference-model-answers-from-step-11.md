@@ -1,6 +1,6 @@
 # 0058. Drop the kink-line known answer, and set two tolerances from step 11's checks
 
-**Date:** 2026-10-01. **Status:** accepted. **Resolves:** none (TODO step 11, reference models).
+**Date:** 2026-10-01. **Status:** accepted; its "maps unchanged" amended by 0061. **Resolves:** none (TODO step 11, reference models).
 
 ## Context
 

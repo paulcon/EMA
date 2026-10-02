@@ -1,6 +1,6 @@
 # Trust boundary
 
-**Status:** accepted (TODO step 10; 0057). **Updated:** 2026-10-01. **Depends on:** P3; AR1–AR4, AR6; records 0010, 0016, 0018,
+**Status:** accepted (TODO step 10; 0057). **Updated:** 2026-10-01 (0061: `remove_tree`, the root's check, "user"). **Depends on:** P3; AR1–AR4, AR6; records 0010, 0016, 0018,
 0019, 0020, 0022, 0025, 0026, 0028, 0029, 0030, 0049, 0050, 0053, 0054, 0056 (OD-7 and OD-11 are decided);
 `model_interface.md` (M2, M9, M13–M15, M17, M20), `contracts.md` (C32, C33, C38, C39), `data_model.md` (W1, W2,
 W3, Q12, the run lock), `architecture.md` (§3, §5–§8), `export.md` (E1, E4, E7), `use_cases.md` (U2, U6, U9),
@@ -16,29 +16,29 @@ W3, Q12, the run lock), `architecture.md` (§3, §5–§8), `export.md` (E1, E4,
 
 | Party | Trusted? | What follows |
 |---|---|---|
-| **The analyst** | yes | They write model specs and models, and answer every approval and confirmation. EMA asks them before it runs anything new or saves a spec it didn't write itself (P3). |
-| **The model** (the analyst's function, or a simulation code they chose) | as far as the analyst trusts it | It runs outside EMA's process, with stdin from `/dev/null`, a timeout, and only the environment below. It is **not sandboxed:** it runs as the analyst, so it can read and write their files and use the network, as it would from their shell. Code the analyst doesn't trust belongs in a container or a virtual machine, with EMA's command-line interface around it. |
-| **An MCP client's agent** | no | It may be mistaken, or misled by text it read (a file, a model's output, a web page). It can read what the workspace holds, price, propose a model spec, and export; its path arguments are confined to the root named at `ema mcp` start, outside any workspace; it can't run a model or save a spec without the analyst's yes, and can't answer for the analyst (0016). |
-| **The MCP client application** | to show each elicitation to the analyst | EMA can't tell who answered an elicitation. A client that answers by itself, or approves everything, is outside what EMA can check; EMA's own rules (what is asked, what is confined) hold either way. |
+| **The user** | yes | They write model specs and models, and answer every approval and confirmation. EMA asks them before it runs anything new or saves a spec it didn't write itself (P3). |
+| **The model** (the user's function, or a simulation code they chose) | as far as the user trusts it | It runs outside EMA's process, with stdin from `/dev/null`, a timeout, and only the environment below. It is **not sandboxed:** it runs as the user, so it can read and write their files and use the network, as it would from their shell. Code the user doesn't trust belongs in a container or a virtual machine, with EMA's command-line interface around it. |
+| **An MCP client's agent** | no | It may be mistaken, or misled by text it read (a file, a model's output, a web page). It can read what the workspace holds, price, propose a model spec, and export; its path arguments are confined to the root named at `ema mcp` start, outside any workspace; it can't run a model or save a spec without the user's yes, and can't answer for the user (0016). |
+| **The MCP client application** | to show each elicitation to the user | EMA can't tell who answered an elicitation. A client that answers by itself, or approves everything, is outside what EMA can check; EMA's own rules (what is asked, what is confined) hold either way. |
 
 EMA has no secrets of its own: no module in `ema` uses an LLM SDK (AR6) or an API key, and EMA never reads
-`.env`. What it guards is the analyst's environment and files, from accidents in a model and from an agent's
+`.env`. What it guards is the user's environment and files, from accidents in a model and from an agent's
 mistakes.
 
 **What an agent's spec can do.** The agent writes no code file that EMA runs (0016), but a model spec it drafts
 says what runs: its `command` may be `["sh", "-c", "…"]` (`model_interface.md`), and its `env` may set `PATH`.
-The guard there is the analyst reading the spec: its full text in the confirmation, and the command, the
+The guard there is the user reading the spec: its full text in the confirmation, and the command, the
 program's path, and the environment again in the model version's first approval. The checks below
 (credentials files, credential-like names, hidden characters) cover what a spec names and how it is shown;
 they don't read a command's arguments.
 
-## What needs the analyst's yes
+## What needs the user's yes
 
 | Action | What is shown | Asked by | Recorded |
 |---|---|---|---|
 | **New runs** of a diagnostic evaluation (failed runs retried included, 0010) | the model version and the price (P3; no budgets, 0050). The first approval for a model version also shows what will run: the command and its program's resolved path, or a Python function's `function` (file and name) and the child's interpreter (0029), the input deck templates, the files, and the environment the spec sets (each `env` variable with its value, and each `pass_env` name with "set" or "not set", never its value) | Python: `approve=`. CLI: the question on stderr, then `Approve? [y/N]`; `--yes` answers yes in advance, still shown and recorded. MCP: an elicitation with the same text (0016) | `approvals`, `approval_points` (W3) |
 | **The test run** (0049) | the same | the same | the same, with no design |
-| **Saving a model spec an MCP client drafted** (a confirmation, 0049) | the absolute path it will be written to; what the model's name means now, when it is already loaded ("`heat` now means heat@b204… at /old/dir; saving makes it mean this spec", 0054); and the spec's full text, byte for byte as it will be written | Python: `confirm=`. MCP: an elicitation. Not in the CLI, where the analyst writes the spec | `confirmations` (W2) |
+| **Saving a model spec an MCP client drafted** (a confirmation, 0049) | the absolute path it will be written to; what the model's name means now, when it is already loaded ("`heat` now means heat@b204… at /old/dir; saving makes it mean this spec", 0054); and the spec's full text, byte for byte as it will be written | Python: `confirm=`. MCP: an elicitation. Not in the CLI, where the user writes the spec | `confirmations` (W2) |
 
 - **Not asked:** loading a model spec (it runs nothing; the first approval shows what will run), prices,
   reads, reports and PDFs, export (it writes data only, into a new or empty directory, E1; through MCP, only
@@ -112,7 +112,7 @@ no variable of its own (no run id, no replicate number: `model_interface.md`):
 A Python function's child gets its environment when it starts, so a variable a library reads when it loads
 (`OMP_NUM_THREADS` for NumPy's threads) takes effect.
 
-- **Why an allowlist:** EMA's environment is whatever the analyst's shell, or the MCP client that started
+- **Why an allowlist:** EMA's environment is whatever the user's shell, or the MCP client that started
   `ema mcp`, put there, and it may hold API keys (from a `.env` file loaded by another tool, or a client's
   configuration). Passing only named variables keeps every other one from a model, whatever its name, with
   no need to read `.env` (M2). This is the scheme tox uses for test environments: a fixed base, `pass_env`,
@@ -121,7 +121,7 @@ A Python function's child gets its environment when it starts, so a variable a l
   part, split at `_` and case-folded, in `CREDENTIAL_WORDS` (`key`, `apikey`, `token`, `secret`, `password`,
   `passwd`, `passphrase`, `credential`, `credentials`, `auth`): `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`,
   `AWS_SECRET_ACCESS_KEY`, `SSH_AUTH_SOCK`. This catches the common names, not every secret (`PGPASSWORD`,
-  `DATABASE_URL` pass it): it stops an obvious mistake, and the analyst reads the rest. A model that needs a
+  `DATABASE_URL` pass it): it stops an obvious mistake, and the user reads the rest. A model that needs a
   credential reads the tool's own credentials file, as it would outside EMA.
 - **Values:** an `env` value is not checked. It is part of the model version, so it is stored, shown in
   approvals, exported with a result's spec, and returned to an MCP client; a guess at secret-shaped values
@@ -148,7 +148,7 @@ A Python function's child gets its environment when it starts, so a variable a l
   `file`, to the run directory), with no `..` part and no absolute path; any other is refused at loading,
   naming the field, and, for a path relative to the model's directory, saying what to do instead: a link in the model's directory to the file elsewhere
   (followed, below), or the spec moved up a directory. Only the command's program may be absolute, or found on `PATH` (`model_interface.md`).
-  A file in the model's directory that is a link is followed: the analyst put it there.
+  A file in the model's directory that is a link is followed: the user put it there.
 - **Credentials files are refused** wherever a model spec or an MCP argument names a file: the spec's own
   path, the function's file, templates, `files`, and the MCP tools' paths, the target of a link included. A
   credentials file is, as in v1's `is_secret`: `.env` and `.env.*` (not `.env.example`, `.env.sample`,
@@ -174,7 +174,7 @@ A Python function's child gets its environment when it starts, so a variable a l
   fenced code block (several lines), its run of backticks longer than any in it, so a client that renders the
   question as Markdown shows it as typed (an HTML comment in it stays visible).
 - **Duplicate keys are refused:** a spec with a key twice in one object is refused at loading, so the text
-  the analyst reads is the spec EMA uses.
+  the user reads is the spec EMA uses.
 
 ### The MCP server's root
 
@@ -187,7 +187,8 @@ A Python function's child gets its environment when it starts, so a variable a l
   `propose_model`'s and `save_model`'s path, and `export`'s directory. Anything else, `..` that climbs out
   included, is refused before anything is read, asked, or written, naming the root (`PathRefused`).
   Workspaces are excluded so that no tool writes into a run directory or a result directory (0020). A root
-  inside any workspace, or equal to one, is refused when `ema mcp` starts.
+  inside any workspace, or equal to one, is refused when `ema mcp` starts: `open_workspace(root=)` raises
+  `PathRefused`, and `ema mcp` exits 2 (0061).
 - **A drafted spec's files stay inside the root:** under a root, a file the spec names (the function's file,
   templates, `files`) whose resolved target lies outside the root is refused (`PathRefused`), so a link
   already in the root (a virtual environment's, a shared drive's) doesn't let `propose_model` or `save_model`
@@ -235,7 +236,7 @@ formula, and the guides say to open `runs.csv` as data.
 
 A failed run's reason, a missing model prediction's reason, and a failed run's last 15 lines of stderr (`model_interface.md`, Failures) are the model's own
 output, and `failed_runs` returns them to an MCP client as data. Nothing a client reads changes what EMA does
-without the analyst: every run and save is asked, and every path argument is confined. The server's
+without the user: every run and save is asked, and every path argument is confined. The server's
 instructions (`ema/mcp/tools.md`, 0019) say that reasons and stderr lines are quoted model output.
 
 ## Where the rules live
@@ -250,25 +251,25 @@ the code that needs them can import them (AR1):
 | the environment (`BASE_ENV`, `model_environment`), the child's process group and streams | `ema.models.sandbox`, used by `execute` and `resolve_program` |
 | output read inside the run directory | `ema.models.parsers`, `ema.models.collect` |
 | EMA's files in a run or batch directory written without following links | `ema.models.execute` (`predictions.json`), `ema.models.collect` (`run.json`) |
-| run and batch directories deleted without following links | `ema.runner` |
+| run and batch directories deleted without following links | `ema.models.files` (`remove_tree`), used by `prepare` and `ema.runner` (0061) |
 | loading never imports a model (M17 by `ast`) | `ema.models.load_spec` |
 | asking, the first approval's and the confirmation's text (hidden characters as codes, code spans and fenced blocks), recording every answer | `ema.approval` |
 | the MCP root, `save_model`'s write | `ema.workspace` (`open_workspace(..., root=)`), from `ema mcp --root`; `ema.models.save_spec` |
 | escaping text EMA didn't write; pandoc's reader options | `ema.report`, `ema.plotting` (`axis_label`) |
 
-**Size:** about 145 lines, by package: `ema.types` about 75 (the credentials lists, rewritten from v1's, about
-50; the name and character checks, about 25); `ema.models` about 35 (the environment, about 15; paths and
-links, about 20); `ema.workspace`, `ema.cli`, and `ema.approval` about 25 (the root, `--root`, the
-confirmation's text and its same-bytes branch); `ema.report` and `ema.plotting` about 10. `architecture.md`
-§11's 500 lines for the ported sandbox and worker are v1's 534 less little; without v1's limits (about 50
-lines) and its withheld variables (about 15), about 435. Net about 80 more: about 7,940 of `scope.md`'s 8,000,
-60 left.
+**Size:** about 145 lines, by package: `ema.types` about 75 (the credentials lists, rewritten from v1's, about 50;
+the name and character checks, about 25); `ema.models` about 35 (the environment, about 15; paths and links, about
+20); `ema.workspace`, `ema.cli`, and `ema.approval` about 25 (the root, `--root`, the confirmation's text and its
+same-bytes branch); `ema.report` and `ema.plotting` about 10. The ported sandbox and worker are about 500 lines
+(v1's 534 less little); without v1's limits (about 50 lines) and its withheld variables (about 15), about 435, as
+`architecture.md` §11 counts them. Net about 80 more: about 7,940 of `scope.md`'s then 8,000; after 0061–0063,
+about 8,200 of 8,300 (0064).
 
 ## Not in v2.0
 
 | Item | Why not now | To add later |
 |---|---|---|
-| An OS sandbox for models (no network, files limited to the run directory) | models are the analyst's own code; the agent writes no code file (0016); the tools differ by platform (macOS's `sandbox-exec` is deprecated; Linux has bubblewrap and Landlock) and break MPI, license servers, and solvers that read from the analyst's tree | about 150–250 lines per platform, a setting, and its tests; the seam is `execute`, the only code that starts a model (AR4), whose input is plain data (`PreparedCall`) |
+| An OS sandbox for models (no network, files limited to the run directory) | models are the user's own code; the agent writes no code file (0016); the tools differ by platform (macOS's `sandbox-exec` is deprecated; Linux has bubblewrap and Landlock) and break MPI, license servers, and solvers that read from the user's tree | about 150–250 lines per platform, a setting, and its tests; the seam is `execute`, the only code that starts a model (AR4), whose input is plain data (`PreparedCall`) |
 | Memory and CPU limits | 0026 | about 50 lines from v1's `_worker.py` (0026) |
 | Patterns in `pass_env` (`SLURM_*`, `I_MPI_*`), as tox allows | exact names cover a license server and a few variables; a scheduler's or a module system's many variables are set by a wrapper script that loads them | about 15 lines: a trailing `*`, kept in the model version, its matches checked against `CREDENTIAL_WORDS` when the call starts, and the first approval listing the matched names |
 | Hashing shared copies before each call | they are read-only; hashing doubles the per-call cost for large files (about 1 s per GB) | a few lines in `check_files` |
@@ -280,7 +281,7 @@ lines) and its withheld variables (about 15), about 435. Net about 80 more: abou
 | T1 | Paths are compared as files, never as strings: P3 and C33's rule, and every "inside a directory" check here. | C33's test; on a case-insensitive file system, `MODEL.JSON` is the same file as `model.json`; on a case-sensitive one, two names differing in case are two files; `ROOT/../x` is outside the root, and the root itself is inside it. |
 | T2 | A model, of either kind, gets exactly the base variables EMA has, its spec's `pass_env`, and its spec's `env`; nothing from `.env`, and no variable EMA adds (M2, C32). | C32's test; for both kinds of model: a variable set in EMA's environment and in a `.env` beside the spec is absent; `PATH` and a `pass_env` name are present; an `env` value overrides the base; a name in both is refused at loading; an `env` `PATH` of `/opt/bin:$PATH` is refused, naming the entry. A Python child given the base only imports `ema`, NumPy, and a module reachable only through EMA's `sys.path`; `OMP_NUM_THREADS` in `env` is seen by NumPy. A base `PATH` ending in `:`: a program left in the run directory under the command's name is not run. A `PYTHONPATH` in `env` doesn't change a function's imports. |
 | T3 | Every approval and confirmation asked is recorded with its question and answer, yes or no; none is recorded when nobody could be asked (W2, W3, Q12). | Yes, no, an exception in the approver, and `approve=None`: three records and none, in order. |
-| T4 | Nothing runs, and no model spec is saved, without the analyst's yes; loading or proposing a spec runs nothing of the model's; through MCP the yes is an elicitation, and a client without elicitation is refused before anything is asked (P3, 0016). | U9's scripted client: declined and unanswered elicitations save nothing and run nothing; a client without elicitation gets the refusal, and the store is unchanged. A function file, and a package `__init__.py` it imports, that each write a marker when imported: `load_model` and `propose_model` leave no marker. |
+| T4 | Nothing runs, and no model spec is saved, without the user's yes; loading or proposing a spec runs nothing of the model's; through MCP the yes is an elicitation, and a client without elicitation is refused before anything is asked (P3, 0016). | U9's scripted client: declined and unanswered elicitations save nothing and run nothing; a client without elicitation gets the refusal, and the store is unchanged. A function file, and a package `__init__.py` it imports, that each write a marker when imported: `load_model` and `propose_model` leave no marker. |
 | T5 | Every MCP path argument lies inside the root named at `ema mcp` start and outside any workspace, checked as files after resolving links, with no hidden character; a drafted spec's files resolve inside the root; `ema mcp` refuses to start without a root, with a relative one, with `/`, or with a root inside a workspace; resources are looked up by name (E7). | `save_model` and `export` with a path outside the root, one with `..` climbing out, a link inside pointing out, a path inside the server's workspace's `runs/` and inside another workspace under the root, and a name with U+202E: each refused, with nothing written or asked. A drafted spec whose `files` entry links outside the root: refused, the target not read. `ema mcp` with no `--root`, a relative one, `/`, and another workspace's `runs/` as root: exit 2. A figure resource named `../../x`: not found. |
 | T6 | `save_model`'s confirmation shows the absolute path, what an already loaded name means now, and the full text; the file written has exactly the bytes shown; a different existing file is refused before asking. | The recorded hash equals the file's; a path through a link shows the resolved parent; a spec named like a loaded model says what the name means now; an existing different file is refused, with no confirmation recorded; a file created between the yes and the write is refused and kept; the same bytes ask "load it?" and write nothing; a path not ending in `.json`, and one whose parent doesn't exist, are refused before asking. |
 | T7 | Paths in a model spec are relative, with no `..` and no absolute path (but the command's program); a file a spec or an MCP argument names that is a credentials file is refused (v1's `is_secret`); a spec string with a hidden character (Cc but tab, Cf but the joiners, Cs, Zl, Zp), a duplicate key, and EMA's own file names as `writes` or `files`, are refused; a question prints such characters as codes (but tab and line feed), and every string EMA didn't write in a code span or a fenced block. | `files: ["../x"]`, `"/etc/hosts"`, `".env"`, `".ssh/id_rsa"`, `"db-credentials.json"`, and `"mesh.dat"` linked to `~/.ssh/id_rsa`: each refused at loading, naming the field; `.env.example`, `secretion.py`, and `deck.key` load. A command with `\u001b[2K`, a description with U+202E, a name with a lone surrogate, a description with a newline, and `"command"` twice: refused, naming the field. A model directory under `~/.docker/` loads. A template with U+202E: the first approval shows `\u202e`, and its lines as lines. A save path holding `<!-- x -->`, and a template holding a line of three backticks: each shown as typed. `files: ["run.json"]`: refused. `files: ["../mesh.h5"]`: the message names the link workaround. |

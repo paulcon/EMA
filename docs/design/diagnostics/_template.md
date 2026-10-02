@@ -21,6 +21,7 @@
 | Name | Type | Default | Meaning | Changes the design? |
 |---|---|---|---|---|
 | <…> | <…> | <…> | <…> | <yes or no> |
+| `seed` | integer ≥ 0 | 0 | <its draws; or "recorded; no random draws"> | <yes or no> |
 
 ## Computation
 

@@ -167,6 +167,7 @@
       Diagnostic result 3f2a: identical (estimates, intervals, notes, figures' data cards).
     ```
 
-    - What "differs" names: the estimates, and the provenance fields (versions) that differ. <…>
-    - In a copy of the workspace; or, in Python, from an export's `result.json` (`DiagnosticResult.from_json`,
+    - What "differs" names: the estimates, the provenance fields (versions) that differ, and any rows where the
+      rebuilt design's points differ from the stored runs' (0062). <…>
+    - In a copy of the workspace; or, in Python, from an export's `result.json`, its `result` key (`DiagnosticResult.from_json`,
       `architecture.md` §7). <…>

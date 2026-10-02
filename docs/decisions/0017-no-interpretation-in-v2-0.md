@@ -1,6 +1,6 @@
 # 0017. Leave experimental interpretation out of v2.0
 
-**Date:** 2026-09-29. **Status:** accepted. **Resolves:** OD-8.
+**Date:** 2026-09-29. **Status:** accepted; its report contents amended by 0034 (observations). **Resolves:** OD-8.
 
 ## Context
 

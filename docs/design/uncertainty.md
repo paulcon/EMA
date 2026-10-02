@@ -122,12 +122,12 @@ behind it (`diagnostics/linear_model.md`).
 
 | Diagnostic | Estimates with intervals | Method | On distinct runs | Undefined when | Tag | Minimum usable runs |
 |---|---|---|---|---|---|---|
-| point run | none: observations only | none | | | none | 1 (`diagnostics/point_run.md`) |
+| point run | none: observations only | none | | | none | 1 (`POINT_RUN_MIN_RUNS`) |
 | scatter | mean, standard deviation, rank correlations, binned indices | bootstrap | binned index | ρ and S: y constant on the resample (0/0); S: fewer than 2 distinct runs; the mean and standard deviation: never | 2³² + 1 | 10 |
 | coordinate lines | none: each line's spectrum, degrees, and rate are observations (0038) | none | | | none | 1 (`COORD_MIN_RUNS`); a line's rate needs all its runs |
 | lines | none: as coordinate lines | none | | | none | 1, as coordinate lines |
-| linear model | coefficients, relative residual, R², LOO error | bootstrap over level L | LOO error | A of rank below d + 1; for LOO, fewer than d + 2 distinct runs (`diagnostics/linear_model.md`); R², the relative residual, and the LOO error, y constant on the resample (0/0, by step 3 of the bootstrap; added here) | 2³² + 2 | 2(d + 1) |
-| polynomial model | relative residual, R², Sobol indices, √E_k, LOO error; the coefficients, in the result and their data card, not the report (0041) | bootstrap over level L | LOO error | A of rank below P; for LOO, fewer than P + 1 distinct runs (`diagnostics/polynomial_model.md`); R², the relative residual, the LOO error, and the Sobol indices, y or the fitted polynomial constant on the resample (0/0, by step 3 of the bootstrap; added here) | 2³² + 3 | 2P |
+| linear model | coefficients, relative residual, R², LOO error | bootstrap over level L | LOO error | A of rank below d + 1; for LOO, fewer than d + 2 distinct runs (`diagnostics/linear_model.md`); R², the relative residual, and the LOO error, y constant on the resample (0/0, by step 3 of the bootstrap) | 2³² + 2 | 2(d + 1) |
+| polynomial model | relative residual, R², Sobol indices, √E_k, LOO error; the coefficients, in the result and their data card, not the report (0041) | bootstrap over level L | LOO error | A of rank below P; for LOO, fewer than P + 1 distinct runs (`diagnostics/polynomial_model.md`); R², the relative residual, the LOO error, and the Sobol indices, y or the fitted polynomial constant on the resample (0/0, by step 3 of the bootstrap) | 2³² + 3 | 2P |
 
 **Undefined resamples at the minimum** (the chance a resample of n runs has too few distinct runs; exact, from
 the number of distinct values in n draws with replacement from n, 2026-09-30):
@@ -150,7 +150,7 @@ which needs a model prediction with very few distinct values: with one run diffe
 
 | Name | Value | Meaning | Why this value |
 |---|---|---|---|
-| `BOOTSTRAP_RESAMPLES` | 1000 | resamples per bootstrap | percentiles stable to about 0.01 of the interval at this size (scatter interview) |
+| `BOOTSTRAP_RESAMPLES` | 1000 | resamples per bootstrap | each end varies by about 3% of the interval's width between reseeds at this size (scatter interview; recomputed in the 2026-10-01 consistency check) |
 | `BOOTSTRAP_PERCENTILES` | (0.5, 99.5) | the interval's ends | the owner's choice: wide, and still converging as resamples grow (scatter interview) |
 | `BOOTSTRAP_MIN_DEFINED` | 201 | the fewest defined resamples an interval is made from | below it, each end depends on the most extreme resample |
 

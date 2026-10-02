@@ -98,8 +98,9 @@ units:
 - **R4b:** f = 2.5 + 10⁻¹²·sin(40·(a + b + c)), a constant plus a deterministic 10⁻¹² wiggle.
 
 a, b, c in [−1, 1], linear, nominal 0. On R4a, every diagnostic gives counts and a note, and no estimates
-(the point run: one distinct value, and no note). R4b is not constant (0035): every diagnostic gives
-estimates of its wiggle, and a relative spread of about 8·10⁻¹³ (`diagnostics/shared.md`).
+(the point run: one distinct value, and no note). R4b is not constant (0035): every diagnostic with
+estimates gives estimates of its wiggle, and a design with distinct points a relative spread of about 8·10⁻¹³
+(`diagnostics/shared.md`); the point run at the nominal point gives one distinct value.
 
 ### R5 Fails in known regions
 

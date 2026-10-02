@@ -1,6 +1,6 @@
 # 0006. Make the diagnostic evaluation, with its report, the unit of work
 
-**Date:** 2026-09-29. **Status:** accepted. **Resolves:** OD-2.
+**Date:** 2026-09-29. **Status:** accepted; its approval's scope amended by 0049 (the test run). **Resolves:** OD-2.
 
 ## Context
 

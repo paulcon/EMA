@@ -48,7 +48,8 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
 ## Before the first line of code
 
 - [ ] Every spec needed by the first build step is `accepted`.
-- [ ] Claude Code has checked the specs against each other for contradictions, and you've resolved them.
+- [x] Claude Code has checked the specs against each other for contradictions, and you've resolved them.
+  `docs/notes/consistency_review_2026-10-01_before_code.md`; records 0061–0064.
 - [ ] The first plan (`docs/plans/01-…`) is written and approved: the repository's scaffolding (0059:
       `.python-version`, `pyproject.toml`, `uv.lock`, `conftest.py`, `docs/conf.py`, `docs/index.md`,
       `.github/workflows/checks.yml`; `pyproject.toml` with `license = "MIT"`, 0060), and probably `ema.types`
