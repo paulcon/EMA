@@ -53,6 +53,8 @@ MODULES += [
 ]
 #: The runner and approval (step 07).
 MODULES += ["ema/runner.py", "ema/approval.py"]
+#: Scatter (step 10).
+MODULES += ["ema/diagnostics/scatter.py"]
 
 
 @pytest.mark.slow

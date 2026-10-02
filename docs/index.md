@@ -85,6 +85,13 @@ The store (step 06):
    ema.diagnostics.base
    ema.diagnostics.point_run
    ema.reference_models
+
+.. Step 10: scatter (a block of its own, to ease merging).
+
+.. autosummary::
+   :toctree: _autosummary
+
+   ema.diagnostics.scatter
 ```
 
 The runner and approval (step 07):
