@@ -239,3 +239,6 @@ State lives in git and on disk; nothing is only in the conversation.
 - **Step 16** built and merged (the CLI, 13 commands, C54's check that each prints its workspace call's text;
   `ema mcp` importing the server lazily). One test fixed at the merge (it assumed only two diagnostics).
   Review comes with step 15's.
+- **Step 13** built and merged (the polynomial model; the mock matched with zero differences; C29's deferred
+  clause closed). All six diagnostics are now on `demo`. C18 at d = 20 missed its 60 s under load averages of
+  20–150 (134 s alone); to re-time on a quiet machine. Review round 1 started.
