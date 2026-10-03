@@ -1,7 +1,6 @@
 # 0066. Build an MCP demo autonomously on a `demo` branch, recording provisional decisions
 
-**Date:** 2026-10-01. **Status:** proposed (provisional: applied on the `demo` branch without the owner's
-review, by the owner's instruction of 2026-10-01). **Resolves:** none.
+**Date:** 2026-10-01. **Status:** accepted (2026-10-02, by the owner; drafted as proposed under 0066). **Resolves:** none.
 
 ## Context
 

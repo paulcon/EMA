@@ -1,6 +1,6 @@
 # 0068. Step 02's provisional choices: no vector-vector BLAS, and the numerics' details
 
-**Date:** 2026-10-02. **Status:** proposed (provisional; record 0066). **Resolves:** none.
+**Date:** 2026-10-02. **Status:** accepted (2026-10-02, by the owner; drafted as proposed under 0066). **Resolves:** none.
 
 ## Context
 

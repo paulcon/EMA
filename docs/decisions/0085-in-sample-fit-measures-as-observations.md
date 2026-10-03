@@ -1,7 +1,6 @@
 # 0085. Report a fit's in-sample relative residual and R² as observations, without intervals
 
-**Date:** 2026-10-02. **Status:** proposed (drafted at the owner's request after the demo's rehearsal; not
-applied: no code or spec changes until accepted). **Resolves:** none.
+**Date:** 2026-10-02. **Status:** accepted (2026-10-02, by the owner; drafted as proposed under 0066). **Resolves:** none.
 
 ## Context
 

@@ -1,6 +1,6 @@
 # 0073. Step 08's provisional choices: the report's layout rules, its escaping, the plotting helpers, and the PDF
 
-**Date:** 2026-10-02. **Status:** proposed (provisional; record 0066). **Resolves:** none.
+**Date:** 2026-10-02. **Status:** accepted (2026-10-02, by the owner; drafted as proposed under 0066). **Resolves:** none.
 
 ## Context
 

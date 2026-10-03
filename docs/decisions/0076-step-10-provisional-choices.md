@@ -1,6 +1,6 @@
 # 0076. Step 10's provisional choices: scatter's tables, figures, sampler reader, and column-wise estimators
 
-**Date:** 2026-10-02. **Status:** proposed (provisional; record 0066). **Resolves:** none.
+**Date:** 2026-10-02. **Status:** accepted (2026-10-02, by the owner; drafted as proposed under 0066). **Resolves:** none.
 
 ## Context
 

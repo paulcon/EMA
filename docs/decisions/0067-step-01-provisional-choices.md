@@ -1,6 +1,6 @@
 # 0067. Step 01's provisional choices: the scaffolding, the design types, and the design generators
 
-**Date:** 2026-10-01. **Status:** proposed (provisional; record 0066). **Resolves:** none.
+**Date:** 2026-10-01. **Status:** accepted (2026-10-02, by the owner; drafted as proposed under 0066). **Resolves:** none.
 
 ## Context
 

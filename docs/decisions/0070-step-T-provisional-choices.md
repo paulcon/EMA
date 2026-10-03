@@ -1,6 +1,6 @@
 # 0070. Step T's provisional choices: runs, results, requests, summaries, the approval id, and the reuse key
 
-**Date:** 2026-10-02. **Status:** proposed (provisional; record 0066). **Resolves:** none.
+**Date:** 2026-10-02. **Status:** accepted (2026-10-02, by the owner; drafted as proposed under 0066). **Resolves:** none.
 
 ## Context
 

@@ -1,6 +1,6 @@
 # 0084. Let the demo build pass the source-line budget, measured at the end; run the fast tier in parallel
 
-**Date:** 2026-10-02. **Status:** proposed (provisional; record 0066). **Resolves:** none.
+**Date:** 2026-10-02. **Status:** accepted (2026-10-02, by the owner; drafted as proposed under 0066). **Resolves:** none.
 
 ## Context
 
@@ -97,7 +97,7 @@ docstrings, comments, or blank lines (the same counter for every package):
 
 The reference models (82 lines of Python) count against their own 1,000.
 
-6. **For the owner to choose** (this record stays proposed until then): (a) raise `scope.md`'s budget to 11,000
+6. **Decided by the owner (2026-10-02): (a), the budget raised to 11,000.** The choice as it was put: (a) raise `scope.md`'s budget to 11,000
    and set §11's rows to the measured counts, or (b) keep 8,300 and trim, starting where the overrun is largest
    and least load-bearing: `ema.types` (+1,307: validation in the result and run types that the store and the
    diagnostics also check; field-path messages in the model spec's reader), `ema.store` (+520: one argument per

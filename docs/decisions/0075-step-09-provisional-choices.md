@@ -1,6 +1,6 @@
 # 0075. Step 09's provisional choices: the diagnostics' base, the diagnostic contract, the point run, the reference models
 
-**Date:** 2026-10-02. **Status:** proposed (provisional; record 0066). **Resolves:** none.
+**Date:** 2026-10-02. **Status:** accepted (2026-10-02, by the owner; drafted as proposed under 0066). **Resolves:** none.
 
 ## Context
 

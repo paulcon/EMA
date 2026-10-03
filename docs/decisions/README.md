@@ -91,22 +91,22 @@ Write one when a choice:
 | 0063 | Store a design's structure with its result, check a rebuilt design per range, and pin `duration()`'s edges | accepted | 2026-10-01 |
 | 0064 | Raise the source-line budget to 8,300 | accepted | 2026-10-01 |
 | 0065 | Add `unregister` to every registry, refuse malformed design requests, check four more words, and settle a given line's anchor and direction | accepted | 2026-10-01 |
-| 0066 | Build an MCP demo autonomously on a `demo` branch, recording provisional decisions | proposed (provisional; 0066) | 2026-10-01 |
-| 0067 | Step 01's provisional choices: the scaffolding, the design types, and the design generators | proposed (provisional; 0066) | 2026-10-02 |
-| 0068 | Step 02's provisional choices: no vector-vector BLAS, and the numerics' details | proposed (provisional; 0066) | 2026-10-02 |
-| 0069 | Step 03's provisional choices: the model spec's JSON form, loading, and the model's files | proposed (provisional; 0066) | 2026-10-02 |
-| 0070 | Step T's provisional choices: runs, results, requests, summaries, the approval id, and the reuse key | proposed (provisional; 0066) | 2026-10-02 |
-| 0071 | Steps 04 and 05's provisional choices: running a model, and the Python model's child | proposed (provisional; 0066) | 2026-10-02 |
-| 0072 | Step 06's provisional choices: the store | proposed (provisional; 0066) | 2026-10-02 |
-| 0073 | Step 08's provisional choices: the report's layout rules, its escaping, the plotting helpers, and the PDF | proposed (provisional; 0066) | 2026-10-02 |
-| 0074 | Step 07's provisional choices: the runner and approval | proposed (provisional; 0066) | 2026-10-02 |
-| 0075 | Step 09's provisional choices: the diagnostics' base, the diagnostic contract, the point run, the reference models | proposed (provisional; 0066) | 2026-10-02 |
-| 0076 | Step 10's provisional choices: scatter's tables, figures, sampler reader, and column-wise estimators | proposed (provisional; 0066) | 2026-10-02 |
-| 0077 | Step 11's provisional choices: coordinate lines and lines, their shared per-line computation, and the contract's shared runs | proposed (provisional; 0066) | 2026-10-02 |
-| 0078 | Step 12's provisional choices: the linear model | proposed (provisional; 0066) | 2026-10-02 |
-| 0079 | Step 13's provisional choices: the polynomial model | proposed (provisional; 0066) | 2026-10-02 |
-| 0080 | Step 14's provisional choices: the workspace | proposed (provisional; 0066) | 2026-10-02 |
-| 0081 | Step 15's provisional choices: the MCP server | proposed (provisional; 0066) | 2026-10-02 |
-| 0082 | Step 16's provisional choices: the CLI | proposed (provisional; 0066) | 2026-10-02 |
-| 0084 | Let the demo build pass the source-line budget, measured at the end; run the fast tier in parallel | proposed (provisional; 0066) | 2026-10-02 |
-| 0085 | Report a fit's in-sample relative residual and R² as observations, without intervals | proposed (drafted after the demo; not applied) | 2026-10-02 |
+| 0066 | Build an MCP demo autonomously on a `demo` branch, recording provisional decisions | accepted (drafted as proposed under 0066) | 2026-10-01 |
+| 0067 | Step 01's provisional choices: the scaffolding, the design types, and the design generators | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0068 | Step 02's provisional choices: no vector-vector BLAS, and the numerics' details | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0069 | Step 03's provisional choices: the model spec's JSON form, loading, and the model's files | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0070 | Step T's provisional choices: runs, results, requests, summaries, the approval id, and the reuse key | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0071 | Steps 04 and 05's provisional choices: running a model, and the Python model's child | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0072 | Step 06's provisional choices: the store | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0073 | Step 08's provisional choices: the report's layout rules, its escaping, the plotting helpers, and the PDF | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0074 | Step 07's provisional choices: the runner and approval | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0075 | Step 09's provisional choices: the diagnostics' base, the diagnostic contract, the point run, the reference models | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0076 | Step 10's provisional choices: scatter's tables, figures, sampler reader, and column-wise estimators | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0077 | Step 11's provisional choices: coordinate lines and lines, their shared per-line computation, and the contract's shared runs | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0078 | Step 12's provisional choices: the linear model | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0079 | Step 13's provisional choices: the polynomial model | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0080 | Step 14's provisional choices: the workspace | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0081 | Step 15's provisional choices: the MCP server | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0082 | Step 16's provisional choices: the CLI | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0084 | Let the demo build pass the source-line budget, measured at the end; run the fast tier in parallel | accepted (drafted as proposed under 0066) | 2026-10-02 |
+| 0085 | Report a fit's in-sample relative residual and R² as observations, without intervals | accepted | 2026-10-02 |
