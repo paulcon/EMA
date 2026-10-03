@@ -56,12 +56,13 @@ three). The layout is then:
 ├── borehole/  model.json  borehole.py  space.json
 ├── ishigami/  model.json  ishigami.py  space.json
 ├── r5/        model.json  r5.py        space.json
-└── ema_workspace/            # EMA's: ema.db, runs/, results/, files/
+├── ema_workspace/            # EMA's: ema.db, runs/, results/, files/
+└── archive/                  # earlier workspaces and exports, moved here by reset_demo.sh
 ```
 
 To start the demo again from nothing, delete `ema_workspace/` and `exports/`, and load the four specs again; or run
-`docs/notes/demo/reset_demo.sh`, which moves the two aside with a timestamp (`--delete` deletes them), loads the four
-specs, and refuses while a server or Python session has the workspace open.
+`docs/notes/demo/reset_demo.sh`, which moves the two to `archive/` with a timestamp (`--delete` deletes them), loads
+the four specs, and refuses while a server or Python session has the workspace open.
 
 ### Check the server by hand
 

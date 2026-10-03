@@ -2,7 +2,7 @@
 # Reset the demo's workspace and load the four model specs again (docs/notes/demo_mcp.md §1, "To start the demo
 # again from nothing"; record 0087's demo root). A note's helper, not part of EMA.
 #
-#   docs/notes/demo/reset_demo.sh            # move ema_workspace/ and exports/ aside, with a timestamp
+#   docs/notes/demo/reset_demo.sh            # move ema_workspace/ and exports/ to archive/, with a timestamp
 #   docs/notes/demo/reset_demo.sh --delete   # delete them instead
 #
 # EMA_REPO and EMA_DEMO override the repository and the demo root. The model directories (beam/, borehole/,
@@ -39,8 +39,9 @@ for dir in ema_workspace exports; do
         rm -rf "${DEMO:?}/$dir"
         echo "deleted $DEMO/$dir"
     else
-        mv "$DEMO/$dir" "$DEMO/$dir.$stamp"
-        echo "moved $DEMO/$dir to $DEMO/$dir.$stamp"
+        mkdir -p "$DEMO/archive"
+        mv "$DEMO/$dir" "$DEMO/archive/$dir.$stamp"
+        echo "moved $DEMO/$dir to $DEMO/archive/$dir.$stamp"
     fi
 done
 
