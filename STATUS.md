@@ -11,8 +11,10 @@
   0066–0087 are accepted and applied to the specs. EMA `2.0.0.dev1`; 11,040 code lines of a budget of 12,000
   (0084, 0086); the fast tier 50–70 s of a 90 s budget (0086); every test passes (2,127 in the slow tier). Log of
   every wave and review round: `docs/notes/demo_build.md`. The demo's instructions: `docs/notes/demo_mcp.md`; its
-  root, `~/ema_demo`, rebuilt under `2.0.0.dev1` with four models loaded (the old workspace kept beside it as
-  `ema_workspace.pre0086/`). Not done: step 17's guides' full text and the release.
+  root, `~/ema_demo`, rebuilt under `2.0.0.dev1` with four models loaded, and reset by
+  `docs/notes/demo/reset_demo.sh`, which moves the earlier workspace and exports to `archive/` in the root (now
+  `ema_workspace.pre0086/`, `exports.pre0086/`, and one workspace of the four loadings only). Not done: step 17's
+  guides' full text and the release.
 - Writing the design documents by hand (`TODO.md`): steps 1–13 done.
 - "Before the first line of code" (`TODO.md`) done: the specs checked against each other, and the contradictions
   resolved (records 0061–0064). The first plan written: `docs/plans/01-scaffolding-and-designs.md`
