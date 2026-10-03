@@ -160,6 +160,17 @@ The independent review of steps 15 and 16, and the coordinator's rulings; each f
     save form (T6) shows the spec for the user to check, and the test run exercises the nominal point. Spec edits
     on acceptance: `model_interface.md`, Names (the check), and `trust.md`'s list of loading's checks.
 
+30. **The PDF's figures fit the page.** In the rehearsal's PDF, three scatter figures on one line ran off the
+    page, and a figure alone on its line became a floating, numbered "Figure 1" on a page of its own (pandoc's
+    implicit figures). `to_pdf` now gives the copy of the report pandoc reads widths for its figures: 48% each
+    where a line holds several (two to a row), 60% for one alone; and reads it with implicit figures off, so a
+    figure stays where the report puts it, unnumbered. The stored Markdown is unchanged (S10); only lines holding
+    nothing but EMA's own figure links (their names checked plain, 0073) are touched. Seen while testing, not
+    caused by this: the slow PDF tests run in parallel (`-n auto`) fail now and then with "! error: (file …" when
+    several lualatex processes start at once (their font cache, most likely); serially, and in four parallel runs
+    of five, they pass. The demo makes one PDF at a time. Spec edits on acceptance: `shared.md` S10's note on the
+    PDF, and `architecture.md` §6's `to_pdf`.
+
 ## Alternatives considered
 
 - **Pin `mcp>=1.9`, using `FastMCP`:** the installed SDK is 2.2.0 and the code would not run on it; 1.x would also

@@ -45,3 +45,15 @@ def test_the_reader_turns_off_tex_math_and_smart_punctuation():
     assert READER.startswith("markdown-")
     off = set(READER.removeprefix("markdown-").split("-"))
     assert {"raw_tex", "raw_html", "raw_attribute", "tex_math_dollars", "smart"} <= off
+
+
+def test_the_pdfs_figures_fit_the_page():
+    """Record 0081 item 30: several figures on a line get half the width each (two to a row), one alone 60%; a
+    figure inside text, and the report's own Markdown, are left as they are; implicit figures are off."""
+    from ema.report.pdf import READER, _sized
+
+    text = "a\n\n![P](scatter_P.png) ![L](scatter_L.png) ![E](scatter_E.png)\n\nb\n\n![h](h.png)\n\nc ![x](x.png) d\n"
+    sized = _sized(text)
+    assert "![P](scatter_P.png){width=48%} ![L](scatter_L.png){width=48%} ![E](scatter_E.png){width=48%}" in sized
+    assert "![h](h.png){width=60%}" in sized and "c ![x](x.png) d" in sized
+    assert "-implicit_figures" in READER

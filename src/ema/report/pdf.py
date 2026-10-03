@@ -20,7 +20,27 @@ from ema.types.errors import PandocMissing, PdfFailed
 
 #: pandoc's reader: Markdown with raw TeX, raw HTML, raw attributes, and TeX math off (T10), and no smart
 #: punctuation, so "--" and quotes print as written (the report writes no math: record 0073 item 11).
-READER = "markdown-raw_tex-raw_html-raw_attribute-tex_math_dollars-smart"
+READER = "markdown-raw_tex-raw_html-raw_attribute-tex_math_dollars-smart-implicit_figures"
+
+#: A line of the report holding only figures, as ``render`` writes them (their names checked plain, record 0073).
+_FIGURE_LINE = re.compile(r"^(?:!\[[^\]\n]*\]\([A-Za-z0-9][A-Za-z0-9_.-]*\.png\) *)+$", re.MULTILINE)
+_FIGURE = re.compile(r"(!\[[^\]\n]*\]\([A-Za-z0-9][A-Za-z0-9_.-]*\.png\))")
+
+
+def _sized(text: str) -> str:
+    """Give the PDF's figures widths that fit the page: two to a row where a line holds several, 60% alone.
+
+    Only the copy pandoc reads changes; the report's Markdown stays as stored (S10). With implicit figures off
+    (``READER``), a figure alone stays where the report puts it, with no float and no number (record 0081 item 30).
+    """
+
+    def line(match: re.Match[str]) -> str:
+        width = "48%" if len(_FIGURE.findall(match.group(0))) > 1 else "60%"
+        return _FIGURE.sub(lambda m: m.group(1) + "{width=" + width + "}", match.group(0))
+
+    return _FIGURE_LINE.sub(line, text)
+
+
 #: Seconds for one PDF; one takes about 4 s (0059).
 PDF_TIMEOUT_S = 300
 _FONTS = {
@@ -95,7 +115,7 @@ def to_pdf(report_path: str) -> str:
         (work / "fonts").mkdir()
         for name in _FONTS["main"] + _FONTS["mono"]:
             shutil.copyfile(fonts / name, work / "fonts" / name)
-        (work / "report.md").write_text(text, encoding="utf-8")
+        (work / "report.md").write_text(_sized(text), encoding="utf-8")
         for name in figures:
             (work / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(report.parent / name, work / name)
