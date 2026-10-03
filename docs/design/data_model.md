@@ -5,7 +5,8 @@
 point check by 0061; replays from stored points, Q15's points, and the hashed objects' shapes by 0062; the design's structure in the
 provenance by 0063; 2026-10-02: the request's canonical keys, the column forms, and timestamps by 0070; the writes' signatures,
 W5's checks, a result's measured-noisy `made_at`, `current_keys`, Q8's to Q13's returns, and the untyped `value` by 0072;
-`model_names` and rebuilding an incomplete result directory by 0080. **Schema version:** 1.
+`model_names` and rebuilding an incomplete result directory by 0080; review round 1 of applying 0066–0085.
+**Schema version:** 1.
 **Depends on:** P1, P3–P7; `model_interface.md`, `designs.md`, `diagnostics/shared.md`, `point_run.md`,
 `uncertainty.md`, `contracts.md` (C17, C46–C52, C56), `export.md`; records 0006, 0010, 0011, 0015, 0020–0022,
 0025, 0028–0030, 0032, 0041, 0043, 0044, 0046, 0049, 0050, 0054, 0055, and 0056.
@@ -513,7 +514,7 @@ result (Q5), and returns it, with no approval asked.
 |---|---|---|---|---|
 | Q1 | `current_runs(model_version_id, point_hashes) -> dict[(hash, replicate), Run]`; `current_keys(model_version_id, point_hashes) -> dict[(hash, replicate), CurrentKey]` | the current run at each stored key; or only its `CurrentKey(run_id, attempt, status)`, what `resolve` and `price` need: about 0.7 s per 10⁵ stored runs against `current_runs`' 2.4 s (0072) | per chunk of 30,000: `SELECT … FROM runs WHERE model_version_id = ? AND point_hash IN (…)`; the highest attempt per key kept | the unique key |
 | Q2 | `run_times(model_version_id) -> (int, float \| None)` | the number of stored runs, any status, and their mean `time_s`; None when there is none | `SELECT COUNT(*), AVG(time_s) FROM runs WHERE model_version_id = ?` | `(model_version_id, time_s)` |
-| Q3 | `current_loading(name) -> Loading \| None`; `model_names() -> tuple[str, ...]` | the latest loading of a name; every model name loaded, for `list_models` (0080) | `… FROM loadings WHERE name = ? ORDER BY loading DESC LIMIT 1`; `SELECT DISTINCT name FROM loadings` | `(name, loading)` |
+| Q3 | `current_loading(name) -> Loading \| None`; `model_names() -> tuple[str, ...]` | the latest loading of a name; every model name loaded, sorted, for `list_models` (0080) | `… FROM loadings WHERE name = ? ORDER BY loading DESC LIMIT 1`; `SELECT DISTINCT name FROM loadings ORDER BY name` | `(name, loading)` |
 | Q4 | `has_approval(model_version_id) -> bool` | | `SELECT 1 FROM approvals WHERE model_version_id = ? AND answer = 1 LIMIT 1` | `(model_version_id, answer)` |
 | Q5 | `find_result(reuse_key_hash) -> DiagnosticResult \| None` | | by primary key | primary key |
 | Q6 | `get_result(result_id) -> DiagnosticResult` | with its full `Provenance`, the run ids included | by primary key, and `result_runs` | primary keys |

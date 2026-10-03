@@ -390,8 +390,9 @@ def test_sc9_estimates_use_the_usable_runs_only(prediction, intervals, tmp_path)
 
 def test_sc10_the_golden_report(tmp_path):
     """SC10 (0044): R2, n = 200, seed 1, through the bootstrap: the mock report, structure and numbers within one unit
-    in the 4th digit, the mock as written (it carries record 0073's items 1 and 3); its runs are new, as the mock's. The figures: one per varied model
-    parameter with the 14 bins' means over their x ranges, every panel with the same y limits, and the histogram."""
+    in the 4th digit, the mock as written (it carries record 0073's items 1 and 3); its runs are new, as the mock's.
+    The figures: one per varied model parameter with the 14 bins' means over their x ranges, every panel with the
+    same y limits, and the histogram."""
     case = prepare("R2", figures=True, intervals=True, params={"n": 200, "seed": 1})
     made = reference.batch(case, "R2")
     made = RunBatch(design=made.design, runs=made.runs, new=np.ones(200, dtype=bool))

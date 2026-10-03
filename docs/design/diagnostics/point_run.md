@@ -1,8 +1,8 @@
 # Point run
 
 **Status:** accepted. **Updated:** 2026-10-01 (the seed row, 0061); 2026-10-02 (the mean and standard deviation
-from the deviations, 0075). **Module:** `ema/diagnostics/point_run.py`. **Depends on:**
-`shared.md`; P7; records 0011, 0021, 0022, 0034, 0035, 0036, 0044, 0049, 0051, 0052.
+from the deviations, 0075; review round 1 of applying 0066–0085). **Module:** `ema/diagnostics/point_run.py`.
+**Depends on:** `shared.md`; P7; records 0011, 0021, 0022, 0034, 0035, 0036, 0044, 0049, 0051, 0052, 0075.
 
 > The model prediction at one point, and its measured variation over repeated runs there (0012, P7, 0011).
 > Written from an interview on 2026-09-30 (TODO step 6). Everything not stated here follows `shared.md`.

@@ -57,7 +57,7 @@ OFFSET_RTOL = 1e-6
 ROUNDING_WIGGLE = 1e-15
 #: One evaluation at d = 20 with the defaults, wall-clock. The polynomial model's, both refits per resample (as drawn,
 #: and on distinct runs for LOO), took 91 s of CPU (62 s wall) at a load average of 5-9 on 8 cores: twice that
-#: (record 0079 item 16, Review round 1; contracts.md's 60 s counted the refits as drawn only).
+#: (record 0079 item 17, Review round 1; contracts.md's 60 s counted the refits as drawn only).
 D20_SECONDS = 180.0
 #: Under y + b, a number in y's units can't be closer than the rounding the shift itself makes: a few units in the
 #: last place of |b| + max|y| (record 0075 item 14). Far below UNITS_RTOL·range but for the point run's fixture.
@@ -650,7 +650,9 @@ def check_round_trip(diagnostic: Any, tmp_path: Path) -> None:
 
 
 def check_dimensions(diagnostic: Any, tmp_path: Path) -> None:
-    """C18: d = 1 and d = 20 give a diagnostic result; within D20_SECONDS (the slow tier measures it)."""
+    """C18: d = 1 and d = 20 give a diagnostic result on the example request, each within D20_SECONDS (the fast
+    tier; the polynomial model's defaults at d = 20 are timed in the slow tier, record 0079 item 1, against the
+    bound item 17 sets)."""
     for d in (1, 20):
         start = time.perf_counter()
         _, _, result = run(diagnostic, tmp_path, d=d)

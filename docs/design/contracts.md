@@ -3,10 +3,10 @@
 **Status:** accepted; C46–C52 and C56 cite `data_model.md`'s invariants (0054, 0055); C53–C55 accepted with the
 guides (0060). **Updated:** 2026-10-01 (0054, 0055, 0056, 0057, 0059, 0060, 0061, 0062, 0063, 0065); 2026-10-02
 (the diagnostic contract as built, 0068, 0075, 0077, 0079; the lean interval method and the fast tier with `-n auto`,
-0084). **Depends on:** P1–P7; `scope.md`;
+0084; review round 1 of applying 0066–0085). **Depends on:** P1–P7; `scope.md`;
 `model_interface.md` (M1–M21), `designs.md` (G1–G18), `diagnostics/shared.md` (S1–S10) and the six diagnostic
 specs, `uncertainty.md` (V1–V7); records 0008, 0010, 0011, 0015–0019, 0022, 0025–0030, 0032–0043, 0045–0048, 0051,
-0052, 0054, 0055.
+0052, 0054, 0055, 0068, 0075, 0077, 0079, 0084.
 
 > The promises each interface makes, written so each becomes one `check_*` function run over every
 > implementation (`../notes/v1/lessons_learned_answers_2026-09-27.md` §4). This file is the test plan: Claude
@@ -94,7 +94,7 @@ The cases the contracts run against.
 | constant to rounding: 7·(1 + 10⁻¹⁵·f), distinct as doubles (0035; R4b's reference model is the same case at about 4·10⁻¹³) | diagnostics | the contract model's f |
 | large offset, small variation: 10⁶ + 10⁻³·f | diagnostics | the contract model's f |
 | change of units: y → a·y with a = 2⁻⁴⁰ and 2⁴⁰ (about 10∓¹²); y → y + b with b = 3·max\|y\| | diagnostics | the contract model; powers of 2 keep distinct values distinct, and the shift loses about 2 bits, small enough not to merge the contract model's values (0035) |
-| d = 1; d = 20 (the polynomial model at p = 10 and p = 2) | designs, diagnostics | the contract model's variants |
+| d = 1; d = 20 (the polynomial model's example request, degree 1; its defaults at d = 20 in the slow tier) | designs, diagnostics | the contract model's variants |
 | a nominal value or an anchor at a range's end (coordinate lines: refused, naming the model parameter, 0051) | designs | the contract model, with a's nominal moved to 0 |
 | a log range over many decades (10⁻⁶ to 10⁶) | designs, diagnostics | the contract model with c's range widened |
 | repeated points in one design (coordinate lines' shared anchor, G12) | designs, store | coordinate lines at n odd, anchored at the nominal point (the centers) |
@@ -242,7 +242,7 @@ C16, C46, and C52.
 | Tier | Contains | Budget | Runs |
 |---|---|---|---|
 | fast | unit tests; the contracts on run batches built directly, and on millisecond models; doctests; import-linter | 30 s, with `-n auto` (0084): a size budget (`scope.md`) | after every edit |
-| slow | the use cases end to end, and the get-started guide's Python blocks (C53, 0060); reference models' expected answers and golden reports; C18 at d = 20 for the polynomial model, and every d = 20 timing; the command-line reference models; the wheel build, with its data files; the PDF tests (0018, T10), skipped when `to_pdf` raises `PandocMissing` (0059) | 10 min with `-n auto`: a target | before a step is reported done |
+| slow | the use cases end to end, and the get-started guide's Python blocks (C53, 0060); reference models' expected answers and golden reports; C18 at d = 20 for the polynomial model with the defaults (P = 231, 1848 runs; 0079 item 1); the command-line reference models; the wheel build, with its data files; the PDF tests (0018, T10), skipped when `to_pdf` raises `PandocMissing` (0059) | 10 min with `-n auto`: a target | before a step is reported done |
 
 - **Budgets:** the fast tier's 30 s is one of `scope.md`'s size budgets: going over it is a decision record,
   not a drift. The slow tier's 10 min is a target: each build step's plan reports the tiers' times, and a step
@@ -253,8 +253,9 @@ C16, C46, and C52.
   method through the interface: the diagnostic contract's checks that don't test the intervals use the lean fake
   method (The contract model, 0084). The one expensive case, the polynomial model at d = 20 with the defaults
   (1000 resamples, each a refit of a 1848 × 231 matrix as drawn and one on its distinct runs, about 1168 rows,
-  for LOO: about 91 s of CPU, 62 s wall, measured 2026-10-02; 0079), runs in the slow tier; the other
-  diagnostics run C18 at d = 20 in the fast tier (the linear model's 1000 refits at d = 20 take about 0.1 s).
+  for LOO: about 91 s of CPU, 62 s wall, measured 2026-10-02; 0079), runs in the slow tier. C18 itself, on each
+  diagnostic's example request (the polynomial model's of degree 1), runs at d = 20 in the fast tier (the linear
+  model's 1000 refits at d = 20 take about 0.1 s).
 - **One exception** (0079 items 15, 23): the polynomial model's R2 known answer at p = 10 computes no intervals
   (a test interval method that gives every interval "none", through V7's seam): the estimates don't depend on
   the interval method, and the bootstrap's refits of 20,000 × 286 would take about 15 min alone. The bootstrap's

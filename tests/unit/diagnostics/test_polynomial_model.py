@@ -499,7 +499,7 @@ def test_pm6_pm9_r5_level_0_too_few_and_the_strips(tmp_path):
     """PM6: R5 (fails where a + b > 1), n_min = 12: level 0 has fewer than 2P = 12 usable runs, so its column is
     "none"; the later levels are fitted on their usable runs. PM9: four figures; each fit panel's strip holds every
     run that isn't usable, with the header's count; the histogram has floor(sqrt(n_u)) bins. Expected answers:
-    every estimate equals the polynomial model computed on the usable runs alone (U3)."""
+    every estimate and observation equals the polynomial model computed on the usable runs alone (U3)."""
     case, made, result = evaluate("R5", tmp_path, figures=True, params={"n_min": 12}, prediction="y")
     table_ = levels(result)
     usable = made.usable("y")
@@ -516,11 +516,13 @@ def test_pm6_pm9_r5_level_0_too_few_and_the_strips(tmp_path):
     alone = sd.evaluate(case, sd.batch(case, y=made.runs.values["y"], z=made.runs.values["z"], failed=~usable),
                         tmp_path / "alone")  # fmt: skip
     assert alone.estimates == result.estimates and alone.extra == result.extra
+    assert alone.observations == result.observations
 
 
 def test_r5_z_every_estimate_is_the_usable_runs_alone(tmp_path):
-    """Expected answers (R5, z; U3): z, missing where y isn't and failed where y fails, gives every estimate of the
-    polynomial model on its usable runs alone; each fit panel's strip holds every run not usable for z (PM9)."""
+    """Expected answers (R5, z; U3): z, missing where y isn't and failed where y fails, gives every estimate and
+    observation of the polynomial model on its usable runs alone; each fit panel's strip holds every run not usable
+    for z (PM9)."""
     _, made, result = evaluate("R5", tmp_path, figures=True, params={"n_min": 12}, prediction="z")
     usable = made.usable("z")
     assert result.estimates and (~usable).sum() > (~made.usable("y")).sum()  # z is missing on more runs
@@ -530,6 +532,7 @@ def test_r5_z_every_estimate_is_the_usable_runs_alone(tmp_path):
     alone = sd.evaluate(bare, sd.batch(bare, y=made.runs.values["y"], z=made.runs.values["z"], failed=~usable),
                         tmp_path / "alone")  # fmt: skip
     assert alone.estimates == result.estimates and alone.extra == result.extra
+    assert alone.observations == result.observations
 
 
 def test_pm9_a_value_below_the_decay_figures_limit_is_an_open_marker(tmp_path):
@@ -694,7 +697,7 @@ def test_pm12_r2_at_p_10(tmp_path):
 def test_c18_at_d_20_with_the_defaults_within_d20_seconds(tmp_path):
     """C18 (contracts.md, Test tiers): the contract model at d = 20 with the defaults (P = 231, 1848 runs, 1000
     resamples, each a refit as drawn and one on its distinct runs for LOO: 2000 QR fits): a result with estimates,
-    within D20_SECONDS of wall-clock time (record 0079 item 16, Review round 1)."""
+    within D20_SECONDS of wall-clock time (record 0079 item 17, Review round 1)."""
     case = sd.prepare(sd.NoFigures(PM), 20, params={"degree": 2, "level": 2, "seed": 0})
     assert len(case.design) == 1848
     made = sd.batch(case)

@@ -1,6 +1,6 @@
 # Run a diagnostic and read its report
 
-**Status:** outline. **Use cases:** U1–U5, U7, U8. **Specs:** `../design/diagnostics/`,
+**Status:** outline. **Updated:** 2026-10-02 (review round 1 of applying 0066–0085). **Use cases:** U1–U5, U7, U8. **Specs:** `../design/diagnostics/`,
 `../design/designs.md`, `../design/uncertainty.md`, `../design/export.md`. **Tested:** through the use cases
 (C53); its examples are the use cases' models.
 
@@ -56,11 +56,11 @@
 
    ```text
    $ ema run heat coordinate_lines --space space.json --param n=17
-     heat@b204…
+     New runs of the model version `heat@b204…`: coordinate_lines on `T_max`.
      Price: 96 new runs, 1 reused, about 3 h 12 min (from 1 stored run)
      Approve? [y/N] y
      96/96 runs
-     Diagnostic result 3f2a: coordinate lines on heat@b204…, T_max; 97 runs: 96 new, 1 reused, 0 failed;
+     Diagnostic result 3f2a: coordinate_lines on heat@b204…, T_max; 97 runs: 96 new, 1 reused, 0 failed;
      report: ema report 3f2a
    ```
 
@@ -98,7 +98,7 @@
 
    ```text
    $ ema run heat coordinate_lines --space space.json --param n=17
-     heat@b204…
+     New runs of the model version `heat@b204…`: coordinate_lines on `T_max`.
      Price: 56 new runs, 41 reused, about 1 h 52 min (from 41 stored runs)
    ```
 
@@ -150,12 +150,16 @@
 11. **Export its runs** (E1–E7).
 
     ```text
-    $ ema export 3f2a heat_runs/
+    $ ema export 3f2a heat_runs/                # prints the export's directory, absolute
+      /…/heat_runs
+    $ ema export 3f2a heat_runs_pdf/ --pdf      # also report/report.pdf, with pandoc and lualatex
+      /…/heat_runs_pdf
     ```
 
     - `runs.csv` (a row per design row, so a repeated point appears again: the model parameter values, the
       model predictions, the status, the reason, the run time; EMA's columns start with `ema_`; E2),
-      `result.json`, and `report/`: the report, its figures, and their data cards (E1). <…>
+      `result.json`, and `report/`: the report, its figures, and their data cards, and with `--pdf` (`pdf=True`)
+      `report.pdf` (E1; 0081 item 31). <…>
     - **Open `runs.csv` as data,** not as a spreadsheet's formulas: a cell starting with `=`, `+`, `-`, or `@`
       may be read as a formula. Import it (pandas, or the spreadsheet's import as text) (`trust.md`,
       `export.md`). <…>

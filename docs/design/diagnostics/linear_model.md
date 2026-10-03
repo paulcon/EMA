@@ -1,7 +1,8 @@
 # Linear model
 
 **Status:** accepted. **Updated:** 2026-10-01 (step 11); 2026-10-02 (the per-level table's units, the constant
-case, and the rank and leave-one-out notes, 0078; the in-sample relative residual and R² as observations, 0085).
+case, and the rank and leave-one-out notes, 0078; the in-sample relative residual and R² as observations, 0085;
+review round 1 of applying 0066–0085).
 **Module:** `ema/diagnostics/linear_model.py`. **Depends on:** `shared.md`; `../designs.md`; `../uncertainty.md`;
 records 0012, 0032, 0033, 0034, 0035, 0041, 0042, 0044, 0048, 0049, 0051, 0052, 0078, 0085.
 
@@ -84,10 +85,10 @@ asked): a check would compare with a threshold, which is interpretation (P2). A 
 usable runs, or a value that is undefined, has "none" in its column. The coefficients are printed without
 units, and the table's title names them once ("Coefficients in m³/yr."; no such sentence for a dimensionless
 model prediction); the result keeps the units on each cell (`shared.md`, Units; 0078 items 2, 14). Under the
-table, after "Each level is fitted on the usable runs among its first points.", one line says why the in-sample
-measures have no interval (0085): "In-sample measures: refitting a resample's repeated runs makes the fit look
-better than it is, so they have no variability interval; the leave-one-out error's interval shows how the fit
-varies."
+table, after "Each level is fitted on the usable runs among its first points." (both in the per-level table's
+title), one line says why the in-sample measures have no interval (0085): "In-sample measures: refitting a
+resample's repeated runs makes the fit look better than it is, so they have no variability interval; the
+leave-one-out error's interval shows how the fit varies."
 
 **Changes of units** (P6): y → a·y + b, with a > 0, gives β₀ → a·β₀ + b and βᵢ → a·βᵢ, and leaves the relative
 residual, R², the LOO error, and the notes unchanged (exactly under a·y; within C5's tolerances under the shift,
@@ -162,8 +163,11 @@ estimates.
 - **A LOO error undefined while the fit is defined:** no LOO estimate, and a note, "The leave-one-out error is
   undefined: a usable run has leverage 1." when a usable run's leverage is exactly 1, else "The leave-one-out
   error is undefined on these runs." (`../uncertainty.md`, Rules; 0078 items 5, 15).
-- **Exactly linear** (R1): relative residual and LOO at rounding (about 10⁻¹⁵), R² = 1, and the intervals of the
-  coefficients and the LOO error of about that width.
+- **Exactly linear** (R1): relative residual and LOO at rounding (about 10⁻¹⁵), R² = 1; the relative residual
+  and R² have no interval (0085). At the defaults the intervals of the coefficients and the LOO error are of
+  about that width (the LOO error's 3.8·10⁻¹⁵, seed 0). Near the fewest runs the LOO error's interval widens, as
+  leverages near 1 amplify rounding: at 2(d + 1) = 10 runs, 1.98·10⁻⁹ (the coefficients' intervals at most
+  7.3·10⁻¹⁴).
 - **A slope vector of exact zeros** (only when every usable run's y is the same, which the constant case
   catches first): no shadow.
 - **Runs not usable:** estimates from the usable runs of level L; each level's column in the per-level table
@@ -266,7 +270,8 @@ runs of each resample, 0.5th to 99.5th percentiles, seed 3.
 | Leave-one-out error | 0.2934 | 0.2879 | 0.2716 |
 
 Coefficients in m³/yr. Each level is fitted on the usable runs among its first points.
-In-sample measures: refitting a resample's repeated runs makes the fit look better than it is, so they have no variability interval; the leave-one-out error's interval shows how the fit varies.
+In-sample measures: refitting a resample's repeated runs makes the fit look better than it is, so they have no
+variability interval; the leave-one-out error's interval shows how the fit varies.
 
 ## Figures
 

@@ -110,3 +110,4 @@ Write one when a choice:
 | 0082 | Step 16's provisional choices: the CLI | accepted (drafted as proposed under 0066) | 2026-10-02 |
 | 0084 | Let the demo build pass the source-line budget, measured at the end; run the fast tier in parallel | accepted (drafted as proposed under 0066) | 2026-10-02 |
 | 0085 | Report a fit's in-sample relative residual and R² as observations, without intervals | accepted | 2026-10-02 |
+| 0086 | Settle the questions left after applying records 0066–0085 | proposed (answered by the owner) | 2026-10-02 |

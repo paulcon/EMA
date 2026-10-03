@@ -6,14 +6,14 @@
 
 - **Demo build (record 0066, 2026-10-01–02), on the `demo` branch, not `main`:** every build step of the roadmap
   (01–16, and T, the rest of `ema.types`) built autonomously in waves, each reviewed by independent agents, fixed,
-  and re-reviewed; provisional choices in records 0066–0084, all **proposed**, for the owner to accept or reject.
+  and re-reviewed; provisional choices in records 0066–0085, accepted by the owner (2026-10-02) and applied to the specs.
   Log of every wave and review round: `docs/notes/demo_build.md`. On `demo`: the six diagnostics, the workspace
   (U1–U8 and the get-started guide pass), the CLI (`ema`), and the MCP server (`ema mcp --root DIR`), checked end to
   end through a real MCP client. The demo's instructions: `docs/notes/demo_mcp.md` (the demo root,
   `~/ema_demo`, is set up with three models loaded). Every step's review rounds are done, the final integrated
   review and a rehearsal of the demo's 13 prompts passed, and every test passes (2,076 in the slow tier). Not
-  done: step 17's guides' full text and release. Record 0084 gives the final size, 10,957 code lines against
-  8,300, for the owner to choose (raise the budget, or trim).
+  done: step 17's guides' full text and release. The size: 11,034 code lines; the owner raised the budget to
+  11,000 (0084), and to 12,000 in record 0086 (answered, not yet accepted).
 - Writing the design documents by hand (`TODO.md`): steps 1–13 done.
 - "Before the first line of code" (`TODO.md`) done: the specs checked against each other, and the contradictions
   resolved (records 0061–0064). The first plan written: `docs/plans/01-scaffolding-and-designs.md`
@@ -100,11 +100,13 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
 
 ## Next
 
-- **The owner:** review `demo` and records 0066–0084; decide on merging `demo` into `main`.
+- **The owner:** accept record 0086 (answered in an interview, 2026-10-02); then its edits and code are applied and
+  the demo root recomputed. Decide on merging `demo` into `main`.
+- Records 0066–0085 accepted and applied (f012505), then reviewed in two rounds by fresh agents (round 1: 2 major,
+  20 minor, 25 nits; round 2: 1 major, 6 minor, 15 nits); the plain findings fixed in place, the rest in 0086
+  (`docs/notes/demo_build.md`).
 - Build steps 01–16 are on `demo` (above). The BLAS question for `ema.numerics` was measured and settled
   provisionally (`docs/notes/blas_determinism_2026-10-01.md`; record 0068 item 1: no 1-D BLAS products or norms).
-- Decisions records 0066–0084 list "Spec edits on acceptance" for each provisional choice; accepting a record
-  means applying its edits to the specs.
 
 ## Specs
 

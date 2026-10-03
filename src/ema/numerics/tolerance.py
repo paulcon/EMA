@@ -43,10 +43,10 @@ def tolerance(values: np.ndarray, rel: float) -> float:
 def is_constant(y: np.ndarray) -> bool:
     """Return True when every value of y is the same double (0035; P6): no flatness tolerance.
 
-    The one test of "constant" in ``ema``: a constant y gives the diagnostics' note, and makes R², the relative
-    residual, the LOO error, the Sobol indices, rho, and S undefined on a resample (uncertainty.md, the
-    bootstrap's step 3). A y that varies, however little (R4b's 1e-12 wiggle), is not constant. An empty y is
-    not constant: too few runs decides that case. Values compare with ``==``, so -0.0 and 0.0 are the same.
+    The one test of "constant" in ``ema``: a constant y gives the diagnostics' note, and makes the LOO error, the
+    Sobol indices, rho, and S undefined on a resample (uncertainty.md, the bootstrap's step 3). A y that varies,
+    however little (R4b's 1e-12 wiggle), is not constant. An empty y is not constant: too few runs decides that
+    case. Values compare with ``==``, so -0.0 and 0.0 are the same.
 
     Examples
     --------

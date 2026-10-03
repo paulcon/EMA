@@ -1,9 +1,10 @@
 # Uncertainty
 
 **Status:** accepted. **Updated:** 2026-10-01; 2026-10-02 (non-finite values and constant resamples, 0068; the
-settings' keys, 0073; the fits' in-sample measures as observations, 0085). **Depends on:** OD-4 (0004), OD-12
-(0040); records 0017, 0034–0036, 0038, 0041, 0042, 0049, 0051, 0052, 0068, 0073, 0085; `diagnostics/shared.md` and
-the six diagnostic specs.
+settings' keys, 0073; a LOO error undefined on the usable runs, 0078, 0079; the fits' in-sample measures as
+observations, 0085; review round 1 of applying 0066–0085). **Depends on:** OD-4 (0004), OD-12 (0040); records
+0017, 0034–0036, 0038, 0041, 0042, 0049, 0051, 0052, 0068, 0073, 0078, 0079, 0085; `diagnostics/shared.md` and the
+six diagnostic specs.
 
 > The interval methods EMA uses, what each interval means, and which method each v2.0 diagnostic uses. Written
 > from record 0040's table and the diagnostic specs' Uncertainty sections (TODO step 7, 2026-09-30). Each
@@ -71,7 +72,9 @@ tag (Per diagnostic, below). None of the six changes a step or a constant.
 5. **Reported as computed:** the interval is not recentered on the estimate, shifted, or clipped. An estimate with
    a bias (the fitted polynomial's Sobol indices, `diagnostics/polynomial_model.md`) has an interval that carries
    it. On R2 the estimate was inside its interval for every estimate of scatter at n = 200 (50 designs) and the
-   polynomial model at p = 4 (30 designs; a scratch script, 2026-09-30); the rule doesn't depend on it.
+   polynomial model at p = 4 (30 designs; a scratch script, 2026-09-30); the rule doesn't depend on it. (The
+   fits' in-sample relative residual and R² at high degree were not, on Ishigami at degrees 6, 8, and 10, which
+   is why they are observations, 0085.)
 6. **The line under the table** (`shared.md`, S4) states: the method, the number of usable runs, the
    resamples, the percentiles, the seed, "recomputed on the distinct runs of each resample" where it applies,
    and the number of undefined resamples when there are any; the explanation of variability intervals is the

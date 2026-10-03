@@ -27,7 +27,8 @@ BOOTSTRAP_MIN_DEFINED = 201
 class Estimator:
     """One computation per resample, giving one or more estimates.
 
-    A fit's coefficients, R², and residual come from one refit, not one refit per number.
+    A fit's coefficients (and the polynomial model's Sobol indices and √E_k) come from one refit, not one refit per
+    number.
 
     Attributes
     ----------

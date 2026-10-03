@@ -313,6 +313,24 @@ Each wave's review rounds: the findings (counted by severity), what was fixed, a
   1.5·10⁻¹⁰ at 2P = 30 runs (leverages near 1); the specs may say the line sits in the per-level table's title.
 - All checks pass on the combined changes (fast tier 2,042 passed; lint, mypy, 8 import contracts, docs).
 
+- **Review of the applied records, round 1** (four fresh reviewers: `architecture.md`; the data, model, and trust
+  specs; the contracts and diagnostics specs; 0085's code): 0 blockers, 2 major (both budgets: 11,034 source lines
+  against 11,000, counted by §11's rule; the fast tier at 61–68 s against 30 s), 20 minor, 25 nits. The plain ones
+  fixed in place (37: the pandoc reader's `-implicit_figures` in T10; U2's and the guides' approval and result
+  lines as the code prints them; README on `demo`; C18's tiers; the exact fits' interval widths at the fewest runs,
+  measured; "no math" in `shared.md`; `lines`' `m` default text; LM7's and R5's tests over the observations; stale
+  docstrings; Depends-on lists). The 14 that need a choice went into record 0086 (proposed).
+- **Round 2** (two reviewers on round 1's diff and on 0086): 0 blockers, 1 major (round 1's text said the root
+  re-exports `Stopped`; it doesn't), 6 minor, 15 nits, fixed in place but one (Q3's sort, the store's choice, left); 0086's facts corrected (0081
+  items 28–32, not 29–32; the acceptance commit 55c8ae6). The measured interval widths confirmed by the reviewer.
+- **Record 0086 answered by the owner** in an interview, item by item: the source-line budget 12,000; the fast tier
+  90 s, 30 s a goal; a model's name starting with a letter or digit; `files` and `pass_env` sorted before hashing;
+  hard line breaks in the "Runs not usable" note; no record ids in text users see; 0085's line kept always;
+  `relative_residual` in both fits; the version raised when a diagnostic's output changes (2.0.0.dev1);
+  `Stopped` not retryable; `python -m ema.mcp` kept, the missing extra handled; private modules private to EMA;
+  the preamble line for package-local names; `designs.md`'s added detail kept. Status proposed until the owner
+  accepts it; then its spec edits and code are applied, and the demo root's results recomputed.
+
 ## How to resume (if the session stops)
 
 State lives in git and on disk; nothing is only in the conversation.
@@ -324,10 +342,9 @@ State lives in git and on disk; nothing is only in the conversation.
    (`docs/plans/NN-*.md`) and record, saying "finish this step".
 2. The last entries in "Rounds" above say which step is at which stage (built, in review, fixing). A step whose
    fixing round is committed but not re-reviewed gets a round-2 review.
-3. **Next:** the four agents' work is committed. Run an independent review: one fresh agent per area checking
-   that every accepted record's "Spec edits on acceptance" is applied, that the specs agree with each other and
-   with the code, and that 0085's code matches its record; the agents' findings for the review are the bullets
-   above, from "Data/model/trust group applied" on. Fix, re-review until minor; update STATUS.md.
+3. **Next:** the review of the applied records is done (rounds 1 and 2 above).
+   Record 0086 is answered; once the owner accepts it, apply its spec edits and code (its Consequences), run every
+   check, review the change once, and recompute the demo root (`docs/notes/demo_mcp.md`'s setup).
 4. What is left is the owner's: review `demo` and records 0066–0084 (each lists its spec edits on acceptance),
    and decide on merging into `main`. Open questions from the final review, for the owner: the shared notes'
    "Most frequent reasons" list renders as one line in CommonMark, and the notes name Python calls

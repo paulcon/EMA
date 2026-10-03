@@ -1,8 +1,8 @@
 # Lines
 
-**Status:** accepted. **Updated:** 2026-10-01 (step 11, 0058); 2026-10-02 (`m`'s default, 0077). **Module:** `ema/diagnostics/lines.py`. **Depends on:**
-`shared.md`; `coordinate_lines.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0049,
-0051, 0052, 0058.
+**Status:** accepted. **Updated:** 2026-10-01 (step 11, 0058); 2026-10-02 (`m`'s default, 0077; review round 1 of
+applying 0066–0085). **Module:** `ema/diagnostics/lines.py`. **Depends on:** `shared.md`; `coordinate_lines.md`;
+`../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0049, 0051, 0052, 0058, 0077.
 
 > The model prediction along m random lines, or along lines the user gives, and the spectrum of each line
 > (0012; U2's finer line through a kink). Written from an interview on 2026-09-30 (TODO step 6). Each line is

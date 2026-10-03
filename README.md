@@ -3,8 +3,9 @@
 EMA (Exploratory Model Analysis) runs diagnostics on computational models to look for exploitable structure,
 and reports the results with figures, numbers, and their intervals.
 
-This is v2, a rebuild (decision 0002). For now the repository holds the design documents: there is no code
-yet. The order of work is `TODO.md`, and where things stand is `STATUS.md`.
+This is v2, a rebuild (decision 0002). The design documents are in `docs/`; the code is in `src/ema/`, and its
+tests in `tests/` (the demo build, records 0066–0085). The order of work is `TODO.md`, and where things stand is
+`STATUS.md`.
 
 v1 is at `../EMA-v1` (GitHub `pauls-code-projects/EMA-v1`, tag `v1-final`), for reference only. Its working
 notes, including the lessons learned that led to v2, are in `docs/notes/v1/`.
@@ -47,9 +48,13 @@ Everything that code or tests may cite has an id, so a docstring, a test, or a c
 ```text
 README.md                     this file
 CLAUDE.md                     instructions for Claude Code
-TODO.md                       what to do by hand before coding, in order
+TODO.md                       what was done by hand before coding, in order (all done)
 STATUS.md                     done, in progress, next, open decisions
 LICENSE                       MIT (0060)
+pyproject.toml                the package, its dependencies, and the tools' settings (0059)
+src/ema/                      the code (docs/design/architecture.md)
+tests/                        contracts, unit, and slow tests (docs/design/contracts.md), their shared helpers
+                              (support/), and the test models (models/)
 docs/design/
   purpose.md                  why EMA exists, and for whom
   principles.md               P1…
@@ -68,7 +73,7 @@ docs/design/
   export.md                   the export's files and their read-back (0050)
   reference_models.md         R1…, their truths, and an index of expected answers (0052)
 docs/decisions/               README.md (how, and the index), 0000-template.md, 0001…, 0002…
-docs/plans/                   README.md, _template.md, 01-scaffolding-and-designs.md
+docs/plans/                   README.md, _template.md, one plan per build step (01–04, 06–16, T; 04 is steps 04–05)
 docs/guides/                  get_started.md, add_a_model.md, run_a_diagnostic.md, add_a_diagnostic.md (outlines)
 docs/checks/                  step 11's scripts for the expected answers, and their outputs
 docs/notes/

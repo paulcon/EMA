@@ -2,7 +2,7 @@
 
 **Status:** accepted (TODO step 10; 0057). **Updated:** 2026-10-02 (0061: `remove_tree`, the root's check, "user"; 0069, 0071, 0073, 0074, 0080, 0081: credentials
 files on every spec path, the group killed at a program's exit, T10's reader, Ctrl-C at the question, T6's same spec,
-the function's signature at loading). **Depends on:** P3; AR1–AR4, AR6; records 0010, 0016, 0018,
+the function's signature at loading; review round 1 of applying 0066–0085). **Depends on:** P3; AR1–AR4, AR6; records 0010, 0016, 0018,
 0019, 0020, 0022, 0025, 0026, 0028, 0029, 0030, 0049, 0050, 0053, 0054, 0056 (OD-7 and OD-11 are decided);
 `model_interface.md` (M2, M9, M13–M15, M17, M20), `contracts.md` (C32, C33, C38, C39), `data_model.md` (W1, W2,
 W3, Q12, the run lock), `architecture.md` (§3, §5–§8), `export.md` (E1, E4, E7), `use_cases.md` (U2, U6, U9),
@@ -235,12 +235,12 @@ Every text field of a result is plain text, escaped the same way, so EMA's own s
 (ρ, Sᵢ, R²), and the report writes no math (0073). A line of such text that would start a block has its marker
 escaped too (`-`, `+`, `:`, or `=` first, or the `.` or `)` of `1.`, `a)`, `(iv)` before a space), and a line
 ending inside a table cell, a table's title, or a caption becomes a space. As a second guard, pandoc reads the
-report with raw TeX, raw HTML, raw attributes, TeX math in dollars, and smart punctuation off
-(`-f markdown-raw_tex-raw_html-raw_attribute-tex_math_dollars-smart`), and runs with `--sandbox`, so it reads
-only the report and its figures (0073). A description `\input{~/.ssh/id_rsa}` renders as that text, and the
-PDF holds no file. Names are escaped too: an identifier such as `_T_` would otherwise render as emphasis. A
-spec's units print literally in figure labels as well, so units are written as plain text or Unicode (`W/m²`),
-not mathtext (`m$^2$`); EMA's own figure labels keep mathtext.
+report with raw TeX, raw HTML, raw attributes, TeX math in dollars, smart punctuation, and implicit figures off
+(`-f markdown-raw_tex-raw_html-raw_attribute-tex_math_dollars-smart-implicit_figures`), and runs with `--sandbox`,
+so it reads only the report and its figures (0073; implicit figures, 0081 item 30). A description
+`\input{~/.ssh/id_rsa}` renders as that text, and the PDF holds no file. Names are escaped too: an identifier
+such as `_T_` would otherwise render as emphasis. A spec's units print literally in figure labels as well, so units
+are written as plain text or Unicode (`W/m²`), not mathtext (`m$^2$`); EMA's own figure labels keep mathtext.
 
 **In an export,** `runs.csv`'s text columns are not escaped for Markdown or for spreadsheets: `ema_reason`
 holds the stored reason, and `ema_missing` is as E4 writes it; a spreadsheet may read a cell that starts with `=`, `+`, `-`, or `@` as a
@@ -274,10 +274,10 @@ the code that needs them can import them (AR1):
 **Size:** about 145 lines, by package: `ema.types` about 75 (the credentials lists, rewritten from v1's, about 50;
 the name and character checks, about 25); `ema.models` about 35 (the environment, about 15; paths and links, about
 20); `ema.workspace`, `ema.cli`, and `ema.approval` about 25 (the root, `--root`, the confirmation's text and its
-same-bytes branch); `ema.report` and `ema.plotting` about 10. The ported sandbox and worker are about 500 lines
-(v1's 534 less little); without v1's limits (about 50 lines) and its withheld variables (about 15), about 435, as
-`architecture.md` §11 counts them. Net about 80 more: about 7,940 of `scope.md`'s then 8,000; after 0061–0063,
-about 8,200 of 8,300 (0064).
+same-bytes branch); `ema.report` and `ema.plotting` about 10. The ported sandbox and worker are
+about 500 lines (v1's 534 less little); without v1's limits (about 50 lines) and its withheld variables (about
+15), about 435, as `architecture.md` §11 counts them. Net about 80 more: about 7,940 of `scope.md`'s then 8,000;
+after 0061–0063, about 8,200 of 8,300 (0064); the budget is 11,000 since 0084.
 
 ## Not in v2.0
 
@@ -301,7 +301,7 @@ about 8,200 of 8,300 (0064).
 | T7 | Paths in a model spec are relative, with no `..` and no absolute path (but the command's program); a file a spec or an MCP argument names that is a credentials file is refused (v1's `is_secret`); a spec string with a hidden character (Cc but tab, Cf but the joiners, Cs, Zl, Zp), a duplicate key, and EMA's own file names as `writes` or `files`, are refused; a question prints such characters as codes (but tab and line feed), and every string EMA didn't write in a code span or a fenced block. | `files: ["../x"]`, `"/etc/hosts"`, `".env"`, `".ssh/id_rsa"`, `"db-credentials.json"`, and `"mesh.dat"` linked to `~/.ssh/id_rsa`: each refused at loading, naming the field; `.env.example`, `secretion.py`, and `deck.key` load. A command with `\u001b[2K`, a description with U+202E, a name with a lone surrogate, a description with a newline, and `"command"` twice: refused, naming the field. A model directory under `~/.docker/` loads. A template with U+202E: the first approval shows `\u202e`, and its lines as lines. A save path holding `<!-- x -->`, and a template holding a line of three backticks: each shown as typed. `files: ["run.json"]`: refused. `files: ["../mesh.h5"]`: the message names the link workaround. |
 | T8 | A variable name that looks like a credential, or isn't a variable name, is refused in `env` and `pass_env`; EMA never shows or stores a `pass_env` value. | `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `SSH_AUTH_SOCK`, `A=B`, and `""` refused; `OMP_NUM_THREADS`, `LM_LICENSE_FILE` load; the first approval's stored question holds `LM_LICENSE_FILE` and "set", not its value. |
 | T9 | Model output is read only from inside the run directory; a parser's file that links out of it is missing, with a reason (0030). EMA's own files in a run or batch directory are written, and those directories deleted, without following links. A model's streams never reach EMA's stdout. | `plate.out` a link to a file outside the run directory: the model prediction is missing, and the file outside is not read. A model that leaves `run.json` as a link to a file outside: that file is unchanged. A run directory not kept, holding a link to a data directory: the directory is deleted, the data kept. Under a scripted MCP client, a function that prints at import and in each call: the protocol stream stays valid. |
-| T10 | Text EMA didn't write (spec text, names included, and failure reasons) prints literally in reports and figure labels; a block marker at a line's start is escaped too; pandoc reads the report as `markdown-raw_tex-raw_html-raw_attribute-tex_math_dollars-smart`, with `--sandbox` (0073). | A description and a failure reason `$\input{/etc/hosts}$ *x* [a](b)`, and a model prediction named `_T_`, render as written in the report; a failure reason whose line starts `1. ` or `- ` renders as written; units `$\input{/etc/hosts}$` render as written in a figure's axis label; the PDF (when `to_pdf` doesn't raise `PandocMissing`, 0059) holds no line of `/etc/hosts`. |
+| T10 | Text EMA didn't write (spec text, names included, and failure reasons) prints literally in reports and figure labels; a block marker at a line's start is escaped too; pandoc reads the report as `markdown-raw_tex-raw_html-raw_attribute-tex_math_dollars-smart-implicit_figures`, with `--sandbox` (0073; 0081 item 30). | A description and a failure reason `$\input{/etc/hosts}$ *x* [a](b)`, and a model prediction named `_T_`, render as written in the report; a failure reason whose line starts `1. ` or `- ` renders as written; units `$\input{/etc/hosts}$` render as written in a figure's axis label; the PDF (when `to_pdf` doesn't raise `PandocMissing`, 0059) holds no line of `/etc/hosts`. |
 
 M9 and C38 (no pickle; the child's process group, which the asks below add to M9) and M20 and C39 (no
 shell) are the model interface's own rules, cited above and not repeated here.
@@ -320,10 +320,10 @@ shell) are the model interface's own rules, cited above and not repeated here.
 | `save_model`'s confirmation | the absolute path, what the name means now, the full text; exclusive create | 0057 |
 | a file at `save_model`'s path holding the same spec | loaded after a yes, never rewritten; T6 reads "the same spec", not "the same bytes" | 0080, 0081 |
 | text EMA didn't write | printed literally, escaped, names included; pandoc reads no raw TeX; not escaped in `runs.csv` | 0057 |
-| T10's reader | text in a result plain and escaped, block markers too; pandoc reads no math in dollars, no smart punctuation, with `--sandbox` | 0073 |
+| T10's reader | text in a result plain and escaped, block markers too; pandoc reads no math in dollars, no smart punctuation, no implicit figures, with `--sandbox` | 0073; 0081 |
 | the Python child | its own process group; started by path, its `sys.path` replaced by EMA's (absolute) over its pipe; its streams kept off EMA's stdout | 0057 |
 | run and batch directories | EMA's files written, and directories deleted, without following links; EMA's file names refused as `writes` or `files` | 0057 |
-| loading | never imports a model file (M17 by `ast`) | 0057 |
+| loading | never imports a model file (M17 by `ast`), and the function's signature check (0081 item 29) | 0057; 0081 |
 | questions | hidden characters printed as codes (but tab and line feed); every string EMA didn't write in a code span or a fenced block | 0057 |
 | no OS sandbox, no limits, no `pass_env` patterns, no hashing of shared copies per call | not in v2.0 | 0026; 0057 |
 

@@ -480,8 +480,8 @@ def test_the_parameters_schema_patterns_are_anchored():
 
 
 def test_lm7_units_change_the_coefficients_as_stated_and_nothing_else(tmp_path: Path):
-    """LM7: R2 with y -> a·y + b, a = 2⁻¹⁰, b = 3: β₀ -> a·β₀ + b, βᵢ -> a·βᵢ, the relative residual, R², and LOO
-    unchanged; exactly under a·y, within C5's tolerances under the shift (0048); the notes unchanged."""
+    """LM7: R2 with y -> a·y + b, a = 2⁻¹⁰, b = 3: β₀ -> a·β₀ + b, βᵢ -> a·βᵢ, the relative residual, R² (observations,
+    0085), and LOO unchanged; exactly under a·y, within C5's tolerances under the shift (0048); the notes unchanged."""
     case, made, ref = evaluate("R2", tmp_path / "ref")
     y = np.asarray(made.runs.values["y"])
     a, b = 2.0**-10, 3.0
@@ -496,6 +496,8 @@ def test_lm7_units_change_the_coefficients_as_stated_and_nothing_else(tmp_path: 
     y_range = float(np.ptp(y))
     for got, shift in ((scaled, 0.0), (both, b)):
         assert [n.code for n in got.notes] == [n.code for n in ref.notes]
+        for k, v in in_sample(got).items():  # observations now (record 0085), as PM8
+            assert (v == in_sample(ref)[k]) if shift == 0.0 else abs(v - in_sample(ref)[k]) <= 1e-9, k
         for tg, tr in zip(got.estimates, ref.estimates, strict=True):
             for eg, er in zip(tg.estimates, tr.estimates, strict=True):
                 pairs = [(eg.value, er.value), *zip(eg.interval or (), er.interval or (), strict=True)]

@@ -1,9 +1,9 @@
 # Coordinate lines
 
 **Status:** accepted. **Updated:** 2026-10-01 (the mock's Provenance, 0054; step 11, 0058; the seed row, 0061); 2026-10-02 (a line's
-cells' precedence and CL9's test, 0077). **Module:**
+cells' precedence and CL9's test, 0077; review round 1 of applying 0066–0085). **Module:**
 `ema/diagnostics/coordinate_lines.py`. **Depends on:**
-`shared.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0051, 0052, 0058.
+`shared.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0051, 0052, 0058, 0077.
 
 > The model prediction along one line per varied model parameter, through an anchor, and the spectrum of each
 > line (U2). Written from an interview on 2026-09-30 (TODO step 6). Everything not stated here

@@ -7,8 +7,8 @@ machines, and generators called with an identity by 0061; golden points in unit 
 refusal, and given lines' fixed coordinates by 0062; the structure kept with the result by 0063; malformed
 requests refused (G18), and a given line's anchor and direction, by 0065); 2026-10-02 (as built: the maps'
 clamps, the generators' further refusals, and convergent's sizes and alpha text, 0067; an unregistered sampler
-refused when the design is built, 0076, 0079). **Depends on:** OD-13 (0032); records 0005, 0012, 0013, 0023,
-0024, 0033.
+refused when the design is built, 0076, 0079; review round 1 of applying 0066–0085). **Depends on:** OD-13
+(0032); records 0005, 0012, 0013, 0023, 0024, 0033, 0067, 0076, 0079.
 
 > The design generators in v2.0, from `../notes/v1/ema-redesign.md` and scope's Designs row (point, uniform,
 > convergent, and lines: coordinate, random, or given; 0012). For each: what the user provides, the points it

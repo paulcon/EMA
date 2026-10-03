@@ -55,8 +55,8 @@ class _OptionalInteger:
         return {"anyOf": [Integer(self.minimum).schema(), {"type": "null"}]}
 
 
-def _m_default(d: int, others: Mapping[str, Any]) -> int | None:
-    """5 random lines; none when lines are given (lines.md, Two modes)."""
+def _m(d: int, others: Mapping[str, Any]) -> int | None:
+    """Return m's default: 5 random lines; none when lines are given (lines.md, Two modes; 0077 item 10)."""
     return None if others.get("lines") is not None else LINES_M
 
 
@@ -68,7 +68,7 @@ class Lines(LinesDiagnostic):
     summary = "the model prediction along random or given lines, and each line's Gram spectrum and decay rate"
     parameters = (
         DiagnosticParameter(
-            "m", "integer ≥ 1", _m_default, str(LINES_M), "the number of random lines.", "yes", 3, _OptionalInteger(1)
+            "m", "integer ≥ 1", _m, "5; none with lines", "the number of random lines.", "yes", 3, _OptionalInteger(1)
         ),
         DiagnosticParameter(
             "lines",

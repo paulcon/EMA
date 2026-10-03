@@ -1,8 +1,9 @@
 # Scatter
 
 **Status:** accepted. **Updated:** 2026-10-01 (step 11); 2026-10-02 (the figures' limits, cards, and captions,
-0076; the mock's symbols and line, 0073). **Module:** `ema/diagnostics/scatter.py`. **Depends on:**
-`shared.md`; `../designs.md`; records 0012, 0032, 0034, 0035, 0037, 0042, 0044, 0048, 0049, 0051, 0052.
+0076; the mock's symbols and line, 0073; review round 1 of applying 0066–0085). **Module:**
+`ema/diagnostics/scatter.py`. **Depends on:** `shared.md`; `../designs.md`; records 0012, 0032, 0034, 0035, 0037,
+0042, 0044, 0048, 0049, 0051, 0052, 0073, 0076.
 
 > The model prediction against each model parameter, over a uniform design (U1). Written from an interview on
 > 2026-09-30 (TODO step 6). Everything not stated here follows `shared.md`.
@@ -86,8 +87,9 @@ OD-12, for scatter: **the bootstrap over the usable runs** (`../uncertainty.md`,
 
 - **Fewest usable runs:** 10 (`SCATTER_MIN_RUNS`): 3 bins of 3–4 runs, a rank correlation, a standard deviation,
   and a bootstrap, with room to spare. Below it: counts and a note, no estimates (P6); the shared observations
-  stay. Figures: the panels, with their strips and no bin means; the histogram (0051). At small n the intervals
-  are wide (R1's binned index varies by 0.23 over designs at n = 10), and say so.
+  stay. Figures: the panels, with their strips and no bin means; the histogram (0051), except with one usable
+  run (0076 item 9). At small n the intervals are wide (R1's binned index varies by 0.23 over designs at n = 10),
+  and say so.
 - **All runs failed, or no usable run:** counts by kind and the note; no estimates or observations
   (`shared.md`). Figures: the panels, with only their strips; no histogram (0051).
 - **Constant:** the note, the observations, no estimates (0035). Figures: the panels, with their strips; no

@@ -10,8 +10,9 @@ errors, the runner's contract; 0075: the diagnostics' base; 0076: the column-wis
 0078: `_fits.py`; 0079: `dtrtrs`, `Name`; 0080: the workspace's paths, rebuilds, and texts, `model_names`,
 `fenced`; 0081: the MCP server, `Stopped`, AR3's two contracts, export's PDF, a repeated request's text,
 `describe_model`'s settings; 0082: the CLI; 0084: §11's measured counts against 11,000; 0085: the fits' in-sample
-measures as observations). **Depends on:** P1–P7; `scope.md`; `use_cases.md` (U1–U9); `model_interface.md` (M1–M21);
-`designs.md` (G1–G18); `diagnostics/shared.md` (S1–S10) and the six diagnostic specs; `uncertainty.md` (V1–V7);
+measures as observations; review round 1 of applying 0066–0085). **Depends on:** P1–P7; `scope.md`;
+`use_cases.md` (U1–U9); `model_interface.md` (M1–M21); `designs.md` (G1–G18); `diagnostics/shared.md` (S1–S10)
+and the six diagnostic specs; `uncertainty.md` (V1–V7);
 `contracts.md` (C1–C56); `data_model.md` (Q1–Q12, W1–W6, I1–I12; Q13–Q15 added by 0056); `export.md` (E1–E7);
 records 0005, 0008, 0010, 0015–0022, 0024–0030, 0032–0036, 0040, 0041, 0046, 0047, 0049, 0050, 0053–0055, 0057,
 0067–0082, 0084, 0085;
@@ -98,8 +99,9 @@ the code; the held candidate "One-way layers" in `principles.md` is answered her
 
 ```text
 src/ema/
-  __init__.py                 lazy re-exports: open_workspace, Workspace, ResultRef, ask, the errors, and the types
-                              the workspace returns (AR7; 0080)
+  __init__.py                 lazy re-exports: open_workspace, Workspace, ResultRef, ask, the errors but Stopped
+                              (re-exported by ema.types only, 0081 item 25), and the types the workspace returns
+                              (AR7; 0080)
   types/                      layer 0
     identity.py               TrackedFile; canonical JSON, point hash, version hash, ids, the approval id, the
                               reuse key, alpha as a Fraction; ID_DTYPE, id_array, hex_ids (0070)
@@ -134,6 +136,8 @@ src/ema/
     samplers.py               Sampler, the registry, random
     generators.py             DesignGenerator, the registry, MAX_DESIGN_POINTS
     point.py  uniform.py  convergent.py  lines.py      the generators
+    _common.py                the checks the generators share: check_identity, sampler_of, read_params, space_of,
+                              rows (0067; check_identity's int seed, item 32)
   models/                     layer 2
     spec.py                   LoadedModel, load_spec, stored_model, save_spec, resolve_program
     files.py                  hash_files, same_file, is_within, check_files, remove_tree, leads_to_credentials,
@@ -174,7 +178,9 @@ src/ema/
   reference_models/           not counted in the 11,000 lines (scope, 0084); §11
 tests/
   contracts/                  one module of check_* functions per interface (§9)
-  unit/  integration/  slow/
+  support/                    the tests' shared helpers and fakes (LeanIntervalMethod, 0084 item 3)
+  models/                     the toy models: python, batch, command_line, imports (contracts.md)
+  unit/  slow/
 ```
 
 ## 3. Layer 0: `ema.types`
@@ -813,7 +819,9 @@ class ModelDescription:
     text: str                                 # the model parameters, units, nominal values and limits as the spec
                                               # writes them (repr, 0080), predictions; then the runs' settings:
                                               # "Runs: a timeout of 0.2 s per call; one point per call; run
-                                              # directories kept: all" (0081)
+                                              # directories kept: all"; a batch function "batches of up to N
+                                              # points per call" (0081 item 32), or "one batch per call" with
+                                              # no batch_size
 
 @dataclass(frozen=True)
 class Proposal:
@@ -1108,7 +1116,7 @@ class OutputParser(Protocol):
     def read(self, settings: ParserSpec, run_dir: str) -> tuple[float | None, str | None]: ...
         # the value, or None with the reason; never follows a link out of the run directory
 def register(p: OutputParser) -> None: ...
-def get(kind: str) -> OutputParser: ...
+def get(kind: str) -> OutputParser: ...    # KeyError: a kind from_json already refused; never a user's
 def names() -> tuple[str, ...]: ...
 def unregister(kind: str) -> None: ...      # tests only (0065)
 def read(settings: ParserSpec, run_dir: str) -> tuple[float | None, str | None]: ...   # by the parser it names (M11)
@@ -1731,11 +1739,11 @@ formats a number (C54, C55; P1).
 ### `ema.mcp`
 
 Started by `ema mcp`, or `python -m ema.mcp --root DIR [--workspace DIR]` (`ema/mcp/__main__.py`, the same
-refusals and exit codes; 0081); needs the `ema[mcp]` extra, bounded `mcp>=2.2.0`, the SDK release whose API it is
-written and tested against (`scope.md`; 0081). Each tool is one workspace call (0016). It speaks the `initialize`
-handshake era only, where a server may ask (elicitation) while a tool call is open; a client that probes the
-stateless era first falls back to it (0081). `serve(*, root, workspace="ema_workspace")` refuses a relative root
-and `/` (`PathRefused`), beside `open_workspace`'s refusals (T5; 0081).
+root refusals (exit 2); 0081); needs the `ema[mcp]` extra, bounded `mcp>=2.2.0`, the SDK release whose API it
+is written and tested against (`scope.md`; 0081). Each tool is one workspace call (0016). It speaks the
+`initialize` handshake era only, where a server may ask (elicitation) while a tool call is open; a client that
+probes the stateless era first falls back to it (0081). `serve(*, root, workspace="ema_workspace")` refuses a
+relative root and `/` (`PathRefused`), beside `open_workspace`'s refusals (T5; 0081).
 
 | Kind | Name | Calls |
 |---|---|---|
@@ -1768,7 +1776,8 @@ and `/` (`PathRefused`), beside `open_workspace`'s refusals (T5; 0081).
   `test_model`, `run_diagnostic`, `export`), one for the rest and the resources, so reads and prices answer
   while a run of hours goes on (`data_model.md` §10: any number of readers). The `Approver` blocks its thread
   while the elicitation is asked on the event loop (`asyncio.run_coroutine_threadsafe`); progress is sent the
-  same way. Standard library only: no new dependency beside `mcp` (`scope.md`).
+  same way. Standard library only: no new dependency beside `mcp` (`anyio`, which `server.py` imports, comes with
+  `mcp`; `scope.md`).
 - **Approvals and confirmations** are asked by elicitation, with the same text as the terminal's; a declined
   elicitation is a no (0016), and so is one unanswered after `ELICITATION_TIMEOUT_S` = 900 s (a named
   constant in `mcp/server.py`, chosen here), which frees
@@ -1814,7 +1823,7 @@ implementation with `pytest.mark.parametrize`, with its toy and its broken toys.
 | `Basis` | `tests/contracts/basis.py` | C29 | `total_degree`, a fake |
 | `IntervalMethod` | `tests/contracts/interval.py` | C30 | the bootstrap, a fake |
 | the model adapter | `tests/contracts/model.py` | C31–C45 | a Python function, the same as a batch, and a command-line program (`tests/models/`), every Python model isolated (0026); the three parsers |
-| `Store` | `tests/contracts/store.py` | C46–C52, C56; I1–I12 | the `Store` class, its broken toys subclasses (0072); the runner's parts in `tests/contracts/runner.py` |
+| `Store` | `tests/contracts/store.py` | C46–C52, C56; I1–I12 | the `Store` class, its broken toys subclasses (0072) |
 | the runner | `tests/contracts/runner.py` | its parts of C34, C37, C41, C46–C49, C56 | `ema.runner` over a store and the toy models (`tests/models`), millisecond models for C47–C49 (the cap counted at a call's start, an interrupt); its broken toys subclasses of its private loop (0074) |
 | `Workspace` and CLI | `tests/contracts/workspace.py` | C53, C54 | the use cases U1–U9 and get started's examples (slow tier; 0060), and every CLI command against its workspace function |
 | MCP tools | `tests/contracts/tools.py` | C55 | every tool, through a scripted MCP client (U9) |

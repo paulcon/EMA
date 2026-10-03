@@ -2,10 +2,11 @@
 
 **Status:** accepted. **Updated:** 2026-10-01 (step 11, 0058); 2026-10-02 (the build's choices: the constants'
 factor, the notes, V = 0, the figures' cards, R2's known answer without intervals, 0079; the mock's Provenance
-line, 0073; the in-sample relative residual and R² as observations, 0085). **Module:**
+line, 0073; the in-sample relative residual and R² as observations, 0085; review round 1 of applying
+0066–0085). **Module:**
 `ema/diagnostics/polynomial_model.py`. **Depends on:** `shared.md`; `linear_model.md`; `../designs.md`;
 `../uncertainty.md`; records 0012, 0032, 0033, 0034, 0035, 0039, 0041, 0042, 0044, 0048, 0049, 0051, 0052, 0058,
-0073, 0079, 0085.
+0068, 0073, 0079, 0085.
 
 > A least-squares polynomial fit of the model prediction in unit coordinates, over a convergent design: how well
 > it fits, how its variance splits among the model parameters (Sobol indices), and how fast its coefficients
@@ -164,8 +165,8 @@ points: its usable runs, relative residual, R², LOO error, and each model param
 The estimates are level L's; the earlier levels show whether the fit and the ranking settle as the runs double.
 No check of the observed rate against the sampler's r (P2). A level with fewer than 2P usable runs, with A of
 rank below P, or where a number is 0/0 (a constant model prediction) has "none" in its column (0079 item 8).
-Under the table, after "Each level is fitted on the usable runs among its first points.", the linear model's
-line on the in-sample measures (`linear_model.md`, 0085).
+Under the table, after "Each level is fitted on the usable runs among its first points." (both in the per-level
+table's title), the linear model's line on the in-sample measures (`linear_model.md`, 0085).
 
 ## Uncertainty
 
@@ -187,8 +188,9 @@ OD-12, for the polynomial model: **the bootstrap over the usable runs of level L
   short name ("leave-one-out error", "rw first-order", "rw total", "√E_2"); the report prints those that aren't 0
   (0079 item 7).
 - **Checked** against the spread over 200 designs (R3, p = 2, 360 runs; a scratch script, 2026-09-30): the
-  intervals' widths are 0.85–2.3 times 5.15 standard deviations over designs, across the 20 estimates.
-  Refitting on distinct runs gave 0.66–1.7, and was not chosen, so that the two fits' bootstraps stay alike.
+  intervals' widths are 0.85–2.3 times 5.15 standard deviations over designs, across the 20 estimates (the
+  relative residual and R² among them, before 0085). Refitting on distinct runs gave 0.66–1.7, and was not
+  chosen, so that the two fits' bootstraps stay alike.
 - **The bias of squared coefficients:** each c_α² sits above its limit by about Var(c_α), and a resample adds
   that again, so the interval of a model parameter with no effect sits just above 0 (R3's r, total: 4.3·10⁻⁵
   [1.7·10⁻⁵, 2.2·10⁻⁴], as in the mock report below). The indices are reported as computed, the indices of the
@@ -233,7 +235,10 @@ OD-12, for the polynomial model: **the bootstrap over the usable runs of level L
 - **All runs failed:** counts by kind and the note; no estimates or observations (`shared.md`).
 - **Constant:** the note, the observations, no estimates (0035). R4b is not constant: estimates of its wiggle.
 - **Exactly a polynomial of degree ≤ p** (R1 at any p, R10 at p ≥ 2): relative residual and LOO at rounding
-  (about 10⁻¹⁵), R² = 1, the exact coefficients, and intervals of about that width.
+  (about 10⁻¹⁵), R² = 1, the exact coefficients; the relative residual and R² have no interval (0085). At the
+  defaults the intervals are of about that width (the LOO error's 4.2·10⁻¹⁵, seed 0). Near the fewest runs the
+  LOO error's interval widens, as leverages near 1 amplify rounding: R1 at p = 2 and 2P = 30 runs, 1.53·10⁻¹⁰
+  (the others' intervals at most 1.9·10⁻¹⁴).
 - **A at level L with rank below P** (usable runs that don't determine every term, as when failures leave
   fewer than P distinct values along a model parameter of degree p): no estimates, and a note: "The 40 usable
   runs don't determine the degree-2 polynomial: A has rank 9 of 10." (0079 item 9). The observations stay, and
@@ -372,7 +377,8 @@ bootstrap over the 360 usable runs, 1000 resamples, 0.5th to 99.5th percentiles,
 | Kw | 0.01158 | 0.01201 | 0.01251 |
 
 Each level is fitted on the usable runs among its first points.
-In-sample measures: refitting a resample's repeated runs makes the fit look better than it is, so they have no variability interval; the leave-one-out error's interval shows how the fit varies.
+In-sample measures: refitting a resample's repeated runs makes the fit look better than it is, so they have no
+variability interval; the leave-one-out error's interval shows how the fit varies.
 
 ## Figures
 

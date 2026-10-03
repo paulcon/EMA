@@ -54,7 +54,7 @@ def test_the_declarations_are_the_specs():
     """lines.md: Parameters and Named constants; no interval method, no tag, no estimates; nested in m and n."""
     assert (LINES.takes_space, LINES.interval_method, LINES.spawn_tags, LINES.has_estimates) == (True, None, (), False)
     assert [(p.name, p.default_text, p.changes_design) for p in LINES.parameters] == [
-        ("m", "5", "yes"),
+        ("m", "5; none with lines", "yes"),
         ("lines", "none", "yes"),
         ("n", "17", "yes"),
         ("seed", "0", "yes (random lines)"),

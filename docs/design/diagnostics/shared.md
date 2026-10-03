@@ -2,8 +2,8 @@
 
 **Status:** accepted. **Updated:** 2026-10-01 (0054, 0055, 0057, 0061); 2026-10-02 (text in a result is plain, and
 the Provenance line's form, 0073, 0077; the shared notes' texts, 0075; units named by a table's title, 0078; the
-PDF's figures, 0081). **Depends on:** P1, P2, P4, P5, P6; records 0004, 0010, 0018, 0022, 0034, 0035, 0040, 0042,
-0044, 0049, 0051, 0052, 0054, 0055, 0057, 0073, 0075, 0077, 0078, 0081.
+PDF's figures, 0081; review round 1 of applying 0066–0085). **Depends on:** P1, P2, P4, P5, P6; records 0004,
+0010, 0018, 0022, 0034, 0035, 0040, 0042, 0044, 0049, 0051, 0052, 0054, 0055, 0057, 0073, 0075, 0077, 0078, 0081.
 
 > The parts of a diagnostic's spec that are the same for all six: the report's layout, how numbers are
 > written, the precheck, how runs that aren't usable are counted and drawn, and where a diagnostic's own
@@ -12,8 +12,8 @@ PDF's figures, 0081). **Depends on:** P1, P2, P4, P5, P6; records 0004, 0010, 00
 
 ## The report
 
-One report per diagnostic evaluation, in Markdown with TeX math (the report's own; text in a result is plain,
-escaped) and PNG figures (0018), in this order:
+One report per diagnostic evaluation, in Markdown with no math (EMA's symbols are Unicode; 0073 items 1, 11;
+text in a result is plain, escaped) and PNG figures (0018), in this order:
 
 1. **Title:** `# <Diagnostic>: <model>, <model prediction>`.
 2. **Header,** a table:
@@ -58,7 +58,7 @@ escaped) and PNG figures (0018), in this order:
   have none.
 - **Text in a result is plain** (0073 item 1; T10): labels, columns, titles, notes, captions, header rows, and
   observation text are plain text, and the report escapes all of them, as it escapes a spec's names; so EMA's own
-  symbols in a result are Unicode, not TeX ("Rank correlation ρ", "Sᵢ", "√E_k", "R²", "‖y - ŷ‖"). The report's
+  symbols in a result are Unicode, not TeX ("Rank correlation ρ", "Sᵢ", "√E_k", "R²"). The report's
   own sentences (`EXPLAIN_INTERVALS`, the headings, the line under a table) are the only Markdown it writes
   unescaped. A table's title, unless it repeats its row heading, is printed under it: an estimates table's opens
   the line under it ("14 bins. Variability intervals: …"; 0073 item 3).
