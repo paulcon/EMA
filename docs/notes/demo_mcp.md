@@ -148,9 +148,9 @@ The prompts, in order (the tools each one calls are in brackets):
 8. **"Show me the scatter of y against x1."** [the resource `ema://results/{id}/figures/scatter_x1.png`] The figure;
    its numbers are in `scatter_x1.json`, the data card.
 9. **"Run exactly the same scatter again."** [`run_diagnostic`] No form: the same request reuses the stored result,
-   the same id, nothing run (C50). Its line repeats the stored result's own counts ("200 runs: 200 new, …"):
-   those are the counts of the evaluation that made it; the evidence that nothing ran now is no form and the
-   same id. Say so as the answer appears.
+   the same id, nothing run (C50). EMA's line says so first: "Diagnostic result 6f6b: the stored result of the
+   same request; no new runs, nothing asked. As made: …; 200 runs: 200 new, …", the counts of the evaluation that
+   made it.
 
 If there is time:
 

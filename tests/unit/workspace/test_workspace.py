@@ -177,6 +177,11 @@ def test_the_first_look_asks_twice_and_repeats_ask_nothing(ws, toy):
     again = ws.run("ishigami", "toy", PI_SPACE, n=40, seed=1, approve=None)
     assert again == result and again.result_id == result.result_id and len(asked.questions) == 2
     assert runs_stored(ws) == before and ws.report(again).markdown == report.markdown
+    short = result.shown.short_id  # the repeat says it is the stored result, then its counts as made (0081 item 28)
+    assert str(again) == (f"Diagnostic result {short}: the stored result of the same request; no new runs, nothing "
+                          f"asked. As made: toy on {result.shown.model_version}, y; 40 runs: 40 new, 0 reused, 0 "
+                          f"failed; report: ema report {short}")  # fmt: skip
+    assert str(ws.get_result(short)) == str(result)  # reading a result back is not a repeat
     assert ws.get_result(result.shown.short_id) == result
     with pytest.raises(NotFound):
         ws.get_result("ffffffff")

@@ -580,11 +580,11 @@ class Workspace:
             When another process, or another workspace of this process, is making runs in the workspace.
         """
         prepared = _evaluate.prepare(self._store, model, diagnostic, space, prediction, params)
-        result = _evaluate.run(
+        result, reused = _evaluate.run(
             self._store, self._processes, prepared, retry_failed=retry_failed, approve=approve,
             on_progress=on_progress,
         )  # fmt: skip
-        return _evaluate.shown(self._store, result)
+        return _evaluate.shown(self._store, result, reused=reused)
 
     # -- results -----------------------------------------------------------------------------------------------
 

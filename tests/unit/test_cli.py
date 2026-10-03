@@ -187,7 +187,9 @@ def test_run_shows_the_question_progress_and_result(ema_cli, tmp_path):
     assert "20/20 runs" in ran.err.splitlines()
     assert ran.out.startswith("Diagnostic result ") and "20 runs: 20 new, 0 reused, 0 failed" in ran.out
     again = ema_cli("--workspace", w, "run", "ishigami", *SCATTER)
-    assert again.code == 0 and again.out == ran.out and "Approve?" not in again.err
+    head = ran.out.split(": ", 1)[0] + ": "  # the repeat names the stored result first (record 0081 item 28)
+    stored = head + "the stored result of the same request; no new runs, nothing asked. As made: "
+    assert again.code == 0 and again.out == stored + ran.out.removeprefix(head) and "Approve?" not in again.err
 
 
 def test_run_without_yes_or_terminal_makes_no_run(ema_cli, tmp_path):

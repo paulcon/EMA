@@ -138,6 +138,16 @@ The independent review of steps 15 and 16, and the coordinator's rulings; each f
     P1's "quote EMA's text"), and a line in `principles.md` P2 that an MCP client's interpretation is the
     client's, asked to be labeled as such.
 
+28. **A repeated request says it returned the stored result.** In the rehearsal, the client priced a scatter
+    ("0 new runs, 200 reused") and ran it; EMA returned the stored result (no form, the same id, no run made: the
+    store held the same 205 runs and 2 approvals), but its line was the stored result's own, "200 runs: 200 new,
+    0 reused", the counts of the evaluation that made it. The client read that as the run disagreeing with the
+    price, and told the user the price check was wrong. The workspace's `run` now marks a result returned for a
+    repeated request (C50), and its shown text says so first: "Diagnostic result 6f6b: the stored result of the
+    same request; no new runs, nothing asked. As made: scatter on …; 200 runs: 200 new, …". The CLI and the MCP
+    server show it unchanged (C54, C55); `get_result` and `results` keep the plain line. Spec edits on
+    acceptance: `architecture.md` §7, What is shown (a repeated request's text), and U1's repeat line.
+
 ## Alternatives considered
 
 - **Pin `mcp>=1.9`, using `FastMCP`:** the installed SDK is 2.2.0 and the code would not run on it; 1.x would also

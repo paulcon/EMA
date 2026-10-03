@@ -202,8 +202,12 @@ def run(
     retry_failed: bool,
     approve: Approver | None,
     on_progress: Callable[[Progress], None] | None,
-) -> DiagnosticResult:
-    """Run steps 4-9 of one diagnostic evaluation (architecture.md §7): its result, stored, or the stored one (C50)."""
+) -> tuple[DiagnosticResult, bool]:
+    """Run steps 4-9 of one diagnostic evaluation (architecture.md §7): its result, stored, or the stored one (C50).
+
+    Returns the result, and whether it is a stored result returned as it is: a repeated request that made no runs,
+    asked nothing, and computed nothing (C50), so that what is shown can say so (record 0081 item 28).
+    """
     p = prepared
     resolution, approval = make_runs(
         store, processes, p.model, p.design, asked_for="diagnostic_evaluation", request=p.request,
@@ -216,14 +220,14 @@ def run(
     if approval is None:
         found = store.find_result(result_id)
         if found is not None:  # a repeated request: nothing computed, written, or asked (C50, I7)
-            return found
+            return found, True
     batch = read_batch(p.design, run_ids, store, new_approval=approval)
     ctx = context(p.request, p.spec, store.measured_noisy(mv, p.request.prediction), on_progress)
     provenance = base.make_provenance(batch, ctx, p.diagnostic, mv, approval_id=approval, versions=versions)
     with store.result_directory(result_id) as directory:
         result = base.evaluate(p.diagnostic, batch, ctx, provenance, result_id, directory)
         write_report(directory, result, p.spec)
-    return store.record_result(result)
+    return store.record_result(result), False
 
 
 def test_run(store: Store, processes: ModelProcesses, model: LoadedModel, *, approve: Approver | None) -> Run:
@@ -240,12 +244,23 @@ def test_run(store: Store, processes: ModelProcesses, model: LoadedModel, *, app
     return store.get_run(bytes(row_run_ids(resolution)[0]).hex())
 
 
-def shown(store: Store, result: DiagnosticResult) -> DiagnosticResult:
-    """Set a result's ``shown``: its short id and EMA's text (architecture.md §7, What is shown; Q8, Q11)."""
+def shown(store: Store, result: DiagnosticResult, *, reused: bool = False) -> DiagnosticResult:
+    """Set a result's ``shown``: its short id and EMA's text (architecture.md §7, What is shown; Q8, Q11).
+
+    With ``reused``, a stored result returned for a repeated request (C50), the text says so first, since its counts
+    are those of the evaluation that made it, not of this request's (record 0081 item 28).
+    """
     for summary in store.list_results(
         model_version_id=result.model_version_id, diagnostic=result.diagnostic, prediction=result.prediction
     ):
         if summary.result_id == result.result_id:
+            if reused:
+                head = f"Diagnostic result {summary.short_id}: "
+                text = (
+                    f"{head}the stored result of the same request; no new runs, nothing asked. "
+                    f"As made: {summary.text.removeprefix(head)}"
+                )
+                summary = dataclasses.replace(summary, text=text)
             object.__setattr__(result, "shown", summary)  # not stored, not compared (§3)
             break
     return result
