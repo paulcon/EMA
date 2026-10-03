@@ -5,7 +5,9 @@ bootstrap; 0040, 0041, 0051); designs.md (Samplers); record 0078. Private: a dia
 doesn't register it.
 
 A fit's values are one array, ``[coefficients..., relative residual, R², LOO error]``, NaN where undefined (record
-0068 item 8), so one function serves the estimate on level L's usable runs, each level's column, and each resample.
+0068 item 8), so one function serves the fit on level L's usable runs and each level's column. The relative residual
+and R² are observations, without intervals (record 0085): the bootstrap refits only the coefficients as drawn, and
+the LOO error on each resample's distinct runs.
 """
 
 import math
@@ -19,20 +21,24 @@ from ema.types.results import Observation, ObservationTable
 
 #: The values after the coefficients, in order.
 FIT_KEYS = ("relative_residual", "r2", "loo")
+#: The line under the per-level table: the levels' runs (linear_model.md, The levels, as observations).
+LEVELS_SENTENCE = "Each level is fitted on the usable runs among its first points."
+#: Then why the in-sample measures have no interval (record 0085, Decision item 2).
+IN_SAMPLE_SENTENCE = (
+    "In-sample measures: refitting a resample's repeated runs makes the fit look better than it is, so they have no "
+    "variability interval; the leave-one-out error's interval shows how the fit varies."
+)
 
 
-def fit_values(A: np.ndarray, y: np.ndarray, *, held_out: bool = True) -> np.ndarray:
+def fit_values(A: np.ndarray, y: np.ndarray) -> np.ndarray:
     """Return ``[coefficients..., relative residual, R², LOO error]`` of y's least-squares fit on A's columns.
 
     linear_model.md, Computation: the fit by QR, ‖r‖ / ‖y - ȳ‖, 1 - ‖r‖² / ‖y - ȳ‖², and the LOO error by PRESS.
     NaN where undefined: every value when A's rank is below its columns (0051), the last three for a constant y,
-    the LOO error with fewer runs than columns plus one or a run of leverage 1 (``ema.numerics.fitting``). Without
-    ``held_out``, the LOO error is left off (a resample as drawn doesn't use it).
+    the LOO error with fewer runs than columns plus one or a run of leverage 1 (``ema.numerics.fitting``).
     """
     found = fitting.least_squares(A, y)
-    tail = [fitting.relative_residual(y, found), fitting.r2(y, found)]
-    if held_out:
-        tail.append(fitting.press(A, y, found))
+    tail = [fitting.relative_residual(y, found), fitting.r2(y, found), fitting.press(A, y, found)]
     return np.concatenate([found.coefficients, tail])
 
 
@@ -42,15 +48,15 @@ def loo_error(A: np.ndarray, y: np.ndarray) -> np.ndarray:
 
 
 def estimators(A: np.ndarray, y: np.ndarray, labels: Sequence[str]) -> tuple[Estimator, Estimator]:
-    """Return the bootstrap's two estimators over design rows: the fit as drawn, and LOO on distinct runs.
+    """Return the bootstrap's two estimators over design rows: the coefficients as drawn, and LOO on distinct runs.
 
-    uncertainty.md, The bootstrap, step 2: the coefficients, relative residual, and R² are refitted on each
-    resample as drawn ("fit", ``labels`` then the two); the LOO error on its distinct runs ("loo"), since a
-    left-out run's copy would stay in the fit. ``A`` and ``y`` are the whole design's rows; each resample indexes
-    them.
+    uncertainty.md, The bootstrap, step 2: the coefficients are refitted on each resample as drawn ("coefficients",
+    one per label); the LOO error on its distinct runs ("loo"), since a left-out run's copy would stay in the fit.
+    The relative residual and R² have no interval (record 0085: a refit on a resample's repeated runs looks better
+    than the fit). ``A`` and ``y`` are the whole design's rows; each resample indexes them.
     """
     as_drawn = Estimator(
-        "fit", (*labels, *FIT_KEYS[:2]), lambda rows: fit_values(A[rows], y[rows], held_out=False), False
+        "coefficients", tuple(labels), lambda rows: fitting.least_squares(A[rows], y[rows]).coefficients, False
     )
     distinct = Estimator("loo", (FIT_KEYS[2],), lambda rows: loo_error(A[rows], y[rows]), True)
     return as_drawn, distinct

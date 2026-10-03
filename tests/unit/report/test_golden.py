@@ -4,11 +4,9 @@ The results hold the mocks' numbers; the rendered report must match the mock by 
 comparison (structure, and numbers within one unit in the 4th digit). This checks the renderer's shape against
 every mock; each diagnostic's own golden report test, on its reference model, is its step's (09-13).
 
-Where the renderer differs from a mock by record 0073, the mock is edited here before comparing, citing the item:
-item 1, EMA's own symbols are Unicode in result text ("ρ", "Sᵢ" for "$\\rho$", "$S_i$"); item 3, a table's title
-opens the line under it (scatter's "14 bins."); item 6, the Provenance line's runs are "runs: N" (the polynomial
-model's "(72 reused from the linear model's evaluation)": where reused runs came from isn't in a result, and the
-header's Runs row says how many were reused).
+The mocks carry record 0073's conventions (Unicode symbols, a table's title opening the line under it, the
+Provenance line's "runs: N") and record 0085's (the fits' relative residual and R² as observations, with the line
+under the per-level table), so each is compared as written.
 """
 
 import math
@@ -18,7 +16,7 @@ import pytest
 
 from ema.report import render
 from ema.types.results import Figure, Note
-from tests.support.reports import differences, mock_report, parse
+from tests.support.reports import IN_SAMPLE, differences, mock_report, parse
 from tests.support.results import etable, make_result, make_spec, otable, shared
 
 PI = math.pi
@@ -75,13 +73,6 @@ def scatter_r2():
         )
         + figures(["scatter_histogram"], "y over the 200 usable runs, 14 bins."),
     )
-
-
-def scatter_mock():
-    mock = mock_report("scatter").replace("$\\rho$", "ρ").replace("$S_i$", "Sᵢ")
-    line = "Variability intervals: bootstrap over the 200 usable runs, 1000 resamples, the index"
-    mock = mock.replace(line, "14 bins. " + line).replace("seed 1. 14 bins.", "seed 1.")
-    return mock
 
 
 BOREHOLE = [
@@ -155,12 +146,6 @@ def linear_r3():
                 **est,
             ),
             etable(
-                "fit",
-                ("Fit", "Estimate", "Variability interval"),
-                [("Relative residual ‖y - ŷ‖ / ‖y - mean‖", 0.2335, 0.1631, 0.2641), ("R²", 0.9455, 0.9302, 0.9734)],
-                **est,
-            ),
-            etable(
                 "loo",
                 ("Held out", "Estimate", "Variability interval"),
                 [("Leave-one-out error, relative", 0.2716, 0.2168, 0.336)],
@@ -174,7 +159,8 @@ def linear_r3():
                 "levels",
                 ("The fit at each level", "Level 0", "Level 1", "Level 2"),
                 levels,
-                title="Coefficients in m³/yr. Each level is fitted on the usable runs among its first points.",
+                title="Coefficients in m³/yr. Each level is fitted on the usable runs among its first points. "
+                + IN_SAMPLE,
             ),
         ],
         figures=figures(
@@ -239,12 +225,6 @@ def polynomial_r3():
         header_rows=[("Fit", "degree 2, total_degree basis: 45 terms")],
         estimates=[
             etable(
-                "fit",
-                ("Fit", "Estimate", "Variability interval"),
-                [("Relative residual ‖y - ŷ‖ / ‖y - mean‖", 0.03526, 0.02607, 0.03786), ("R²", 0.9988, 0.9986, 0.9993)],
-                **est,
-            ),
-            etable(
                 "loo",
                 ("Held out", "Estimate", "Variability interval"),
                 [("Leave-one-out error, relative", 0.04192, 0.03645, 0.05058)],
@@ -280,7 +260,7 @@ def polynomial_r3():
                 "levels",
                 ("The fit at each level", "Level 0", "Level 1", "Level 2"),
                 levels,
-                title="Each level is fitted on the usable runs among its first points.",
+                title="Each level is fitted on the usable runs among its first points. " + IN_SAMPLE,
             ),
         ],
         figures=figures(
@@ -411,14 +391,10 @@ def lines_r7():
     )
 
 
-def polynomial_mock():
-    return mock_report("polynomial_model").replace(" (72 reused from the linear model's evaluation)", "")
-
-
 CASES = {
-    "scatter": (scatter_r2, scatter_mock),
+    "scatter": (scatter_r2, lambda: mock_report("scatter")),
     "linear_model": (linear_r3, lambda: mock_report("linear_model")),
-    "polynomial_model": (polynomial_r3, polynomial_mock),
+    "polynomial_model": (polynomial_r3, lambda: mock_report("polynomial_model")),
     "point_run": (point_run_r6a, lambda: mock_report("point_run")),
     "coordinate_lines": (coordinate_lines_r8, lambda: mock_report("coordinate_lines")),
     "lines": (lines_r7, lambda: mock_report("lines")),

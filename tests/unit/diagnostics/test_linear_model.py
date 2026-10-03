@@ -29,14 +29,15 @@ from ema.diagnostics.linear_model import (
     linear_nmin,
 )
 from ema.numerics import fitting
-from ema.numerics.intervals import Interval
+from ema.numerics.intervals import Bootstrap, Estimator, Interval
 from ema.report import render
 from ema.types.errors import RequestError
 from ema.types.results import DiagnosticResult
 from ema.types.runs import RunBatch, RunKey
+from ema.types.streams import spawned
 from tests.support import diagnostics as sd
 from tests.support import reference
-from tests.support.reports import differences, mock_report
+from tests.support.reports import IN_SAMPLE, differences, mock_report
 
 LINEAR = base.get("linear_model")
 #: linear_model.md, Expected answers: n_min = 5000, alpha = 0.5, level 1 (20,000 runs), seed 0.
@@ -82,6 +83,12 @@ def levels(result: DiagnosticResult) -> dict[str, list[Any]]:
     """The per-level table, by row label."""
     found = next(t for t in result.observations if t.key == "levels")
     return {row[0].label: [o.value for o in row] for row in found.rows}
+
+
+def in_sample(result: DiagnosticResult) -> dict[str, float]:
+    """Level L's relative residual and R²: observations, in the per-level table's last column (record 0085)."""
+    rows = levels(result)
+    return {"rel": rows["Relative residual"][-1], "R²": rows["R²"][-1]}
 
 
 def unit(case: sd.Case, run_batch: RunBatch) -> np.ndarray:
@@ -189,8 +196,8 @@ def test_lm2_r1_is_exact_in_unit_coordinates(tmp_path: Path):
     got = values(result, "coefficients")
     for label, want in {"Intercept": 10.0, "a": 3.0, "b": -1.0, "c": 0.0, "k": 2.0}.items():
         assert abs(got[label] - want) <= 1e-12, (label, got[label])
-    fit = values(result, "fit")
-    assert fit["Relative residual ‖y - ŷ‖ / ‖y - mean‖"] <= 1e-12 and abs(fit["R²"] - 1.0) <= 1e-12
+    fit = in_sample(result)
+    assert fit["rel"] <= 1e-12 and abs(fit["R²"] - 1.0) <= 1e-12
     assert values(result, "loo")["Leave-one-out error, relative"] <= 1e-12
     for t in result.estimates:
         for e in t.estimates:
@@ -201,7 +208,7 @@ def test_lm2_r1_with_k_on_a_linear_range_is_not_exact(tmp_path: Path):
     """LM2: a log scale is part of the unit coordinates (0024): with k's range linear, R1 isn't linear in u."""
     space = {"a": [0, 2], "b": [-1, 1], "c": [10, 20], "k": [1, 100]}
     _, _, result = evaluate("R1", tmp_path, space=space)
-    assert values(result, "fit")["Relative residual ‖y - ŷ‖ / ‖y - mean‖"] > 0.01
+    assert in_sample(result)["rel"] > 0.01
 
 
 def test_lm3_a_hand_computed_fit_of_6_runs_in_d_1():
@@ -261,6 +268,49 @@ def test_lm4_at_2_d_plus_1_runs_the_undefined_resamples_are_counted_under_the_ta
     assert f"Undefined resamples, dropped: Intercept {rank['a']}, a {rank['a']}." in report
 
 
+def test_0085_the_in_sample_measures_are_observations_without_intervals(golden: Any):
+    """Record 0085: the relative residual and R² are not estimates; level L's are the per-level table's last column,
+    equal to the fit on the usable runs, and the line under that table says why they have no interval. The
+    coefficients and the LOO error keep theirs."""
+    case, made, result, _ = golden
+    assert [t.key for t in result.estimates] == ["coefficients", "loo"]
+    labels = {e.label for t in result.estimates for e in t.estimates}
+    assert not labels & {"Relative residual ‖y - ŷ‖ / ‖y - mean‖", "R²"}
+    assert all(e.interval is not None for t in result.estimates for e in t.estimates)
+    rows = np.flatnonzero(made.usable("y"))
+    A = np.column_stack([np.ones(len(made.design)), unit(case, made)])
+    rel, r2, _ = _fits.fit_values(A[rows], made.runs.values["y"][rows])[-3:]
+    assert in_sample(result) == {"rel": rel, "R²": r2}
+    per_level = next(t for t in result.observations if t.key == "levels")
+    assert per_level.title.endswith(f"among its first points. {IN_SAMPLE}")
+    report = render(result, case.spec)
+    assert IN_SAMPLE in " ".join(report.split("## Observations")[1].split("## Figures")[0].split())
+
+
+def test_0085_dropping_the_in_sample_measures_leaves_the_other_intervals_bit_for_bit():
+    """Record 0085, Consequences: the bootstrap draws its resamples whatever the estimators (V2), so the
+    coefficients' and LOO's intervals are those of the estimators that also refitted the relative residual and R²."""
+    rng = np.random.default_rng(5)
+    A = np.column_stack([np.ones(12), rng.uniform(-1, 1, (12, 2))])
+    y = A @ np.array([1.0, 2.0, -0.5]) + 0.3 * rng.standard_normal(12)
+    rows, keys = np.arange(12), ("intercept", "slope", "slope")
+    now = _fits.estimators(A, y, keys)
+    before = (
+        Estimator(
+            "coefficients",
+            (*keys, "relative_residual", "r2"),
+            lambda i: _fits.fit_values(A[i], y[i])[:-1],
+            False,
+        ),
+        now[1],
+    )
+    method = Bootstrap()
+    got = method.intervals(rows, None, now, spawned(0, LINEAR_BOOT_TAG))
+    old = method.intervals(rows, None, before, spawned(0, LINEAR_BOOT_TAG))
+    assert got["coefficients"] == old["coefficients"][:3] and got["loo"] == old["loo"]
+    assert all(iv.bounds is not None for iv in got["coefficients"])
+
+
 # --------------------------------------------------------------------------------------------------------------
 # LM5, LM6: the levels, and too few usable runs
 
@@ -300,7 +350,7 @@ def test_lm6_below_2_d_plus_1_usable_runs_counts_a_note_and_no_estimates(usable:
         assert [t.key for t in result.observations] == ["shared", "levels"]
         assert levels(result)["Intercept"] == ["none"] * 3
     else:
-        assert [t.key for t in result.estimates] == ["coefficients", "fit", "loo"]
+        assert [t.key for t in result.estimates] == ["coefficients", "loo"]
 
 
 def test_r4a_constant_gives_the_note_and_no_estimates(tmp_path: Path):
@@ -315,7 +365,7 @@ def test_r4b_wiggle_gives_estimates(tmp_path: Path):
     """R4b, 0035: not constant, so estimates of its wiggle."""
     _, _, result = evaluate("R4b", tmp_path)
     assert "constant" not in [n.code for n in result.notes]
-    assert [t.key for t in result.estimates] == ["coefficients", "fit", "loo"]
+    assert [t.key for t in result.estimates] == ["coefficients", "loo"]
 
 
 @pytest.mark.parametrize("prediction", ["y", "z"])
@@ -331,7 +381,7 @@ def test_r5_every_estimate_is_the_fit_on_the_usable_runs_alone(prediction: str, 
     assert np.allclose(list(values(result, "coefficients").values()), beta, rtol=1e-12, atol=1e-12)
     residual = y - np.column_stack([np.ones(len(y)), unit(case, made)[usable]]) @ beta
     rel = math.sqrt(float(np.sum(residual**2)) / float(np.sum((y - y.mean()) ** 2)))
-    assert abs(values(result, "fit")["Relative residual ‖y - ŷ‖ / ‖y - mean‖"] - rel) <= 1e-12
+    assert abs(in_sample(result)["rel"] - rel) <= 1e-12
 
 
 def crafted(tmp_path: Path, change: Any) -> tuple[sd.Case, RunBatch, DiagnosticResult]:
@@ -374,7 +424,7 @@ def leverage_one_row(rows: int, fit_of: Any) -> int:
 
 def test_a_run_of_leverage_1_leaves_the_loo_error_undefined_with_its_note(tmp_path: Path):
     """Record 0078 item 5 (Review round 1): c = 1 (u_c = 0) in every run but one, c = 10 (u_c = 0.5), whose leverage
-    is then exactly 1: the coefficients and the fit's tables, no LOO estimate, and the note naming the leverage."""
+    is then exactly 1: the coefficients' table, no LOO estimate, and the note naming the leverage."""
 
     def lone_c(k: int) -> Any:
         def change(points: np.ndarray) -> None:
@@ -393,7 +443,7 @@ def test_a_run_of_leverage_1_leaves_the_loo_error_undefined_with_its_note(tmp_pa
 
     k = leverage_one_row(len(case.design), fit_of)
     _, _, result = crafted(tmp_path, lone_c(k))
-    assert [t.key for t in result.estimates] == ["coefficients", "fit"]
+    assert [t.key for t in result.estimates] == ["coefficients"]
     assert [(n.code, n.text) for n in result.notes] == [
         ("loo_undefined", "The leave-one-out error is undefined: a usable run has leverage 1.")
     ]
@@ -516,7 +566,8 @@ def test_lm9_level_3_after_level_2_reuses_every_run_and_starts_with_a_scatters_p
 
 def test_lm10_the_golden_report_is_the_mock(golden: Any):
     """LM10, 0044: R3, the defaults, seed 3: the mock report, numbers within one unit in the 4th digit (its
-    intervals included: the bootstrap from LINEAR_BOOT_TAG's stream, checked by docs/checks/linear_model.py)."""
+    intervals included: the bootstrap from LINEAR_BOOT_TAG's stream, checked by docs/checks/linear_model.py); the
+    relative residual and R² as observations (record 0085)."""
     case, _, result, out = golden
     assert differences(render(result, case.spec), mock_report("linear_model")) == []
     rows = levels(result)  # to more digits than the report shows (docs/checks/linear_model.out)
@@ -570,8 +621,7 @@ def test_lm10_known_answers_at_20000_runs(id: str, tmp_path: Path):
     assert len(made.design) == 20_000 and result.counts.usable == 20_000
     got = {
         **values(result, "coefficients"),
-        "rel": values(result, "fit")["Relative residual ‖y - ŷ‖ / ‖y - mean‖"],
-        "R²": values(result, "fit")["R²"],
+        **in_sample(result),
         "loo": values(result, "loo")["Leave-one-out error, relative"],
     }
     for label, (want, tol) in EXPECTED[id].items():

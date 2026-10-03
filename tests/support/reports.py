@@ -28,6 +28,13 @@ _ID = re.compile(r"\b[0-9a-f]{12}\b|(?<=approvals: )[0-9a-f]{4,64}\b")
 _IMAGE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 
 
+#: Record 0085's line under a fit's per-level table (Decision item 2).
+IN_SAMPLE = (
+    "In-sample measures: refitting a resample's repeated runs makes the fit look better than it is, so they have no "
+    "variability interval; the leave-one-out error's interval shows how the fit varies."
+)
+
+
 def mock_report(spec: str) -> str:
     """Return the Markdown block under "## Mock report" in ``docs/design/diagnostics/<spec>.md``."""
     text = (DESIGN / f"{spec}.md").read_text(encoding="utf-8")

@@ -23,7 +23,7 @@ from ema.diagnostics import base
 from ema.diagnostics import polynomial_model as pm
 from ema.numerics import basis as bases
 from ema.numerics.fitting import Fit
-from ema.numerics.intervals import Interval
+from ema.numerics.intervals import Bootstrap, Estimator, Interval
 from ema.report import render
 from ema.types.design import Design
 from ema.types.errors import RequestError
@@ -31,13 +31,14 @@ from ema.types.identity import reuse_key
 from ema.types.requests import Progress
 from ema.types.results import DiagnosticResult, Estimate
 from ema.types.runs import RunBatch
+from ema.types.streams import spawned
 from tests.contracts.basis import FakeTensor
 from tests.contracts.diagnostic import D20_SECONDS
 from tests.support import diagnostics as sd
 from tests.support import reference
 from tests.support.designs import identity as design_identity
 from tests.support.fakes import FakeIntervalMethod, registered_interval_method
-from tests.support.reports import differences, mock_report
+from tests.support.reports import IN_SAMPLE, differences, mock_report
 
 PM = base.get("polynomial_model")
 #: The expected answers' design (polynomial_model.md, Expected answers): 20,000 runs, seed 0.
@@ -70,6 +71,12 @@ def coefficient(result: DiagnosticResult, alpha: tuple[int, ...]) -> float:
 def levels(result: DiagnosticResult) -> dict[str, list[Any]]:
     (found,) = [t for t in result.observations if t.key == "levels"]
     return {row[0].key: [o.value for o in row] for row in found.rows}
+
+
+def in_sample(result: DiagnosticResult) -> dict[str, Any]:
+    """Level L's relative residual and R²: observations, the per-level table's last column (record 0085)."""
+    rows = levels(result)
+    return {"rel_residual": rows["rel_residual"][-1], "r2": rows["r2"][-1]}
 
 
 def codes(result: DiagnosticResult) -> list[str]:
@@ -212,7 +219,7 @@ def exact_r10(result: DiagnosticResult) -> None:
     assert len(coef) == 15 and list(coef)[:5] == ["c:0,0,0,0", "c:1,0,0,0", "c:0,1,0,0", "c:0,0,1,0", "c:0,0,0,1"]
     for key, value in coef.items():
         assert abs(value - want.get(key, 0.0)) <= 1e-12, (key, value)
-    fit = values(result, "fit")
+    fit = in_sample(result)
     assert abs(fit["rel_residual"]) <= 1e-12 and abs(fit["r2"] - 1) <= 1e-12
     assert abs(values(result, "loo")["loo"]) <= 1e-12
     sobol = values(result, "sobol")
@@ -230,7 +237,7 @@ def exact_r1(result: DiagnosticResult) -> None:
     want = {"c:0,0,0,0": 10.0, "c:1,0,0,0": r3, "c:0,1,0,0": -1 / r3, "c:0,0,0,1": 2 / r3}
     for key, value in values(result, "coefficients").items():
         assert abs(value - want.get(key, 0.0)) <= 1e-12, (key, value)
-    assert abs(values(result, "fit")["rel_residual"]) <= 1e-12 and abs(values(result, "fit")["r2"] - 1) <= 1e-12
+    assert abs(in_sample(result)["rel_residual"]) <= 1e-12 and abs(in_sample(result)["r2"] - 1) <= 1e-12
     assert abs(values(result, "loo")["loo"]) <= 1e-12
     sobol = values(result, "sobol")
     for name, share in zip("abck", (9 / 14, 1 / 14, 0.0, 4 / 14), strict=True):
@@ -241,11 +248,16 @@ def exact_r1(result: DiagnosticResult) -> None:
 
 def test_pm4_r1_exact(tmp_path):
     """PM4 (Expected answers, R1 at p = 2, here at 2P = 30 runs): linear in unit coordinates (k through its
-    logarithm), so exact; the intervals of about rounding's width (Minimum runs and degenerate cases)."""
+    logarithm), so exact; the refits' intervals of about rounding's width (Minimum runs and degenerate cases), and
+    the LOO error's within 1e-9 (record 0085 took the relative residual's, which this test checked before)."""
     _, _, result = evaluate("R1", tmp_path, params={"level": 0})
     exact_r1(result)
-    lo, hi = table(result, "fit")["rel_residual"].interval or (math.nan, math.nan)
-    assert 0 <= lo <= hi <= 1e-12
+    for key in ("sobol", "decay", "coefficients"):  # the refits as drawn (the relative residual's: none, 0085)
+        for e in table(result, key).values():
+            assert e.interval is not None and e.interval[1] - e.interval[0] <= 1e-12, (key, e.key, e.interval)
+    # LOO on a resample's distinct runs, about 19 for P = 15: leverages near 1 amplify rounding (1.5e-10 here).
+    lo, hi = table(result, "loo")["loo"].interval or (math.nan, math.nan)
+    assert 0 <= lo <= hi <= 1e-9
 
 
 def test_pm4_coefficients_set_by_hand(tmp_path):
@@ -282,10 +294,7 @@ def test_pm3_loo_equals_explicit_refits(tmp_path):
     c = np.linalg.lstsq(A, y, rcond=None)[0]
     r = y - np.sum(A * c, axis=1)
     rr = math.sqrt(float(np.sum(r * r))) / spread
-    assert (
-        abs(values(result, "fit")["rel_residual"] - rr) <= 1e-12
-        and abs(values(result, "fit")["r2"] - (1 - rr**2)) <= 1e-12
-    )
+    assert abs(in_sample(result)["rel_residual"] - rr) <= 1e-12 and abs(in_sample(result)["r2"] - (1 - rr**2)) <= 1e-12
 
 
 # --------------------------------------------------------------------------------------------------------------
@@ -295,18 +304,65 @@ def test_pm3_loo_equals_explicit_refits(tmp_path):
 def test_pm5_at_2p_runs_the_undefined_resamples_are_counted(tmp_path):
     """PM5: R10 at exactly 2P = 30 runs (n_min = 30, level 0): some resamples' A has rank below P, and some have
     fewer than P + 1 distinct runs for LOO; each estimate's count is in its table's line (V4); the same resamples
-    for every estimate drawn (the fit's estimates share their count)."""
+    for every estimate drawn (the Sobol indices and √E_k share their count, a rank below P)."""
     case, _, result = evaluate("R10", tmp_path, params={"n_min": 30, "level": 0})
-    fit, loo = table(result, "fit"), table(result, "loo")
+    loo = table(result, "loo")
     infos = {t.key: dict(t.interval.undefined) for t in result.estimates}
-    assert infos["fit"] == {"relative residual": infos["fit"]["relative residual"], "R²": infos["fit"]["R²"]}
-    assert infos["fit"]["R²"] == infos["fit"]["relative residual"] > 0 and fit["r2"].interval is not None
-    assert infos["loo"]["leave-one-out error"] > infos["fit"]["R²"]  # LOO needs P + 1 distinct runs
-    assert len({n for t in ("sobol", "decay") for n in infos[t].values()}) == 1
+    assert list(infos) == ["loo", "sobol", "decay"]
+    (rank,) = {n for t in ("sobol", "decay") for n in infos[t].values()}
+    assert rank > 0 and table(result, "decay")["energy:1"].interval is not None
+    assert infos["loo"]["leave-one-out error"] > rank  # LOO needs P + 1 distinct runs
     assert loo["loo"].interval is not None
     report = render(result, case.spec)
-    assert f"Undefined resamples, dropped: R² {infos['fit']['R²']}, relative residual" in report
-    assert report.count("Undefined resamples, dropped:") == 4
+    assert f"Undefined resamples, dropped: √E\\_1 {rank}, √E\\_2 {rank}." in report  # "_" escaped (T10)
+    assert report.count("Undefined resamples, dropped:") == 3
+
+
+def test_0085_the_in_sample_measures_are_observations_without_intervals(tmp_path):
+    """Record 0085: the relative residual and R² are not estimates; level L's are the per-level table's last column,
+    equal to the fit's formulas, and the line under that table says why they have no interval. The LOO error, the
+    Sobol indices, √E_k, and the coefficients keep theirs."""
+    case, made, result = evaluate("R11", tmp_path)
+    assert [t.key for t in result.estimates] == ["loo", "sobol", "decay"]
+    assert [t.key for t in result.extra] == ["coefficients"]
+    assert all(e.interval is not None for t in (*result.estimates, *result.extra) for e in t.estimates)
+    basis = bases.get("total_degree")
+    A = basis.evaluate(case.ctx.space.to_unit(case.spec, made.design.points), basis.terms(2, 2))
+    y = made.runs.values["y"]
+    c = np.linalg.lstsq(A, y, rcond=None)[0]
+    rr = math.sqrt(float(np.sum((y - A @ c) ** 2)) / float(np.sum((y - y.mean()) ** 2)))
+    got = in_sample(result)
+    assert abs(got["rel_residual"] - rr) <= 1e-12 and abs(got["r2"] - (1 - rr**2)) <= 1e-12
+    (per_level,) = [t for t in result.observations if t.key == "levels"]
+    assert per_level.title == f"Each level is fitted on the usable runs among its first points. {IN_SAMPLE}"
+    observations = render(result, case.spec).split("## Observations")[1].split("## Figures")[0]
+    assert IN_SAMPLE in " ".join(observations.split())
+
+
+def test_0085_dropping_the_in_sample_measures_leaves_the_other_intervals_bit_for_bit():
+    """Record 0085, Consequences: the bootstrap draws its resamples whatever the estimators (V2), so the Sobol
+    indices', √E_k's, and coefficients' intervals are those of the refits that also gave the relative residual and
+    R² (as before 0085, the two first)."""
+    rng = np.random.default_rng(2)
+    basis = bases.get("total_degree")
+    terms = basis.terms(2, 2)
+    A = basis.evaluate(rng.uniform(-1, 1, (14, 2)), terms)
+    y = A @ rng.standard_normal(len(terms)) + 0.1 * rng.standard_normal(14)
+
+    def now(i: np.ndarray) -> np.ndarray:
+        return pm._Fit(A[i], y[i], terms, resample=True).drawn
+
+    def before(i: np.ndarray) -> np.ndarray:
+        fit = pm._Fit(A[i], y[i], terms)
+        return np.concatenate(([fit.relative_residual, fit.r2], fit.drawn))
+
+    n = len(now(np.arange(14)))
+    found = Bootstrap().intervals(np.arange(14), None, [Estimator("drawn", ("x",) * n, now, False)], spawned(1, 7))
+    old = Bootstrap().intervals(
+        np.arange(14), None, [Estimator("drawn", ("x",) * (n + 2), before, False)], spawned(1, 7)
+    )
+    assert found["drawn"] == old["drawn"][2:]
+    assert any(iv.bounds is not None for iv in found["drawn"])
 
 
 def test_pm5_the_fake_interval_method_names_itself(tmp_path):
@@ -360,7 +416,7 @@ def test_0049_a_constant_fitted_polynomial_has_no_sobol_indices(tmp_path, monkey
 
     monkeypatch.setattr(pm, "least_squares", flat)
     _, _, result = evaluate("R11", tmp_path, figures=True)
-    assert [t.key for t in result.estimates] == ["fit", "loo", "decay"]
+    assert [t.key for t in result.estimates] == ["loo", "decay"]
     assert "The fitted polynomial is constant (V = 0), so it has no Sobol indices." in [n.text for n in result.notes]
     assert set(values(result, "decay").values()) == {0.0}
     assert [f.name for f in result.figures] == ["polynomial_model_fit", "polynomial_model_residuals"]
@@ -379,7 +435,7 @@ def test_0049_v_0_on_runs_that_give_exact_zeros(tmp_path):
     if (coef["c:1,0"], coef["c:0,1"]) != (0.0, 0.0):
         pytest.skip(f"this LAPACK's QR gives ψ₁ coefficients {coef['c:1,0']}, {coef['c:0,1']}, not exactly 0")
     assert coef["c:0,0"] == pytest.approx(0.5, rel=1e-15)
-    assert [t.key for t in result.estimates] == ["fit", "loo", "decay"]
+    assert [t.key for t in result.estimates] == ["loo", "decay"]
     assert [n.text for n in result.notes] == ["The fitted polynomial is constant (V = 0), so it has no Sobol indices."]
     assert values(result, "decay") == {"energy:1": 0.0}
     assert [f.name for f in result.figures] == ["polynomial_model_fit", "polynomial_model_residuals"]
@@ -394,7 +450,7 @@ def test_loo_undefined_on_a_run_of_leverage_1(tmp_path):
     a, b = np.array([0.5] * 5 + [-0.3]), np.array([-0.9, -0.4, 0.1, 0.5, 0.8, 0.2])
     result = sd.evaluate(case, custom(case, np.column_stack([a, b]), a + b**2), tmp_path)
     assert [n.text for n in result.notes] == ["The leave-one-out error is undefined: a usable run has leverage 1."]
-    assert [t.key for t in result.estimates] == ["fit", "sobol", "decay"]
+    assert [t.key for t in result.estimates] == ["sobol", "decay"]
     assert levels(result)["loo"] == ["none"] and isinstance(levels(result)["r2"][0], float)
     right = json.loads((tmp_path / "polynomial_model_fit.json").read_text())["panels"][1]
     assert len(right["points"]) == 6 and [p["held_out"] is None for p in right["points"]] == [False] * 5 + [True]
@@ -419,7 +475,10 @@ def test_pm8_units_r2_at_p_4(tmp_path):
         sd.evaluate(case, sd.batch(case, y=v, z=v), tmp_path / str(k)) for k, v in enumerate((y, a * y, y + b))
     )
     assert codes(ref) == codes(scaled) == codes(shifted) and ref.counts == scaled.counts == shifted.counts
-    for key in ("fit", "loo", "sobol", "decay", "coefficients"):
+    assert in_sample(ref) == in_sample(scaled)  # observations now (record 0085), exactly as before
+    for k, v in in_sample(shifted).items():
+        assert abs(v - in_sample(ref)[k]) <= 1e-9, k
+    for key in ("loo", "sobol", "decay", "coefficients"):
         for k, e in table(ref, key).items():
             transform, _ = PM.transform(key, k)
             s, h = table(scaled, key)[k], table(shifted, key)[k]
@@ -534,15 +593,13 @@ def test_sizes_and_durations_as_progress_writes_them():
 @pytest.mark.slow
 def test_pm12_the_golden_report(tmp_path):
     """PM12 (0044): R3, p = 2, seed 3, the defaults, its first 72 runs reused from the linear model's: the mock
-    report, with record 0073 item 6's Provenance edit ("runs: 360")."""
+    report as written (it carries record 0073 item 6's Provenance, "runs: 360", and record 0085's relative residual
+    and R² as observations)."""
     case = reference.prepare(PM, "R3", params={"seed": 3})
     made = reference.batch(case, "R3")
     made = RunBatch(design=made.design, runs=made.runs, new=np.arange(len(case.design)) >= 72)
     report = render(sd.evaluate(case, made, tmp_path), case.spec)
-    mock = mock_report("polynomial_model")
-    edited = mock.replace("runs: 360 (72 reused from the linear model's evaluation)", "runs: 360")
-    assert edited != mock
-    found = differences(report, edited)
+    found = differences(report, mock_report("polynomial_model"))
     assert found == [], found
 
 
@@ -584,7 +641,7 @@ def check_answers(result: DiagnosticResult, names: str, answers: dict[str, Any])
         "first": [sobol[f"first:{n}"] for n in names],
         "total": [sobol[f"total:{n}"] for n in names],
         "energy": [energy[f"energy:{k}"] for k in range(1, 11)],
-        "rel_residual": [values(result, "fit")["rel_residual"]],
+        "rel_residual": [in_sample(result)["rel_residual"]],
         "loo": [values(result, "loo")["loo"]],
     }
     for key, (want, tol) in answers.items():

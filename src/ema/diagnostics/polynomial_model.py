@@ -4,9 +4,9 @@ diagnostics/polynomial_model.md (PM1-PM12): on a convergent design, the fit over
 orthonormal Legendre terms of total degree <= p; its relative residual, R², and leave-one-out error (PRESS); the
 first-order and total Sobol indices of the fitted polynomial; the root energy √E_k per total degree; bootstrap
 intervals from the polynomial model's stream (``POLY_BOOT_TAG``), the P coefficients in ``extra`` (0041); the fit at
-each level as observations; four figures. Records 0012, 0039, 0041, 0049, 0051, 0052, 0068 (the numerics), 0073
-(plain Unicode text, tab-separated label cells, titles under tables), 0075 (the base), and 0079 (this step's
-choices).
+each level as observations, the relative residual and R² among them, without intervals (0085); four figures. Records
+0012, 0039, 0041, 0049, 0051, 0052, 0068 (the numerics), 0073 (plain Unicode text, tab-separated label cells, titles
+under tables), 0075 (the base), 0079 (this step's choices), and 0085.
 """
 
 import math
@@ -17,6 +17,7 @@ from typing import Any
 import numpy as np
 
 from ema.designs import samplers
+from ema.diagnostics._fits import IN_SAMPLE_SENTENCE, LEVELS_SENTENCE
 from ema.diagnostics._lines import SPECTRUM_YMIN
 from ema.diagnostics.base import (
     AnalysisContext,
@@ -74,7 +75,7 @@ _SAMPLER = "the sampler (0032); convergent needs a nested one."
 _BASIS = "the set of terms; v2.0 accepts only total_degree. Part of the request's identity, not the design's."
 _SUBSCRIPTS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
 _FIT, _SOBOL, _DECAY, _RESIDUALS = (f"polynomial_model_{s}" for s in ("fit", "sobol", "decay", "residuals"))
-_TABLES = {"fit": Transform.UNCHANGED, "loo": Transform.UNCHANGED, "sobol": Transform.UNCHANGED}
+_TABLES = {"loo": Transform.UNCHANGED, "sobol": Transform.UNCHANGED}
 _TABLES |= {"levels": Transform.UNCHANGED, "decay": Transform.SCALED}
 
 
@@ -124,16 +125,21 @@ def _duration(seconds: float) -> str:
 
 
 class _Fit:
-    """One fit's numbers on a set of runs: the coefficients, relative residual, R², Sobol indices, √E_k, LOO."""
+    """One fit's numbers on a set of runs: the coefficients, relative residual, R², Sobol indices, √E_k, LOO.
 
-    def __init__(self, A: np.ndarray, y: np.ndarray, terms: np.ndarray, *, loo: bool = True) -> None:
+    ``drawn`` holds those with intervals refitted as drawn: the Sobol indices, √E_k, and the coefficients. The
+    relative residual and R² are observations, with no interval (record 0085); a resample computes neither.
+    """
+
+    def __init__(self, A: np.ndarray, y: np.ndarray, terms: np.ndarray, *, resample: bool = False) -> None:
         self.fit = least_squares(A, y)
         self.rank = self.fit.rank
         coef = self.fit.coefficients
         self.first, self.total = sobol_indices(coef, terms, y=y)
-        fit_numbers = [relative_residual(y, self.fit), r2(y, self.fit)]
-        self.drawn = np.concatenate((fit_numbers, self.first, self.total, degree_energy(coef, terms), coef))
-        self.loo = press(A, y, self.fit) if loo else math.nan  # a resample's is on its distinct runs
+        self.drawn = np.concatenate((self.first, self.total, degree_energy(coef, terms), coef))
+        self.relative_residual = math.nan if resample else relative_residual(y, self.fit)
+        self.r2 = math.nan if resample else r2(y, self.fit)
+        self.loo = math.nan if resample else press(A, y, self.fit)  # a resample's is on its distinct runs
 
 
 class PolynomialModel(DiagnosticBase):
@@ -277,14 +283,14 @@ class PolynomialModel(DiagnosticBase):
             ok = fit is not None and fit.rank == P
             values = [math.nan] * (3 + len(names))
             if fit is not None and ok:
-                values = [float(fit.drawn[0]), float(fit.drawn[1]), fit.loo, *map(float, fit.total)]
+                values = [fit.relative_residual, fit.r2, fit.loo, *map(float, fit.total)]
             columns[0].append(Observation("usable", "Usable runs", f"{len(rows)} of {n_l}", ""))
             labels = ["Relative residual", "R²", "Leave-one-out error", f"Total index of {names[0]}", *names[1:]]
             keys = ["rel_residual", "r2", "loo", *(f"total:{n}" for n in names)]
             for k, (key, label, value) in enumerate(zip(keys, labels, values, strict=True)):
                 columns[k + 1].append(Observation(key, label, _finite_or_none(value), ""))
         heading = ("The fit at each level", *(f"Level {lvl}" for lvl in range(len(sizes))))
-        title = "Each level is fitted on the usable runs among its first points."
+        title = f"{LEVELS_SENTENCE} {IN_SAMPLE_SENTENCE}"
         return ObservationTable("levels", title, heading, tuple(map(tuple, columns))), fits
 
     def _bootstrap(
@@ -297,11 +303,15 @@ class PolynomialModel(DiagnosticBase):
         terms: np.ndarray,
         P: int,
     ) -> dict[str, tuple[Interval, ...]]:
-        """Run the interval method (PM5): refits as drawn, LOO on each resample's distinct runs."""
+        """Run the interval method (PM5): refits as drawn, LOO on each resample's distinct runs.
+
+        The refits as drawn give the Sobol indices, √E_k, and the coefficients; not the relative residual and R²
+        (record 0085).
+        """
         d, p = terms.shape[1], int(terms.sum(axis=1).max())
 
         def drawn(i: np.ndarray) -> np.ndarray:
-            return _Fit(A[i], y[i], terms, loo=False).drawn
+            return _Fit(A[i], y[i], terms, resample=True).drawn
 
         def distinct(i: np.ndarray) -> np.ndarray:
             if len(i) < P + 1:
@@ -309,7 +319,7 @@ class PolynomialModel(DiagnosticBase):
             Ai, yi = A[i], y[i]
             return np.array([press(Ai, yi, least_squares(Ai, yi))])
 
-        labels = ("rel", "r2", *(f"first{j}" for j in range(d)), *(f"total{j}" for j in range(d)))
+        labels = (*(f"first{j}" for j in range(d)), *(f"total{j}" for j in range(d)))
         labels += (*(f"energy{k}" for k in range(1, p + 1)), *(f"c{t}" for t in range(P)))
         estimators = [Estimator("drawn", labels, drawn, False), Estimator("distinct", ("loo",), distinct, True)]
         method = ctx.interval_method
@@ -345,7 +355,10 @@ class PolynomialModel(DiagnosticBase):
         n_u: int,
         degree: int,
     ) -> tuple[tuple[EstimateTable, ...], tuple[EstimateTable, ...], tuple[Note, ...]]:
-        """Build the four tables of estimates, the coefficients' table (``extra``), and the notes (S4, 0041, 0049)."""
+        """Build the three tables of estimates, the coefficients' table (``extra``), and the notes (S4, 0041, 0049).
+
+        The relative residual and R² are not among them: they are the per-level table's observations (record 0085).
+        """
         units, d = ctx.prediction.units, len(names)
         drawn, values = found["drawn"], point.drawn
         undefined: dict[str, dict[str, int]] = {}
@@ -360,11 +373,7 @@ class PolynomialModel(DiagnosticBase):
             return EstimateTable(key, title, columns, tuple(rows), kw.get("units", ""), info)
 
         one_value = ("Estimate", "Variability interval")
-        fit_rows = (
-            one("fit", "rel_residual", "Relative residual ‖y - ŷ‖ / ‖y - mean‖", 0, "relative residual"),
-            one("fit", "r2", "R²", 1, "R²"),
-        )
-        tables = [table("fit", "Fit", ("Fit", *one_value), fit_rows)]
+        tables: list[EstimateTable] = []
         notes: list[Note] = []
         if math.isfinite(point.loo):
             (loo,) = found["distinct"]
@@ -376,8 +385,8 @@ class PolynomialModel(DiagnosticBase):
         if np.isfinite(point.first).all():
             sobol = []
             for i, name in enumerate(names):
-                sobol.append(one("sobol", f"first:{name}", name, 2 + i, f"{name} first-order"))
-                sobol.append(one("sobol", f"total:{name}", name, 2 + d + i, f"{name} total"))
+                sobol.append(one("sobol", f"first:{name}", name, i, f"{name} first-order"))
+                sobol.append(one("sobol", f"total:{name}", name, d + i, f"{name} total"))
             title = (
                 f"Of the degree-{degree} polynomial fitted to the runs, under the uniform distribution in unit "
                 f"coordinates{_log_names(ctx)}."
@@ -388,12 +397,12 @@ class PolynomialModel(DiagnosticBase):
             notes.append(Note("constant_fit", "The fitted polynomial is constant (V = 0), so it has no Sobol indices."))
         counts = np.bincount(terms.sum(axis=1), minlength=degree + 1)
         decay = [
-            one("decay", f"energy:{k}", f"{k}\t{counts[k]}", 2 + 2 * d + k - 1, f"√E_{k}") for k in range(1, degree + 1)
+            one("decay", f"energy:{k}", f"{k}\t{counts[k]}", 2 * d + k - 1, f"√E_{k}") for k in range(1, degree + 1)
         ]
         title = "√E_k: the standard deviation of the fitted polynomial's terms of total degree k."
         heading = ("Total degree k", "Terms", "Root energy √E_k", "Variability interval")
         tables.append(table("decay", title, heading, decay, units=units))
-        first = 2 + 2 * d + degree
+        first = 2 * d + degree
         coefficients = [
             one("coefficients", "c:" + ",".join(map(str, alpha)), _term_label(alpha, names), first + t, f"c{t}")
             for t, alpha in enumerate(terms.tolist())

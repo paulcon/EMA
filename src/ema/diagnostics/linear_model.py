@@ -2,9 +2,10 @@
 
 diagnostics/linear_model.md (LM1-LM10); uncertainty.md (the bootstrap over level L; 0040, 0041, 0052); records
 0012, 0051, 0068 (``ema.numerics.fitting``), 0073 (plain Unicode text; a table's title under it), 0075 (the base),
-and 0078 (this step's choices). The fit y ≈ β₀ + Σ βᵢ uᵢ on level L's usable runs gives the coefficients, how well
-it fits (the relative residual and R²), and how well it predicts runs it wasn't fitted to (the LOO error by PRESS),
-each with a variability interval; the same fit at each level is an observation.
+0078 (this step's choices), and 0085 (the in-sample measures as observations). The fit y ≈ β₀ + Σ βᵢ uᵢ on level
+L's usable runs gives the coefficients and how well it predicts runs it wasn't fitted to (the LOO error by PRESS),
+each with a variability interval; how well it fits (the relative residual and R²), and the same fit at each level,
+are observations.
 """
 
 import math
@@ -72,7 +73,6 @@ def linear_min_runs(d: int) -> int:
 
 
 _COEFFICIENT_KEYS = ("intercept", "slope")
-_FIT_LABELS = {"relative_residual": "Relative residual ‖y - ŷ‖ / ‖y - mean‖", "r2": "R²"}
 _LOO_LABEL = "Leave-one-out error, relative"
 _LEVEL_LABELS = {"relative_residual": "Relative residual", "r2": "R²", "loo": "Leave-one-out error"}
 
@@ -129,9 +129,8 @@ class LinearModel(DiagnosticBase):
         {
             **{(table, "intercept"): (Transform.AFFINE, False) for table in ("coefficients", "levels")},
             **{(table, "slope"): (Transform.SCALED, False) for table in ("coefficients", "levels")},
-            **{(table, key): (Transform.UNCHANGED, False) for table in ("fit", "levels") for key in _FIT_LABELS},
+            **{("levels", key): (Transform.UNCHANGED, False) for key in _LEVEL_LABELS},
             ("loo", "loo"): (Transform.UNCHANGED, False),
-            ("levels", "loo"): (Transform.UNCHANGED, False),
             ("levels", "usable"): (Transform.UNCHANGED, False),
         }
     )
@@ -160,7 +159,11 @@ class LinearModel(DiagnosticBase):
         )
 
     def compute(self, batch: RunBatch, ctx: AnalysisContext, *, estimates_allowed: bool) -> Computation:
-        """Return the fit on level L's usable runs with its intervals (LM2-LM4), and the fit at each level (LM5)."""
+        """Return the fit on level L's usable runs with its intervals (LM2-LM4), and the fit at each level (LM5).
+
+        The coefficients and the LOO error are estimates; the relative residual and R² are observations, level L's in
+        the per-level table, with the line that says why they have no interval (record 0085).
+        """
         p, units = ctx.request.prediction, ctx.prediction.units
         names = ctx.space.varied(ctx.spec)
         d = len(names)
@@ -177,7 +180,8 @@ class LinearModel(DiagnosticBase):
         if not (len(rows) >= 2 and is_constant(y[rows])):  # a constant's fits are of one value (record 0078 item 3)
             level_rows = [*zip(keys, labels, strict=True), *_LEVEL_LABELS.items()]
             minimum = linear_min_runs(d)
-            title = (f"Coefficients in {units}. " if units else "") + _LEVELS_SENTENCE
+            in_units = f"Coefficients in {units}. " if units else ""
+            title = f"{in_units}{_fits.LEVELS_SENTENCE} {_fits.IN_SAMPLE_SENTENCE}"  # record 0085's line
             per_key = {key: units for key in _COEFFICIENT_KEYS}  # in the cells; the title names them (0078 item 2)
             observations = (_fits.per_level(A, y, usable, sizes, minimum, level_rows, title, per_key),)
         if not estimates_allowed:
@@ -202,14 +206,9 @@ class LinearModel(DiagnosticBase):
         n_u = len(rows)
         drawn = [
             (estimate(key, label, float(v), iv), iv.undefined)
-            for key, label, v, iv in zip(
-                (*keys, *_FIT_LABELS), (*labels, *_FIT_LABELS.values()), values[:-1], found["fit"], strict=True
-            )
+            for key, label, v, iv in zip(keys, labels, values[: d + 1], found["coefficients"], strict=True)
         ]
-        tables = [
-            _table("coefficients", _equation(ctx, names), "Coefficient", drawn[: d + 1], units, ctx, n_u),
-            _table("fit", "Fit", "Fit", drawn[d + 1 :], "", ctx, n_u),
-        ]
+        tables = [_table("coefficients", _equation(ctx, names), "Coefficient", drawn, units, ctx, n_u)]
         notes: tuple[Note, ...] = ()
         if math.isfinite(values[-1]):
             (loo_iv,) = found["loo"]
@@ -251,9 +250,6 @@ class LinearModel(DiagnosticBase):
         card = {"panels": [panel], "edges": edges, "counts": counts}
         out.append(save(fig, card, out_dir, "linear_model_residuals", caption))
         return tuple(out)
-
-
-_LEVELS_SENTENCE = "Each level is fitted on the usable runs among its first points."
 
 
 def _loo_note(A: np.ndarray, y: np.ndarray) -> Note:
