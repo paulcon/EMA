@@ -48,7 +48,7 @@ Everything that code or tests may cite has an id, so a docstring, a test, or a c
 ```text
 README.md                     this file
 CLAUDE.md                     instructions for Claude Code
-TODO.md                       what was done by hand before coding, in order (all done)
+TODO.md                       the order of work: by hand before coding (done), then the build
 STATUS.md                     done, in progress, next, open decisions
 LICENSE                       MIT (0060)
 pyproject.toml                the package, its dependencies, and the tools' settings (0059)
