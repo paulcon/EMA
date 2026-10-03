@@ -269,6 +269,13 @@ Each wave's review rounds: the findings (counted by severity), what was fixed, a
   fixed in the doc: a repeated run's line repeats the stored counts ("200 new"), so the presenter says nothing
   ran (no form, same id). The others are listed under "How to resume" as the owner's questions. Demo ready.
 
+- **After the owner's rehearsals (2026-10-02, evening)**, each from what a rehearsal showed, each proposed in record
+  0081: the server asks the client not to interpret (item 27); a repeated request's line says it is the stored
+  result (28); loading refuses a spec whose parameters the function doesn't take (29); the PDF's figures fit the
+  page (30); `export` can add the report's PDF (31); a model's description shows its runs' settings (32). The demo:
+  a real beam model with a hand-written spec, preloaded; prompts 10 and 14 dropped (12 prompts). The owner ran
+  the demo through Claude Code and it worked as expected.
+
 ## How to resume (if the session stops)
 
 State lives in git and on disk; nothing is only in the conversation.
