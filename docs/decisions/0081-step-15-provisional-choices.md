@@ -126,6 +126,18 @@ The independent review of steps 15 and 16, and the coordinator's rulings; each f
     result"), say a relative path resolves against the root, say `params` never holds a tool's own argument, and
     that "ema report …" in `text` names the command-line command while the report is read through its resource.
 
+**After the demo's rehearsal (2026-10-02)**
+
+27. **The instructions ask the client not to interpret.** In the owner's rehearsal in Claude Code, the client
+    quoted EMA's line and then explained what the intervals meant for each model parameter, drawing on what it
+    knows about the Ishigami function. EMA's own output held no interpretation (P2, 0017), but `tools.md` asked
+    the client only not to restate numbers (P1). It now also says: EMA reports results without interpretation;
+    don't interpret unless the user asks; if you do, say it is your own reading, not EMA's, and keep it apart from
+    what you quote of EMA's. This is a request to the client, not enforcement: a client may still interpret, as
+    it may still restate a number. Spec edits on acceptance: `architecture.md` §8, the instructions' list (with
+    P1's "quote EMA's text"), and a line in `principles.md` P2 that an MCP client's interpretation is the
+    client's, asked to be labeled as such.
+
 ## Alternatives considered
 
 - **Pin `mcp>=1.9`, using `FastMCP`:** the installed SDK is 2.2.0 and the code would not run on it; 1.x would also

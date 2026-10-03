@@ -15,6 +15,9 @@ whether trying again can help).
 - Quote EMA's `text`, and give the user the result id. Don't restate, round, or compute a number yourself: point
   the user to the report, `ema://results/{id}/report`, and its figures, which hold EMA's numbers. Read the report
   through that resource: "ema report …" in `text` names the command-line command, which you don't run.
+- EMA reports results without interpretation: what an estimate or an interval says about the model is not EMA's
+  to say. Don't interpret the results unless the user asks you to; if you do, say plainly that it is your own
+  reading, not EMA's, and keep it apart from what you quote of EMA's.
 - New runs, and saving a model spec, need the user's yes, which EMA asks the user directly (an elicitation). You
   can't answer it for the user. Price a request first with `price`; a repeated request reuses its stored result and
   asks nothing.
