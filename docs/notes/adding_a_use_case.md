@@ -1,7 +1,7 @@
 # Adding a use case
 
 **Written:** 2026-09-29. A short guide to adding a use case to `../design/use_cases.md`, with a template. The
-rules themselves are in `../../CLAUDE.md`, `../../README.md`, and `../decisions/README.md`. Where this guide and
+rules themselves are in `../../CLAUDE.md`, `../../CONTRIBUTING.md`, and `../decisions/README.md`. Where this guide and
 those files differ, those files win.
 
 ## When to add one

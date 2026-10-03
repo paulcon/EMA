@@ -1,6 +1,6 @@
 # EMA v2: what to do by hand before coding
 
-Rewritten 2026-09-28; the build's section added 2026-10-03. Paths are relative to the repository's root. `README.md` describes the layout and the id
+Rewritten 2026-09-28; the build's section added 2026-10-03. Paths are relative to the repository's root. `CONTRIBUTING.md` describes the layout and the id
 scheme; open decisions are the OD rows in `STATUS.md`.
 
 Work in order: each step depends on the ones above it. "You" means by hand. "Claude can help" means Claude

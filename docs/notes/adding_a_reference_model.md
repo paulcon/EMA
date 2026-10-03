@@ -2,7 +2,7 @@
 
 **Written:** 2026-09-30. A short guide to adding a reference model to `../design/reference_models.md`: when
 to add one, how, the checks it has to pass, and what it can be used for once it's there. The rules themselves
-are in `../../CLAUDE.md`, `../../README.md`, `../decisions/README.md`, and record 0009. Where this guide and
+are in `../../CLAUDE.md`, `../../CONTRIBUTING.md`, `../decisions/README.md`, and record 0009. Where this guide and
 those files differ, those files win.
 
 ## What a reference model is for
