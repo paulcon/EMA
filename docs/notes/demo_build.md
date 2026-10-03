@@ -276,6 +276,12 @@ Each wave's review rounds: the findings (counted by severity), what was fixed, a
   a real beam model with a hand-written spec, preloaded; prompts 10 and 14 dropped (12 prompts). The owner ran
   the demo through Claude Code and it worked as expected.
 
+- **The owner accepted records 0066–0085 (2026-10-02, night)**, with 0084's budget raised to 11,000 (55c8ae6).
+  Four agents then applied the records' "Spec edits on acceptance" in place on `demo`, each owning its files:
+  `architecture.md`; the data/model/trust group (data_model, trust, model_interface, export, use_cases, scope,
+  principles, glossary, purpose, the guides, README, CLAUDE.md); the contracts/diagnostics group (contracts,
+  uncertainty, designs, reference_models, diagnostics/*); and record 0085's code (`src/`, `tests/`).
+
 ## How to resume (if the session stops)
 
 State lives in git and on disk; nothing is only in the conversation.
@@ -287,9 +293,12 @@ State lives in git and on disk; nothing is only in the conversation.
    (`docs/plans/NN-*.md`) and record, saying "finish this step".
 2. The last entries in "Rounds" above say which step is at which stage (built, in review, fixing). A step whose
    fixing round is committed but not re-reviewed gets a round-2 review.
-3. State at the end of the demo build (2026-10-02, evening): `demo` holds every build step 01–16 and T, each
-   reviewed, fixed, and (where its round 1 had majors) re-reviewed; the final integrated review and the demo's
-   rehearsal (13 prompts over stdio) passed; every test passes. No worktree branch holds unmerged work.
+3. **Next (after the four agents above):** if `git status` shows their edits uncommitted, run the checks
+   (`uv run pytest -q -n auto && uv run lint-imports && uv run ruff check && uv run ruff format --check && uv run
+   mypy && uv run sphinx-build -W --keep-going docs docs/_build/html`), commit the spec edits and 0085's code, then
+   run an independent review: one fresh agent per area checking that every accepted record's "Spec edits on
+   acceptance" is applied, that the specs agree with each other and with the code, and that 0085's code matches
+   its record; fix, re-review until minor; update STATUS.md.
 4. What is left is the owner's: review `demo` and records 0066–0084 (each lists its spec edits on acceptance),
    and decide on merging into `main`. Open questions from the final review, for the owner: the shared notes'
    "Most frequent reasons" list renders as one line in CommonMark, and the notes name Python calls
