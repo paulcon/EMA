@@ -22,8 +22,8 @@ cd "$EMA" && uv sync
 ### The demo directory (the server's root)
 
 The root is the one directory the tools' path arguments may name (T5); the workspace, `ema_workspace`, is created
-inside it on first start. Copy three reference models into it, and a bare function file for the "set up a model"
-segment:
+inside it on first start. Copy three reference models into it, and the beam model: a function and its model spec,
+written by hand (a model spec is the user's to write; drafting one is for later):
 
 ```bash
 DEMO=/Users/paulconstantine/ema_demo
@@ -31,36 +31,35 @@ mkdir -p "$DEMO/beam"
 cp -R "$EMA/src/ema/reference_models/r2" "$DEMO/ishigami"     # the Ishigami function: x1, x2, x3 in [-pi, pi]
 cp -R "$EMA/src/ema/reference_models/r3" "$DEMO/borehole"     # the borehole function: 8 parameters with units
 cp -R "$EMA/src/ema/reference_models/r5" "$DEMO/r5"           # fails in known regions (failed runs)
-cp "$EMA/docs/notes/demo/beam.py" "$DEMO/beam/beam.py"   # a cantilever beam's tip deflection, with no model spec yet
+cp "$EMA/docs/notes/demo/beam.py" "$EMA/docs/notes/demo/beam.json" "$DEMO/beam/"   # a cantilever's tip deflection
 sed -i '' 's/"name": "r3"/"name": "borehole"/' "$DEMO/borehole/model.json"
 rm -rf "${DEMO:?}"/*/__pycache__
 ```
 
-Load the three model specs into the workspace (loading asks nothing and runs nothing). Through Python, now:
+Load the four model specs into the workspace (loading asks nothing and runs nothing). Through Python, now:
 
 ```bash
 cd "$DEMO" && uv run --project "$EMA" python -c "
 import ema
 with ema.open_workspace('ema_workspace', root='$DEMO') as ws:
-    for spec in ('ishigami/model.json', 'borehole/model.json', 'r5/model.json'):
+    for spec in ('ishigami/model.json', 'borehole/model.json', 'r5/model.json', 'beam/beam.json'):
         print(ws.load_model(spec))
 "
 ```
 
 or, with the CLI merged: `cd "$DEMO" && uv run --project "$EMA" ema model add ishigami/model.json` (and the other
-two). The layout is then:
+three). The layout is then:
 
 ```text
 /Users/paulconstantine/ema_demo/
-├── beam/beam.py              # a cantilever beam f(P, L, E); prompt 11 drafts its spec
+├── beam/      beam.json  beam.py            # a cantilever beam: f(P, L, E), the tip deflection in mm
 ├── borehole/  model.json  borehole.py  space.json
 ├── ishigami/  model.json  ishigami.py  space.json
 ├── r5/        model.json  r5.py        space.json
 └── ema_workspace/            # EMA's: ema.db, runs/, results/, files/
 ```
 
-To start the demo again from nothing, delete `ema_workspace/`, `exports/`, and the spec prompt 11 saved in `beam/`
-(`beam/beam.json`, or whatever name the agent chose; keep `beam/beam.py`), and load again.
+To start the demo again from nothing, delete `ema_workspace/` and `exports/`, and load the four specs again.
 
 ### Check the server by hand
 
@@ -130,7 +129,8 @@ answer is recorded with its question.
 
 The prompts, in order (the tools each one calls are in brackets):
 
-1. **"Which models does EMA have loaded?"** [`models`] Three: ishigami, borehole, r5, each with its model version.
+1. **"Which models does EMA have loaded?"** [`models`] Four: beam, borehole, ishigami, r5, each with its model
+   version.
 2. **"Describe the borehole model."** [`models(name)`] Its 8 model parameters with units, nominal values, and limits,
    and its model prediction, water flow in m³/yr.
 3. **"What diagnostics does EMA have? Describe the point run and scatter, with their parameters."** [`diagnostics`,
@@ -160,14 +160,10 @@ If there is time:
     loads it, writing nothing (record 0081 item 17): "Loaded ishigami@…", followed by "Already loaded: nothing
     changed" when §1 loaded it. This is how a client loads a spec that wasn't loaded in §1. A file at the path with another spec
     is refused.
-11. **"Set up beam/beam.py as an EMA model from what its file says, save it as beam/beam.json, then test it."**
-    [`propose_model`, `save_model`, `test_model`] The agent reads `beam.py` (its docstring gives what `f(P, L, E)`
-    computes, each argument's units and nominal value, and the result's units) and drafts the spec; the form shows
-    the absolute path `/Users/paulconstantine/ema_demo/beam/beam.json` and the spec's full text, which is where you
-    check its units and nominal values against the file; approve, and EMA writes that one file (never code) and
-    loads it. Loading refuses a spec whose model parameters aren't `f`'s arguments, naming both (record 0081 item
-    29). The test run asks its own form: "1 new run, 0 reused, time unknown"; then "deflection = 3.2" at the
-    nominal point. (In a client that can't read files, give the details in the prompt instead.)
+11. **"Run a point run of the beam model, then a scatter of its deflection over P in [500, 1500], L in [1, 3], and
+    E in [150, 250], with n = 100 and seed 1."** [`run_diagnostic`] Beam's first approval shows what each run starts
+    (`beam.py:f`, the interpreter); the point run gives "deflection" at P = 1000 N, L = 2 m, E = 200 GPa (3.2 mm);
+    the scatter's report shows the model parameters with their units (N, m, GPa) and the deflection in mm.
 12. **"Run a scatter of r5's y over a and b in [-1, 1] with n = 100, then list the failed runs."**
     [`run_diagnostic`, `failed_runs`] "100 runs: 100 new, 0 reused, 16 failed"; each failed run with its kind and
     reason ("failed (timeout): timeout after 0.2 s", "failed (error): ValueError: no convergence at r5.py:13") and

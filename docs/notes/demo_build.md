@@ -289,3 +289,9 @@ State lives in git and on disk; nothing is only in the conversation.
    (`ws.failed_runs`) that an MCP reader can't use (both spec wordings in `shared.md`); the spread row says |y|
    whatever the model prediction's name; `lines`' `m` has no default in its JSON schema; parameter meanings show
    record ids such as "(0032)".
+- **After the rehearsals (owner's decision, 2026-10-02):** a model spec is written by hand for the demo; drafting
+  one through MCP (`propose_model`, `save_model`, U9) stays in the product (option (a): the tools keep the human in
+  the loop through the save form, and loading now checks the function's signature, record 0081 item 29) but isn't
+  demonstrated. The demo's beam model is a hand-written spec, `docs/notes/demo/beam.json`, beside `beam.py`, loaded
+  with the other three in setup; prompt 11 now runs it (a point run and a scatter, with units). `~/ema_demo` reset
+  to that starting state, four models loaded.
