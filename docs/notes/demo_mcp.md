@@ -59,7 +59,9 @@ three). The layout is then:
 └── ema_workspace/            # EMA's: ema.db, runs/, results/, files/
 ```
 
-To start the demo again from nothing, delete `ema_workspace/` and `exports/`, and load the four specs again.
+To start the demo again from nothing, delete `ema_workspace/` and `exports/`, and load the four specs again; or run
+`docs/notes/demo/reset_demo.sh`, which moves the two aside with a timestamp (`--delete` deletes them), loads the four
+specs, and refuses while a server or Python session has the workspace open.
 
 ### Check the server by hand
 
