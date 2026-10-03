@@ -155,20 +155,15 @@ The prompts, in order (the tools each one calls are in brackets):
 
 If there is time:
 
-10. **"Load ishigami/model.json into EMA."** [`save_model`] The agent passes the file's text and its path; the
-    form asks "…/ishigami/model.json is already saved, unchanged: load it?" with the file's text; Accept, and EMA
-    loads it, writing nothing (record 0081 item 17): "Loaded ishigami@…", followed by "Already loaded: nothing
-    changed" when §1 loaded it. This is how a client loads a spec that wasn't loaded in §1. A file at the path with another spec
-    is refused.
-11. **"Run a point run of the beam model, then a scatter of its deflection over P in [500, 1500], L in [1, 3], and
+10. **"Run a point run of the beam model, then a scatter of its deflection over P in [500, 1500], L in [1, 3], and
     E in [150, 250], with n = 100 and seed 1."** [`run_diagnostic`] Beam's first approval shows what each run starts
     (`beam.py:f`, the interpreter); the point run gives "deflection" at P = 1000 N, L = 2 m, E = 200 GPa (3.2 mm);
     the scatter's report shows the model parameters with their units (N, m, GPa) and the deflection in mm.
-12. **"Run a scatter of r5's y over a and b in [-1, 1] with n = 100, then list the failed runs."**
+11. **"Run a scatter of r5's y over a and b in [-1, 1] with n = 100, then list the failed runs."**
     [`run_diagnostic`, `failed_runs`] "100 runs: 100 new, 0 reused, 16 failed"; each failed run with its kind and
     reason ("failed (timeout): timeout after 0.2 s", "failed (error): ValueError: no convergence at r5.py:13") and
     its stderr's last lines, quoted as the model's own output. (r5 has two model predictions: name one.)
-13. **"Export the Ishigami scatter, with a PDF of its report, to exports/ishigami_scatter."** [`export`, with
+12. **"Export the Ishigami scatter, with a PDF of its report, to exports/ishigami_scatter."** [`export`, with
     `pdf`] "Exported to …/exports/ishigami_scatter: runs.csv, result.json, report/ (with report.pdf)", inside the
     root only (a path outside it is refused, E7); the PDF takes a few seconds (pandoc and lualatex). Open it with
     `open exports/ishigami_scatter/report/report.pdf` (in Claude Code, ask it to, or type it with the `!` prefix).

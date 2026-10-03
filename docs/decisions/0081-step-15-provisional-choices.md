@@ -181,6 +181,15 @@ The independent review of steps 15 and 16, and the coordinator's rulings; each f
     files, with `report.pdf` when asked), `architecture.md` §7 (`export`'s signature) and §8 (the tool's
     arguments; the CLI's `ema export … [--pdf]`).
 
+32. **A model's description shows the settings its runs use.** In the owner's rehearsal, the client told the user
+    r5's runs could take an hour before timing out; they time out at 0.2 s. `describe_model` built its text and its
+    `spec` from the model version's stored spec, whose settings (`keep`, `batch_size`, `timeout_s`) are the
+    defaults, since settings belong to the loading, not the version (0029); the client read `timeout_s` 3600 from
+    it. `describe_model` now uses the version's spec with the current loading's settings, as runs do, and its
+    text ends "Runs: a timeout of 0.2 s per call; one point per call; run directories kept: all" (a batch
+    function: "batches of up to N points per call"). Spec edits on acceptance: `architecture.md` §7,
+    `describe_model` (its spec carries the loading's settings).
+
 ## Alternatives considered
 
 - **Pin `mcp>=1.9`, using `FastMCP`:** the installed SDK is 2.2.0 and the code would not run on it; 1.x would also

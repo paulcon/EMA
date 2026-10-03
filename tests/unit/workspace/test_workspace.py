@@ -90,6 +90,17 @@ def test_load_model_says_what_it_made(ws, tmp_path):
         ws.describe_model("beam")
 
 
+def test_describe_model_shows_the_loadings_run_settings(ws):
+    """Record 0081 item 32: the description gives the settings runs use, the current loading's (R5's 0.2 s
+    timeout), in its text and its spec, not the model version's defaults (a client read 3600 s from them)."""
+    ws.load_model(ema.reference_models.path("R5"))
+    described = ws.describe_model("r5")
+    assert described.spec.timeout_s == 0.2
+    assert described.text.endswith("Runs: a timeout of 0.2 s per call; one point per call; run directories kept: all")
+    ws.load_model(R2)
+    assert "Runs: a timeout of 3600 s per call; one point per call" in ws.describe_model("ishigami").text
+
+
 def test_a_changed_file_is_refused_until_loaded_again(ws, tmp_path, toy):
     """U6: a run whose file changed since loading is refused, naming the file; loading again makes a new model
     version, which has no stored runs (time unknown) and reuses none; the old result is unchanged (P3, P5; M16)."""

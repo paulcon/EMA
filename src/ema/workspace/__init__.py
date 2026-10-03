@@ -387,7 +387,8 @@ class Workspace:
             For a model that isn't loaded, naming those that are.
         """
         summary = self._summary(name)
-        _, spec = _evaluate.loaded(self._store, name)
+        model, _ = _evaluate.loaded(self._store, name)
+        spec = model.spec  # the model version's spec with the current loading's settings, as runs use it (0081 item 32)
         lines = [summary.text]
         if spec.description:
             lines.append(spec.description)
@@ -397,6 +398,11 @@ class Workspace:
         lines.append("Model predictions:")
         lines += [f"- {q.name}" + (f" [{q.units}]" if q.units else "") + (f": {q.description}" if q.description else "")
                   for q in spec.predictions]  # fmt: skip
+        calls = "one point per call"
+        if isinstance(spec.interface, PythonFunction) and spec.interface.batch:
+            calls = f"batches of up to {spec.batch_size} points per call" if spec.batch_size else "one batch per call"
+        lines.append(f"Runs: a timeout of {spec.timeout_s:g} s per call; {calls}; run directories kept: "
+                     f"{spec.keep.value}")  # fmt: skip
         return ModelDescription(model=summary, spec=spec, text="\n".join(lines))
 
     @_on_its_thread
