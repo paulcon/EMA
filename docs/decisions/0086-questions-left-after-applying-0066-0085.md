@@ -1,7 +1,7 @@
 # 0086. Settle the questions left after applying records 0066–0085
 
-**Date:** 2026-10-02. **Status:** proposed (each item answered by the owner in an interview, 2026-10-02). **Resolves:**
-none.
+**Date:** 2026-10-02. **Status:** accepted (2026-10-03, by the owner; each item answered in an interview, 2026-10-02).
+**Resolves:** none.
 
 ## Context
 
