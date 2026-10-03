@@ -109,3 +109,4 @@ Write one when a choice:
 | 0081 | Step 15's provisional choices: the MCP server | proposed (provisional; 0066) | 2026-10-02 |
 | 0082 | Step 16's provisional choices: the CLI | proposed (provisional; 0066) | 2026-10-02 |
 | 0084 | Let the demo build pass the source-line budget, measured at the end; run the fast tier in parallel | proposed (provisional; 0066) | 2026-10-02 |
+| 0085 | Report a fit's in-sample relative residual and R² as observations, without intervals | proposed (drafted after the demo; not applied) | 2026-10-02 |
