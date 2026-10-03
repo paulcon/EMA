@@ -567,6 +567,30 @@ def test_export_writes_the_runs_and_the_result_bit_for_bit(ws, tmp_path, toy):
     assert sorted(os.listdir(out)) == listing
 
 
+def test_export_with_a_pdf_that_cant_be_made_writes_nothing(ws, tmp_path, toy, monkeypatch):
+    """Record 0081 item 31: when the PDF can't be made (here, no pandoc), PandocMissing, and no directory is made."""
+    ws.load_model(R2)
+    result = ws.run("ishigami", "toy", PI_SPACE, n=12, seed=1, approve=Asked())
+    real = shutil.which
+    monkeypatch.setattr(shutil, "which", lambda name, *a, **k: None if name == "pandoc" else real(name, *a, **k))
+    with pytest.raises(ema.PandocMissing):
+        ws.export(result, tmp_path / "no_pdf", pdf=True)
+    assert not (tmp_path / "no_pdf").exists()
+
+
+@pytest.mark.slow
+def test_export_with_pdf_writes_it_beside_the_report(ws, tmp_path, toy):
+    """Record 0081 item 31: ``pdf=True`` adds report/report.pdf beside the report's Markdown, which is unchanged."""
+    if shutil.which("pandoc") is None or shutil.which("lualatex") is None:
+        pytest.skip("pandoc or lualatex isn't installed")
+    ws.load_model(R2)
+    result = ws.run("ishigami", "toy", PI_SPACE, n=12, seed=1, approve=Asked())
+    out = tmp_path / "with_pdf"
+    ws.export(result, out, pdf=True)
+    assert (out / "report" / "report.pdf").read_bytes().startswith(b"%PDF")
+    assert (out / "report" / "report.md").read_bytes() == Path(ws.report(result).path).read_bytes()
+
+
 def test_export_numbers_are_17_digits():
     """E3: ``%.17g`` reads back every double bit for bit, subnormals and -0.0 included."""
     from ema.workspace._export import _number

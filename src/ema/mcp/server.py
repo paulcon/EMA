@@ -81,7 +81,7 @@ TOOLS: Mapping[str, Mapping[str, tuple[Mapping[str, Any], bool]]] = {
     "run_diagnostic": _REQUEST,
     "results": {k: (_STRING, False) for k in ("id", "model", "model_version", "diagnostic", "prediction")},
     "failed_runs": {"id": (_STRING, True)},
-    "export": {"id": (_STRING, True), "directory": (_STRING, True)},
+    "export": {"id": (_STRING, True), "directory": (_STRING, True), "pdf": ({"type": "boolean"}, False)},
 }
 #: The tools that may run a model or write a file: they share the writing workspace's thread (§8).
 _WRITES = frozenset({"save_model", "test_model", "run_diagnostic", "export"})
@@ -608,8 +608,10 @@ class EmaServer:
         return _plain(runs), text, [_report_uri(ws.get_result(a["id"]).result_id)]
 
     def _tool_export(self, ws: Workspace, a: dict[str, Any], call: _Call) -> tuple[Any, str, list[str]]:
-        directory = ws.export(a["id"], a["directory"])
-        return {"directory": directory}, f"Exported to {directory}: runs.csv, result.json, report/", []
+        pdf = bool(a.get("pdf", False))
+        directory = ws.export(a["id"], a["directory"], pdf=pdf)
+        files = "runs.csv, result.json, report/ (with report.pdf)" if pdf else "runs.csv, result.json, report/"
+        return {"directory": directory, "pdf": pdf}, f"Exported to {directory}: {files}", []
 
     # -- resources: looked up by name, never joined into a path from an argument (T5) ----------------------------
 

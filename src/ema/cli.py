@@ -262,7 +262,7 @@ def _reproduce(ws: Workspace, args: argparse.Namespace) -> None:
 
 
 def _export(ws: Workspace, args: argparse.Namespace) -> None:
-    _out(ws.export(args.id, args.directory))
+    _out(ws.export(args.id, args.directory, pdf=args.pdf))
 
 
 def _mcp(args: argparse.Namespace) -> int:
@@ -363,6 +363,7 @@ def parser() -> argparse.ArgumentParser:
     export = command("export", "export a result's runs, design, result, and report")
     export.add_argument("id", metavar="ID")
     export.add_argument("directory", metavar="DIR", help="a new or empty directory")
+    export.add_argument("--pdf", action="store_true", help="also write the report as a PDF, report/report.pdf")
 
     mcp = command("mcp", "start the MCP server, confined to a root directory (needs ema[mcp])")
     mcp.add_argument("--root", metavar="DIR", required=True,

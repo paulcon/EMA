@@ -14,6 +14,7 @@ from typing import Any
 
 import numpy as np
 
+from ema.report import to_pdf
 from ema.store import Store
 from ema.types.errors import PathRefused
 from ema.types.identity import hex_ids
@@ -66,18 +67,25 @@ def _columns(spec: ModelSpec, space: ModelParameterSpace) -> dict[str, Any]:
     return out
 
 
-def export(store: Store, result: DiagnosticResult, directory: str) -> str:
+def export(store: Store, result: DiagnosticResult, directory: str, *, pdf: bool = False) -> str:
     """Write a result's export into a new or empty directory, and return its absolute path (E1-E6).
+
+    With ``pdf``, the report's PDF is made first, beside the stored report (as ``report(pdf=True)`` makes it), so
+    ``report/`` holds ``report.pdf`` too, and a PDF that can't be made leaves the directory untouched (0081 item 31).
 
     Raises
     ------
     PathRefused
         For a directory that isn't empty, or a path that is a file, naming it; nothing is written.
+    PandocMissing, PdfFailed
+        With ``pdf``, when the PDF can't be made; nothing is written.
     """
     target = os.path.abspath(directory)
     if os.path.lexists(target) and (not os.path.isdir(target) or os.listdir(target)):
         raise PathRefused(f"{target} isn't an empty directory: an export never overwrites a file (E1)")
     source = _evaluate.result_directory(store, result)
+    if pdf:
+        to_pdf(os.path.join(source, "report.md"))
     spec = store.model_version(result.model_version_id).spec
     runs = store.result_runs(result.result_id)
     assert runs.points is not None

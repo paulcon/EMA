@@ -171,6 +171,16 @@ The independent review of steps 15 and 16, and the coordinator's rulings; each f
     of five, they pass. The demo makes one PDF at a time. Spec edits on acceptance: `shared.md` S10's note on the
     PDF, and `architecture.md` §6's `to_pdf`.
 
+31. **Export can include the report's PDF.** The owner asked for the PDF through the MCP server (the demo had
+    made it with the CLI's `ema report ID --pdf`). `Workspace.export(result, directory, *, pdf=False)`, the
+    `export` tool's optional `pdf` argument, and the CLI's `ema export ID DIR --pdf` add `report/report.pdf`. The
+    PDF is made first, beside the stored report (as `report(pdf=True)` makes it), then the result's directory is
+    copied, so a PDF that can't be made (no pandoc or lualatex: `PandocMissing`; `PdfFailed`) leaves the export's
+    directory unmade. No new tool (10 of 10). Tested in the workspace (refusal fast; a real PDF in the slow tier),
+    the CLI, the tool's schema, and through a real MCP client. Spec edits on acceptance: `export.md` E1 (the
+    files, with `report.pdf` when asked), `architecture.md` §7 (`export`'s signature) and §8 (the tool's
+    arguments; the CLI's `ema export … [--pdf]`).
+
 ## Alternatives considered
 
 - **Pin `mcp>=1.9`, using `FastMCP`:** the installed SDK is 2.2.0 and the code would not run on it; 1.x would also

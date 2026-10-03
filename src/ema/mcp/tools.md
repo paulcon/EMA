@@ -126,3 +126,5 @@ new or empty directory inside the root.
 
 - `id`: A result id, or any unique prefix of 4 or more hex digits.
 - `directory`: The directory to write, inside the root and outside any workspace: new, or empty.
+- `pdf`: Whether `report/` also holds the report as a PDF, `report.pdf` (made with pandoc and lualatex, a few
+  seconds). Default false.

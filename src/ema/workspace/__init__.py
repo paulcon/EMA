@@ -720,8 +720,10 @@ class Workspace:
         return _reproduce.reproduce(self._store, result, result.provenance)
 
     @_on_its_thread
-    def export(self, result: ResultRef, directory: str | os.PathLike[str]) -> str:
+    def export(self, result: ResultRef, directory: str | os.PathLike[str], *, pdf: bool = False) -> str:
         """Export a result's runs, design, result, and report into a new or empty directory (E1-E7; U5).
+
+        With ``pdf``, ``report/`` also holds the report's PDF, through pandoc and lualatex (0018; 0081 item 31).
 
         Returns
         -------
@@ -732,7 +734,9 @@ class Workspace:
         ------
         PathRefused
             For a directory that isn't empty; under a root, a path refused (E7, T5). Nothing is written.
+        PandocMissing, PdfFailed
+            With ``pdf``, when the PDF can't be made. Nothing is written.
         """
         target = self._path(directory, "the export's directory", directory=True)
         stored = self._store.get_result(self._result_id(result))
-        return _export.export(self._store, stored, target)
+        return _export.export(self._store, stored, target, pdf=pdf)

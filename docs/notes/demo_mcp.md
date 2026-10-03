@@ -168,18 +168,10 @@ If there is time:
     [`run_diagnostic`, `failed_runs`] "100 runs: 100 new, 0 reused, 16 failed"; each failed run with its kind and
     reason ("failed (timeout): timeout after 0.2 s", "failed (error): ValueError: no convergence at r5.py:13") and
     its stderr's last lines, quoted as the model's own output. (r5 has two model predictions: name one.)
-13. **"Export the Ishigami scatter to exports/ishigami_scatter."** [`export`] `runs.csv`, `result.json`, and
-    `report/` (the report's Markdown with its figures beside it), inside the root only; a path outside it is
-    refused (E7).
-14. **The report as a PDF** (the MCP server serves the Markdown; the PDF is the CLI's, through pandoc and lualatex,
-    about 8 s). In a terminal, or in Claude Code with the `!` prefix, using the scatter's id from prompt 6:
-
-    ```bash
-    cd ~/ema_demo && uv run --project /Users/paulconstantine/PycharmProjects/EMA ema report 6f6b --pdf > /dev/null
-    open ema_workspace/results/6f6b*/report.pdf
-    ```
-
-    `ema report` prints the Markdown on stdout and the paths of `report.md` and `report.pdf` on stderr.
+13. **"Export the Ishigami scatter, with a PDF of its report, to exports/ishigami_scatter."** [`export`, with
+    `pdf`] "Exported to …/exports/ishigami_scatter: runs.csv, result.json, report/ (with report.pdf)", inside the
+    root only (a path outside it is refused, E7); the PDF takes a few seconds (pandoc and lualatex). Open it with
+    `open exports/ishigami_scatter/report/report.pdf` (in Claude Code, ask it to, or type it with the `!` prefix).
 
 **Viewing a report's Markdown with its figures:** the figures are PNGs beside `report.md`, linked by relative
 paths. A plain editor shows the text only; use a Markdown preview: in PyCharm, the preview mode (the "Preview" or

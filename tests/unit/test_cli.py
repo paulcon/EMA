@@ -410,3 +410,14 @@ def test_progress_line_on_a_terminal_and_in_a_log(monkeypatch):
     line(Progress.of_runs(10, 10))
     line.end()
     assert sys.stderr.getvalue() == "\r9/10 runs\r10/10 runs\n"
+
+
+def test_export_pdf_that_cant_be_made_is_an_error_and_writes_nothing(ema_cli, session, tmp_path, monkeypatch):
+    """``ema export ID DIR --pdf`` (record 0081 item 31): with no pandoc, "ema: …" naming it, exit 1, no directory."""
+    import shutil
+
+    real = shutil.which
+    monkeypatch.setattr(shutil, "which", lambda name, *a, **k: None if name == "pandoc" else real(name, *a, **k))
+    target = tmp_path / "pdf_export"
+    done = ema_cli("--workspace", session["ws"], "export", session["scatter"], str(target), "--pdf")
+    assert done.code == 1 and done.err.startswith("ema: ") and "pandoc" in done.err and not target.exists()
