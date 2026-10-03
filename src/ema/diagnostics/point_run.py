@@ -53,7 +53,7 @@ class PointRun(DiagnosticBase):
             "mapping of model parameter names to values",
             {},
             "{} (the nominal point)",
-            "the point; unnamed model parameters at their nominal values; each value inside its limits (G9).",
+            "the point; unnamed model parameters at their nominal values; each value inside its limits.",  # G9
             "yes",
             {"a": 1.5},
             Point(),
@@ -68,7 +68,7 @@ class PointRun(DiagnosticBase):
             2,
             Integer(0),
         ),
-        seed_parameter("recorded; the point run makes no random draws (0061).", "no"),
+        seed_parameter("recorded; the point run makes no random draws.", "no"),
     )
     interval_method = None
     spawn_tags = ()

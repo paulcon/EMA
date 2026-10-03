@@ -55,7 +55,7 @@ _ENV_TEMPLATES = frozenset({".env.example", ".env.sample", ".env.template"})
 _HIDDEN_CATEGORIES = frozenset({"Cc", "Cf", "Cs", "Zl", "Zp"})
 _HIDDEN_ALLOWED = frozenset({"\t", "\u200c", "\u200d"})
 _VARIABLE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-_MODEL_NAME = re.compile(r"[a-z0-9_-]+")
+_MODEL_NAME = re.compile(r"[a-z0-9][a-z0-9_-]*")  # 0086 item 3
 
 
 def hidden_character(text: str) -> str | None:
@@ -423,7 +423,8 @@ class ModelSpec:
     def versioned_json(self) -> str:
         """Write the canonical JSON the model version covers (data_model.md §3.4, 0029, M3).
 
-        ``to_json``'s object without ``keep``, ``batch_size``, and ``timeout_s``.
+        ``to_json``'s object without ``keep``, ``batch_size``, and ``timeout_s``: ``files`` and ``pass_env`` in the
+        spec's order, which the model version's hash sorts (``version_hash``; 0086 item 4).
         """
         return canonical_json(_spec_object(self, settings=False))
 
@@ -826,7 +827,7 @@ def _read_spec(data: Any) -> "ModelSpec":
 
     name = _string(obj["name"], "name")
     if not _MODEL_NAME.fullmatch(name):
-        _fail("name", f"{name!r} must be lowercase letters, digits, _, and -")
+        _fail("name", f"{name!r} must start with a lowercase letter or digit, then lowercase letters, digits, _, or -")
     interface = _interface(obj)
     files = _files(obj.get("files", []))
     if isinstance(interface, CommandLine):

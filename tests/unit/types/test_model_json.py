@@ -6,6 +6,7 @@ data_model.md §3.4's defaults filled in), each refusal naming its field.
 
 import json
 import math
+import re
 
 import pytest
 
@@ -190,6 +191,20 @@ class TestRoundTrip:
         assert spec.versioned_json() == json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
         assert ModelSpec.from_json(spec.versioned_json()).versioned_json() == spec.versioned_json()
 
+    def test_files_and_pass_env_as_written(self):
+        """0086 item 4: ``files`` and ``pass_env`` are sorted in the hashed form only (test_version_hash.py);
+        the spec, ``to_json``, and ``versioned_json`` (the stored spec, which a description shows) keep them as
+        written."""
+        spec = ModelSpec.from_json(edited(HEAT, pass_env=["LM_LICENSE_FILE", "A_HOST"]))
+        assert [f.path for f in spec.files] == ["heat_solver", "solver.cfg", "mesh.dat"]
+        assert spec.pass_env == ("LM_LICENSE_FILE", "A_HOST")
+        written = json.loads(spec.to_json())
+        assert [f["path"] for f in written["files"]] == ["heat_solver", "solver.cfg", "mesh.dat"]
+        assert written["pass_env"] == ["LM_LICENSE_FILE", "A_HOST"]
+        versioned = json.loads(spec.versioned_json())
+        assert [f["path"] for f in versioned["files"]] == ["heat_solver", "solver.cfg", "mesh.dat"]
+        assert versioned["pass_env"] == ["LM_LICENSE_FILE", "A_HOST"]
+
     def test_a_default_written_out_or_left_out_is_one_versioned_json(self):
         """M3, data_model.md §3.4."""
         left_out = ModelSpec.from_json(text(BEAM))
@@ -317,6 +332,22 @@ class TestNamesAndValues:
 
     def test_model_name_allowed(self):
         assert ModelSpec.from_json(edited(BEAM, name="heat-2d_v3")).name == "heat-2d_v3"
+
+    @pytest.mark.parametrize("name", ["-rf", "--help", "_x", "-", "_"])
+    def test_model_name_starts_with_a_letter_or_digit(self, name):
+        """0086 item 3: ``[a-z0-9][a-z0-9_-]*``, so a name is never read as a command-line option; the
+        message states the rule, with no record id."""
+        message = refused(
+            edited(BEAM, name=name),
+            "name",
+            "start with a lowercase letter or digit, then lowercase letters, digits, _, or -",
+        )
+        assert not re.search(r"\b0\d{3}\b", message)
+
+    @pytest.mark.parametrize("name", ["3d-plate", "heat", "a", "7", "x_-"])
+    def test_model_name_letter_or_digit_first_accepted(self, name):
+        """0086 item 3."""
+        assert ModelSpec.from_json(edited(BEAM, name=name)).name == name
 
     @pytest.mark.parametrize("name", ["1k", "k-1", "lambda", "", "a b"])
     def test_parameter_names_are_identifiers(self, name):

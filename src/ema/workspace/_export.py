@@ -34,11 +34,11 @@ EMA_COLUMNS = (
     ("ema_status", "ok or failed"),
     ("ema_kind", "error, timeout, or unread; empty when ok"),
     ("ema_reason", "the one-line reason a run failed; empty when ok"),
-    ("ema_new", "true when this result's own diagnostic evaluation made the run (E6)"),
+    ("ema_new", "true when this result's own diagnostic evaluation made the run"),  # E6
     ("ema_time_s", "the run's time in seconds (a batch call's share)"),
-    ("ema_run_dir", "the kept run directory; empty when not kept (0020)"),
+    ("ema_run_dir", "the kept run directory; empty when not kept"),
     ("ema_host", "the host the run ran on"),
-    ("ema_program", "the resolved program path (0029)"),
+    ("ema_program", "the resolved program path"),
 )
 #: A failure kind's code to its name; an ok run's -1 has none.
 _KINDS = {k.code: k.value for k in FailureKind}
@@ -82,7 +82,7 @@ def export(store: Store, result: DiagnosticResult, directory: str, *, pdf: bool 
     """
     target = os.path.abspath(directory)
     if os.path.lexists(target) and (not os.path.isdir(target) or os.listdir(target)):
-        raise PathRefused(f"{target} isn't an empty directory: an export never overwrites a file (E1)")
+        raise PathRefused(f"{target} isn't an empty directory: an export never overwrites a file")  # E1
     source = _evaluate.result_directory(store, result)
     if pdf:
         to_pdf(os.path.join(source, "report.md"))

@@ -5,11 +5,12 @@
 point check by 0061; replays from stored points, Q15's points, and the hashed objects' shapes by 0062; the design's structure in the
 provenance by 0063; 2026-10-02: the request's canonical keys, the column forms, and timestamps by 0070; the writes' signatures,
 W5's checks, a result's measured-noisy `made_at`, `current_keys`, Q8's to Q13's returns, and the untyped `value` by 0072;
-`model_names` and rebuilding an incomplete result directory by 0080; review round 1 of applying 0066–0085.
+`model_names` and rebuilding an incomplete result directory by 0080; review round 1 of applying 0066–0085;
+2026-10-03: the hashed spec's `files` and `pass_env` sorted (0086 item 4); a workspace from before 2.0.0.dev1 rebuilt (0087 item 3).
 **Schema version:** 1.
 **Depends on:** P1, P3–P7; `model_interface.md`, `designs.md`, `diagnostics/shared.md`, `point_run.md`,
 `uncertainty.md`, `contracts.md` (C17, C46–C52, C56), `export.md`; records 0006, 0010, 0011, 0015, 0020–0022,
-0025, 0028–0030, 0032, 0041, 0043, 0044, 0046, 0049, 0050, 0054, 0055, and 0056.
+0025, 0028–0030, 0032, 0041, 0043, 0044, 0046, 0049, 0050, 0054, 0055, 0056, 0086, and 0087.
 
 > What the store keeps, how it is keyed, and what it answers, so that `ema/store/` can be written one table
 > and one function at a time. The interview settled four behaviors a user sees (0054); everything else here is
@@ -121,7 +122,9 @@ W5's checks, a result's measured-noisy `made_at`, `current_keys`, Q8's to Q13's 
   - **The spec** is parsed and written again with every field, each default filled in (`"noisy": false`,
     `env` `{}`, a parser's `match` `"last"`), each `files` entry as `{"path": …, "shared": …}`, and each path
     relative, with `/`. So a default written out or left out is the same model version (M3). It is without
-    its location, `keep`, `batch_size`, and `timeout_s` (0029).
+    its location, `keep`, `batch_size`, and `timeout_s` (0029). Its `files` are sorted by path and its
+    `pass_env` by name, in the hash only, so a list in another order is the same model version too; the spec
+    stored in `model_versions` keeps the order of the loading that stored it (0086 item 4).
   - **The files** are the tracked files (the function's file, the input deck templates, the listed files),
     each as `[relative path, sha256 of its contents, shared]`, sorted by path.
   - **Shown** always as `name@` and its first 12 hex digits (`model_interface.md`).
@@ -597,6 +600,9 @@ with another version nothing is rebuilt and the versions are named. A replay nev
   first, so two processes can't both migrate.
 - **An older workspace** is migrated when opened, after copying `ema.db` to `ema.db.v<N>`.
 - **A newer workspace** is refused, naming both versions.
+- **A workspace made before EMA `2.0.0.dev1`** is rebuilt, not read: a development version has no migration, and
+  0086 changed what a model version's id covers (the order of `files` and `pass_env`) and which model names load
+  (0087 item 3).
 - **Tests:** from version 2 on, a stored version-1 workspace (`tests/fixtures/workspace_v1.sql`) must open and
   migrate.
 

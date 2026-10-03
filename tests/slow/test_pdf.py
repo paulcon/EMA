@@ -138,3 +138,26 @@ def test_no_block_marker_in_a_results_text_makes_a_block(tmp_path):
     assert found.count("BulletList") == 1  # the Notes section's list, with one item
     assert not {"OrderedList", "HorizontalRule", "DefinitionList", "BlockQuote", "CodeBlock"} & set(found)
     assert found.count("Header") == 5  # the title; Notes, Observations, Figures, Provenance
+
+
+def test_a_notes_lines_are_lines_in_pandoc():
+    """0086 item 5: pandoc's reader (``READER``) reads a note's hard line breaks as line breaks, one per line but the
+    last; a line's own trailing backslash (T10) stays text."""
+    from tests.unit.report.test_render import ABC, simple
+
+    note = Note("n", "line C:\\\nline two: 2 failed\n  2  exited with code 3")
+    if shutil.which("pandoc") is None:
+        pytest.skip("pandoc isn't installed")
+    done = subprocess.run(
+        ["pandoc", "-f", READER, "-t", "json"],
+        input=render(simple(notes=[note]), ABC),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    lists = [b for b in json.loads(done.stdout)["blocks"] if b["t"] == "BulletList"]
+    (item,) = lists[0]["c"]
+    inlines = item[0]["c"]
+    assert [i["t"] for i in inlines].count("LineBreak") == 2 and "SoftBreak" not in [i["t"] for i in inlines]
+    words = [i["c"] for i in inlines if i["t"] == "Str"]
+    assert words == ["line", "C:\\", "line", "two:", "2", "failed", "2", "exited", "with", "code", "3"]

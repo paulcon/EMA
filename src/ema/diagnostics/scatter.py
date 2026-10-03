@@ -97,7 +97,7 @@ class Scatter(DiagnosticBase):
         ),
         seed_parameter("the design's seed, and the bootstrap's.", "yes"),
         DiagnosticParameter(
-            "sampler", "name", "random", "random", "the sampler (0032).", "yes", "sobol", Name(samplers.names)
+            "sampler", "name", "random", "random", "the sampler.", "yes", "sobol", Name(samplers.names)
         ),
     )
     interval_method = "bootstrap"

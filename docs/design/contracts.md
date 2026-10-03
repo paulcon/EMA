@@ -3,10 +3,10 @@
 **Status:** accepted; C46–C52 and C56 cite `data_model.md`'s invariants (0054, 0055); C53–C55 accepted with the
 guides (0060). **Updated:** 2026-10-01 (0054, 0055, 0056, 0057, 0059, 0060, 0061, 0062, 0063, 0065); 2026-10-02
 (the diagnostic contract as built, 0068, 0075, 0077, 0079; the lean interval method and the fast tier with `-n auto`,
-0084; review round 1 of applying 0066–0085). **Depends on:** P1–P7; `scope.md`;
+0084; review round 1 of applying 0066–0085); 2026-10-03 (0086 item 2). **Depends on:** P1–P7; `scope.md`;
 `model_interface.md` (M1–M21), `designs.md` (G1–G18), `diagnostics/shared.md` (S1–S10) and the six diagnostic
 specs, `uncertainty.md` (V1–V7); records 0008, 0010, 0011, 0015–0019, 0022, 0025–0030, 0032–0043, 0045–0048, 0051,
-0052, 0054, 0055, 0068, 0075, 0077, 0079, 0084.
+0052, 0054, 0055, 0068, 0075, 0077, 0079, 0084, 0086.
 
 > The promises each interface makes, written so each becomes one `check_*` function run over every
 > implementation (`../notes/v1/lessons_learned_answers_2026-09-27.md` §4). This file is the test plan: Claude
@@ -241,10 +241,10 @@ C16, C46, and C52.
 
 | Tier | Contains | Budget | Runs |
 |---|---|---|---|
-| fast | unit tests; the contracts on run batches built directly, and on millisecond models; doctests; import-linter | 30 s, with `-n auto` (0084): a size budget (`scope.md`) | after every edit |
+| fast | unit tests; the contracts on run batches built directly, and on millisecond models; doctests; import-linter | 90 s, with `-n auto` (0084, 0086 item 2), 30 s a goal: a size budget (`scope.md`) | after every edit |
 | slow | the use cases end to end, and the get-started guide's Python blocks (C53, 0060); reference models' expected answers and golden reports; C18 at d = 20 for the polynomial model with the defaults (P = 231, 1848 runs; 0079 item 1); the command-line reference models; the wheel build, with its data files; the PDF tests (0018, T10), skipped when `to_pdf` raises `PandocMissing` (0059) | 10 min with `-n auto`: a target | before a step is reported done |
 
-- **Budgets:** the fast tier's 30 s is one of `scope.md`'s size budgets: going over it is a decision record,
+- **Budgets:** the fast tier's 90 s (0086 item 2) is one of `scope.md`'s size budgets: going over it is a decision record,
   not a drift. The slow tier's 10 min is a target: each build step's plan reports the tiers' times, and a step
   that exceeds it says so, and proposes a fix or a new target. The polynomial model's known-answer tests took
   about 9 min serially, mostly R2's bootstrap; with R2's at p = 10 computing no intervals (below), they take

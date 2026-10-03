@@ -222,7 +222,7 @@ def ask_approval(
         On a first approval, when a tracked file changed since loading; nothing is asked or recorded.
     """
     if approve is None:
-        raise CannotAsk("nobody can be asked to approve new runs: use the CLI or Python; nothing was asked (P3)")
+        raise CannotAsk("nobody can be asked to approve new runs: use the CLI or Python; nothing was asked")  # P3
     if not resolution.new_keys:
         raise ValueError("no approval is asked for no new runs (C50)")
     if resolution.model_version_id != model.model_version_id:
@@ -311,7 +311,7 @@ def ask_confirmation(*, store: Store, spec_path: str, spec_text: str, confirm: A
         For a relative path.
     """
     if confirm is None:
-        raise CannotAsk("nobody can be asked to confirm saving a model spec: nothing was asked or saved (P3)")
+        raise CannotAsk("nobody can be asked to confirm saving a model spec: nothing was asked or saved")  # P3
     if not os.path.isabs(spec_path):
         raise ValueError(f"a model spec is saved at an absolute path, not {spec_path!r}")
     data = spec_text.encode("utf-8")

@@ -32,7 +32,7 @@ class Point:
         given = ModelParameterSpace.parse(identity.canonical()["space"])
         if canonical_json(given.canonical()) != canonical_json(space.canonical()):
             raise RequestError(
-                "the point design's space must hold every model parameter at the point (0049): "
+                "the point design's space must hold every model parameter at the point: "
                 f"{canonical_json(space.canonical())}"
             )
         return space.complete(spec, np.empty((1, 0)))[0], repeats

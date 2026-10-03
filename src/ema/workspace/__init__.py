@@ -26,7 +26,7 @@ from ema.models.spec import load_spec, save_spec
 from ema.report.pdf import to_pdf
 from ema.store import Store
 from ema.types.errors import EMAError, NotFound, PathRefused, RequestError, SpecError
-from ema.types.identity import hex_ids, model_version_label, point_hash, reuse_key, sha256_hex
+from ema.types.identity import hex_ids, model_version_label, point_hash, reuse_key, sha256_hex, version_hash
 from ema.types.model import CommandLine, ModelSpec, PythonFunction, hidden_character, is_credentials_file
 from ema.types.requests import Approver, Progress
 from ema.types.results import DiagnosticResult, Provenance, Reproduction, ResultSummary
@@ -355,7 +355,7 @@ class Workspace:
                 now = {f.path: f.sha256 for f in model.files}
                 changed = [f"{p} changed" if p in was and p in now else f"{p} {'added' if p in now else 'removed'}"
                            for p in sorted(set(was) | set(now)) if was.get(p) != now.get(p)]  # fmt: skip
-                if old.spec.versioned_json() != model.spec.versioned_json():
+                if version_hash(old.spec, ()) != version_hash(model.spec, ()):  # its order not covered (0086 item 4)
                     changed.insert(0, "the model spec changed")
                 lines.append(f"New model version {label} ({replaced}): {', '.join(changed) or 'changed'}")
             else:

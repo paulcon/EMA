@@ -159,9 +159,7 @@ def _check_signature(spec: ModelSpec, parsed: tuple[str, str, ast.Module] | None
     if spec.interface.batch:
         required = [arg.arg for arg in positional[1:] + a.kwonlyargs if arg.arg not in defaulted]
         if (not positional and a.vararg is None) or required:
-            raise SpecError(
-                f"{where}({signature}): a batch function takes one positional argument, the points' array (0025)"
-            )
+            raise SpecError(f"{where}({signature}): a batch function takes one positional argument, the points' array")
         return
     problems = [f"{arg.arg} is positional-only" for arg in a.posonlyargs if arg.arg not in defaulted]
     if a.kwarg is None:

@@ -1,9 +1,9 @@
 # Coordinate lines
 
-**Status:** accepted. **Updated:** 2026-10-01 (the mock's Provenance, 0054; step 11, 0058; the seed row, 0061); 2026-10-02 (a line's
-cells' precedence and CL9's test, 0077; review round 1 of applying 0066–0085). **Module:**
-`ema/diagnostics/coordinate_lines.py`. **Depends on:**
-`shared.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0051, 0052, 0058, 0077.
+**Status:** accepted. **Updated:** 2026-10-01 (the mock's Provenance, 0054; step 11, 0058; the seed row, 0061);
+2026-10-02 (a line's cells' precedence and CL9's test, 0077; review round 1 of applying 0066–0085); 2026-10-03 (0086
+item 6). **Module:** `ema/diagnostics/coordinate_lines.py`. **Depends on:** `shared.md`; `../designs.md`; records
+0012, 0034, 0035, 0036, 0038, 0044, 0048, 0051, 0052, 0058, 0077, 0086.
 
 > The model prediction along one line per varied model parameter, through an anchor, and the spectrum of each
 > line (U2). Written from an interview on 2026-09-30 (TODO step 6). Everything not stated here
@@ -26,8 +26,8 @@ cells' precedence and CL9's test, 0077; review round 1 of applying 0066–0085).
 | `space` | model parameter space | required | the ranges varied, and the values held (`../designs.md`) | yes |
 | `n` | integer ≥ 7 | 17 | the number of points on each line, end to end | yes |
 | `anchor` | mapping of model parameter names to values | `{}` (the nominal point) | the point every line passes through; unnamed model parameters at their nominal values, held ones at their held values (`../designs.md`) | yes |
-| `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
-| `seed` | integer ≥ 0 | 0 | recorded; coordinate lines make no random draws (0061) | no |
+| `prediction` | model prediction name | the only one (0022) | the model prediction analyzed | no |
+| `seed` | integer ≥ 0 | 0 | recorded; coordinate lines make no random draws | no (0061) |
 
 - **Which model parameters:** every varied one gets a line, in the model spec's order; there is no separate
   parameter. To leave one out, hold it in the space (0023, 0033). A space with no varied model parameter is

@@ -71,9 +71,44 @@ def test_notes_section_and_a_note_of_several_lines():
     report = render(simple(usable=17, failed={FailureKind.ERROR: 3}, notes=[Note("not_usable", text)]), ABC)
     assert headings(report)[0] == "Notes"
     assert (
-        "\n- 3 of 20 runs are not usable for T\\_max: 3 failed (error).\n  Most frequent reasons:\n    3  exited"
+        "\n- 3 of 20 runs are not usable for T\\_max: 3 failed (error).\\\n  Most frequent reasons:\\\n    3  exited"
         in report
     )
+
+
+def note_lines(text: str) -> list[str]:
+    """The lines a note renders as in CommonMark: its list item's text split at its hard line breaks."""
+    markdown_it = pytest.importorskip("markdown_it")
+    tokens = markdown_it.MarkdownIt("commonmark").parse(render(simple(notes=[Note("n", text)]), ABC))
+    inline = [t for t in tokens if t.type == "inline"]
+    inline = inline[[t.content for t in inline].index("Notes") + 1]
+    lines, line = [], ""
+    for child in inline.children or []:
+        if child.type == "hardbreak":
+            lines, line = [*lines, line], ""
+        elif child.type == "text":
+            line += child.content
+        else:
+            assert child.type != "softbreak", "a note's lines are never joined into one"
+    return [*lines, line]
+
+
+def test_a_notes_lines_each_end_in_a_hard_line_break_but_the_last():
+    """0086 item 5: every line of a note but the last ends with a hard line break ("\\"), so the lines render as
+    lines in CommonMark (and pandoc, tests/slow/test_pdf.py); the stored note is unchanged."""
+    text = "line one\nline two: 2 failed\n  2  exited with code 3"
+    report = render(simple(notes=[Note("n", text)]), ABC)
+    assert "\n- line one\\\n  line two: 2 failed\\\n    2  exited with code 3\n" in report
+    assert note_lines(text) == ["line one", "line two: 2 failed", "2  exited with code 3"]
+    assert note_lines("one line") == ["one line"]
+
+
+def test_a_note_line_that_ends_in_a_backslash_keeps_it():
+    """0086 item 5, T10: a line's own trailing "\\" is escaped, so it prints and the hard break after it holds."""
+    text = "line C:\\\nline two\\"
+    report = render(simple(notes=[Note("n", text)]), ABC)
+    assert "\n- line C:\\\\\\\n  line two\\\\\n" in report
+    assert note_lines(text) == ["line C:\\", "line two\\"]
 
 
 # S2: the header
@@ -218,7 +253,7 @@ def test_a_block_marker_at_a_line_start_is_escaped():
     figure = Figure("scatter_a", "scatter_a.png", "scatter_a.json", caption)
     first = Note("m", "- starts with a dash")
     report = render(simple(notes=[note, first], observations=[title], figures=[figure]), ABC)
-    lines = report.splitlines()
+    lines = [line.removesuffix("\\") for line in report.splitlines()]  # a note line's hard break (0086 item 5)
     escaped = [r"\---", r"\- x", r"\+ x", r"\* x", r"1\. x", r"2\) x", r"a\) x", r"(iv\) x", r"\: x", r"\===", r"\# x"]
     for text in [*escaped, r"\> x", r"  \- x"]:
         assert f"  {text}" in lines, text
@@ -226,7 +261,7 @@ def test_a_block_marker_at_a_line_start_is_escaped():
     assert "1\\. Decay rate: 2" in lines
     assert "\\- y against a Data card: `scatter_a.json`." in lines
     plain = render(simple(notes=[Note("n", "a\n1.5 m\ne.g. x\n-0.5")]), ABC)
-    assert "  1.5 m\n  e.g. x\n  \\-0.5\n" in plain  # a list marker needs a space after it; a dash is escaped
+    assert "  1.5 m\\\n  e.g. x\\\n  \\-0.5\n" in plain  # a list marker needs a space after it; a dash is escaped
 
 
 @pytest.mark.parametrize("ending", ["\r\n", "\r", "\u2028", "\x85", "\v"])
@@ -237,7 +272,7 @@ def test_every_line_ending_is_a_line_end(ending):
     report = render(simple(notes=[note], observations=[t]), ABC)
     assert "| Line head | Range |" in report and "| a b | 1.5 |" in report
     assert "\nRate \\- per run\n" not in report and "\nRate - per run\n" in report
-    assert "- one\n  \\- two\n" in report
+    assert "- one\\\n  \\- two\n" in report  # 0086 item 5: a hard line break
     assert not set("\r\u2028\x85\v") & set(report)
 
 

@@ -74,9 +74,10 @@ def levels(result: DiagnosticResult) -> dict[str, list[Any]]:
 
 
 def in_sample(result: DiagnosticResult) -> dict[str, Any]:
-    """Level L's relative residual and R²: observations, the per-level table's last column (record 0085)."""
+    """Level L's relative residual and R²: observations, the per-level table's last column (record 0085), keyed
+    as in the linear model (``relative_residual``, 0086 item 8)."""
     rows = levels(result)
-    return {"rel_residual": rows["rel_residual"][-1], "r2": rows["r2"][-1]}
+    return {"relative_residual": rows["relative_residual"][-1], "r2": rows["r2"][-1]}
 
 
 def codes(result: DiagnosticResult) -> list[str]:
@@ -220,7 +221,7 @@ def exact_r10(result: DiagnosticResult) -> None:
     for key, value in coef.items():
         assert abs(value - want.get(key, 0.0)) <= 1e-12, (key, value)
     fit = in_sample(result)
-    assert abs(fit["rel_residual"]) <= 1e-12 and abs(fit["r2"] - 1) <= 1e-12
+    assert abs(fit["relative_residual"]) <= 1e-12 and abs(fit["r2"] - 1) <= 1e-12
     assert abs(values(result, "loo")["loo"]) <= 1e-12
     sobol = values(result, "sobol")
     first = np.array([sobol[f"first:{n}"] for n in "abce"])
@@ -237,7 +238,7 @@ def exact_r1(result: DiagnosticResult) -> None:
     want = {"c:0,0,0,0": 10.0, "c:1,0,0,0": r3, "c:0,1,0,0": -1 / r3, "c:0,0,0,1": 2 / r3}
     for key, value in values(result, "coefficients").items():
         assert abs(value - want.get(key, 0.0)) <= 1e-12, (key, value)
-    assert abs(in_sample(result)["rel_residual"]) <= 1e-12 and abs(in_sample(result)["r2"] - 1) <= 1e-12
+    assert abs(in_sample(result)["relative_residual"]) <= 1e-12 and abs(in_sample(result)["r2"] - 1) <= 1e-12
     assert abs(values(result, "loo")["loo"]) <= 1e-12
     sobol = values(result, "sobol")
     for name, share in zip("abck", (9 / 14, 1 / 14, 0.0, 4 / 14), strict=True):
@@ -294,7 +295,10 @@ def test_pm3_loo_equals_explicit_refits(tmp_path):
     c = np.linalg.lstsq(A, y, rcond=None)[0]
     r = y - np.sum(A * c, axis=1)
     rr = math.sqrt(float(np.sum(r * r))) / spread
-    assert abs(in_sample(result)["rel_residual"] - rr) <= 1e-12 and abs(in_sample(result)["r2"] - (1 - rr**2)) <= 1e-12
+    assert (
+        abs(in_sample(result)["relative_residual"] - rr) <= 1e-12
+        and abs(in_sample(result)["r2"] - (1 - rr**2)) <= 1e-12
+    )
 
 
 # --------------------------------------------------------------------------------------------------------------
@@ -332,7 +336,7 @@ def test_0085_the_in_sample_measures_are_observations_without_intervals(tmp_path
     c = np.linalg.lstsq(A, y, rcond=None)[0]
     rr = math.sqrt(float(np.sum((y - A @ c) ** 2)) / float(np.sum((y - y.mean()) ** 2)))
     got = in_sample(result)
-    assert abs(got["rel_residual"] - rr) <= 1e-12 and abs(got["r2"] - (1 - rr**2)) <= 1e-12
+    assert abs(got["relative_residual"] - rr) <= 1e-12 and abs(got["r2"] - (1 - rr**2)) <= 1e-12
     (per_level,) = [t for t in result.observations if t.key == "levels"]
     assert per_level.title == f"Each level is fitted on the usable runs among its first points. {IN_SAMPLE}"
     observations = render(result, case.spec).split("## Observations")[1].split("## Figures")[0]
@@ -623,7 +627,7 @@ R2_ANSWERS = {
         [1.62542, 0.594723, 1.88396, 1.95229, 1.18024, 1.35741, 0.364431, 0.339391, 0.0502251, 0.0459147],
         [1e-4 * t for t in (1.9, 2.4, 2.2, 2.4, 2.2, 2.6, 3.2, 2.7, 3.2, 3.2)],
     ),
-    "rel_residual": ([0.00137138], [7.5e-5]),
+    "relative_residual": ([0.00137138], [7.5e-5]),
     "loo": ([0.00137138], [7.5e-5]),
 }
 R11_ANSWERS = {
@@ -633,7 +637,7 @@ R11_ANSWERS = {
         [0.0, 0.191472, 0.0, 0.0952851, 0.0, 0.0434089, 0.0, 0.0189107, 0.0, 0.00802035],
         [1e-4 * t for t in (1.1, 2.1, 1.7, 3.2, 2.7, 4.1, 3.2, 4.6, 3.9, 5.3)],
     ),
-    "rel_residual": ([0.0167170], [9.6e-4]),
+    "relative_residual": ([0.0167170], [9.6e-4]),
     "loo": ([0.0167170], [9.6e-4]),
 }
 
@@ -644,7 +648,7 @@ def check_answers(result: DiagnosticResult, names: str, answers: dict[str, Any])
         "first": [sobol[f"first:{n}"] for n in names],
         "total": [sobol[f"total:{n}"] for n in names],
         "energy": [energy[f"energy:{k}"] for k in range(1, 11)],
-        "rel_residual": [in_sample(result)["rel_residual"]],
+        "relative_residual": [in_sample(result)["relative_residual"]],
         "loo": [values(result, "loo")["loo"]],
     }
     for key, (want, tol) in answers.items():

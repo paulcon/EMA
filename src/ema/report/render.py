@@ -431,9 +431,13 @@ def _provenance_section(result: DiagnosticResult, spec: ModelSpec) -> list[str]:
 
 
 def _note(text: str) -> str:
-    """Write a note as a list item, its later lines indented under it; blank lines dropped, so none is code (T10)."""
+    """Write a note as a list item, its later lines indented under it; blank lines dropped, so none is code (T10).
+
+    Every line but the last ends in a hard line break, a trailing backslash, so each renders as a line, not as a
+    paragraph's lazy continuation (record 0086 item 5); a line's own trailing backslash is escaped first (T10).
+    """
     lines = [line.rstrip() for line in text.splitlines() if line.strip()] or [""]
-    return "- " + "\n  ".join(_line_start(line) for line in [lines[0].lstrip(), *lines[1:]])
+    return "- " + "\\\n  ".join(_line_start(line) for line in [lines[0].lstrip(), *lines[1:]])
 
 
 def render(result: DiagnosticResult, spec: ModelSpec) -> str:

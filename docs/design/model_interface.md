@@ -1,8 +1,8 @@
 # Model interface
 
-**Status:** accepted. **Updated:** 2026-10-02 (0043, 0052, 0053, 0054, 0056, 0057, 0061, 0069, 0071, 0081). **Depends on:** OD-3 (0003, 0005), OD-6 (0014),
-OD-9 (0022), OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0015, 0020, 0021, 0024, 0025, 0028, 0029, 0030,
-0031, 0057.
+**Status:** accepted. **Updated:** 2026-10-02 (0043, 0052, 0053, 0054, 0056, 0057, 0061, 0069, 0071, 0081);
+2026-10-03 (0086 items 3, 4; 0087 item 1). **Depends on:** OD-3 (0003, 0005), OD-6 (0014), OD-9 (0022), OD-10 (0023), OD-11
+(0026), OD-20 (0027); records 0015, 0020, 0021, 0024, 0025, 0028, 0029, 0030, 0031, 0057, 0086, 0087.
 
 > The hardest thing to change later. This spec says what a model is to EMA: what it takes, what it returns,
 > how it fails, and what makes a new version. It was written from an interview on 2026-09-30 (TODO step 4).
@@ -21,7 +21,9 @@ OD-9 (0022), OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0015, 0020, 0021,
 - **Strings** are one line, with no hidden characters (Unicode's Cc but tab, Cf but the joiners U+200C and
   U+200D, Cs, Zl, Zp), and a key may appear only once in an object; each is refused at loading, naming the
   field (`trust.md`, T7).
-- **Names:** a model's name is lowercase letters, digits, `_`, and `-`. Model parameter and model prediction
+- **Names:** a model's name is lowercase letters, digits, `_`, and `-`, and starts with a letter or a digit
+  (`[a-z0-9][a-z0-9_-]*`), so a command line never reads it as an option; loading refuses another name, stating
+  the rule (0086 item 3). Model parameter and model prediction
   names are ASCII Python identifiers (`[A-Za-z_][A-Za-z0-9_]*`, not a keyword; 0069 item 26), unique across both
   lists, so they work as keyword arguments and in templates; none may start with `ema_`, the prefix of EMA's
   columns in an export (`export.md`, 0053). Loading checks that a Python function takes them (0081 item 29): when
@@ -226,7 +228,10 @@ A Python function model (U1's beam):
 - **Covered** (0029): the whole model spec except its location and the settings `keep`, `batch_size`, and
   `timeout_s`, plus the contents of the tracked files: the Python function's file, the input deck templates,
   and the files the spec lists. Descriptions, units, nominal values, limits (0024), and `shared` marks (0030)
-  are covered.
+  are covered. The order of `files` and of `pass_env` isn't: the hashed form sorts `files` by path and `pass_env`
+  by name, since no order changes what a run does (0086 item 4). The spec file keeps them as written; the model's
+  description shows them as the first loading of its model version wrote them, since the store keeps that
+  loading's spec (`data_model.md` §3.4; 0087 item 1).
 - **Warned:** at loading, an import in the function's file that resolves to an unlisted file in the model's
   directory.
 - **Not covered:** modules found elsewhere, installed packages, programs on `PATH` or given by an absolute

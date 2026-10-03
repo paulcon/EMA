@@ -1,8 +1,9 @@
 # Point run
 
-**Status:** accepted. **Updated:** 2026-10-01 (the seed row, 0061); 2026-10-02 (the mean and standard deviation
-from the deviations, 0075; review round 1 of applying 0066–0085). **Module:** `ema/diagnostics/point_run.py`.
-**Depends on:** `shared.md`; P7; records 0011, 0021, 0022, 0034, 0035, 0036, 0044, 0049, 0051, 0052, 0075.
+**Status:** accepted. **Updated:** 2026-10-01 (the seed row, 0061); 2026-10-02 (the mean and standard deviation from
+the deviations, 0075; review round 1 of applying 0066–0085); 2026-10-03 (0086 item 6; 0087 item 2: no spec id in
+the Meaning column). **Module:** `ema/diagnostics/point_run.py`. **Depends on:** `shared.md`; P7; records 0011, 0021,
+0022, 0034, 0035, 0036, 0044, 0049, 0051, 0052, 0075, 0086, 0087.
 
 > The model prediction at one point, and its measured variation over repeated runs there (0012, P7, 0011).
 > Written from an interview on 2026-09-30 (TODO step 6). Everything not stated here follows `shared.md`.
@@ -21,10 +22,10 @@ from the deviations, 0075; review round 1 of applying 0066–0085). **Module:** 
 
 | Name | Type | Default | Meaning | Changes the design? |
 |---|---|---|---|---|
-| `x` | mapping of model parameter names to values | `{}` (the nominal point) | the point; unnamed model parameters at their nominal values; each value inside its limits (G9) | yes |
+| `x` | mapping of model parameter names to values (G9) | `{}` (the nominal point) | the point; unnamed model parameters at their nominal values; each value inside its limits | yes |
 | `repeats` | integer ≥ 0 | 4 | the number of runs after replicate 0: replicates 1 to `repeats` | yes |
-| `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
-| `seed` | integer ≥ 0 | 0 | recorded; the point run makes no random draws (0061) | no |
+| `prediction` | model prediction name | the only one (0022) | the model prediction analyzed | no |
+| `seed` | integer ≥ 0 | 0 | recorded; the point run makes no random draws | no (0061) |
 
 - **The point's model parameter space** (0049): the user gives `x`, not a space (U7), and EMA builds the space
   that holds every model parameter at the point's value, with none varied (`../designs.md`, Point). The

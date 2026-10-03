@@ -202,8 +202,8 @@ class _Loop:
         runnable = next((i for i, k in enumerate(candidate[:covered])
                          if not _runnable(k, current.get((k.point_hash, k.replicate)))), covered)  # fmt: skip
         if runnable == 0:
-            why = "its run is already made, or its attempt isn't the next (I2, I4)" if covered else (
-                "its point isn't approved, or its run is made (C48)")  # fmt: skip
+            why = "its run is already made, or its attempt isn't the next" if covered else (  # I2, I4; C48
+                "its point isn't approved, or its run is made")  # fmt: skip
             raise ValueError(f"approval {self.approval_id} can't make run {candidate[0].run_id} of {label}: {why}")
         return candidate[:runnable]
 

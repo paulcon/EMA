@@ -2,8 +2,8 @@
 
 **Status:** accepted (TODO step 10; 0057). **Updated:** 2026-10-02 (0061: `remove_tree`, the root's check, "user"; 0069, 0071, 0073, 0074, 0080, 0081: credentials
 files on every spec path, the group killed at a program's exit, T10's reader, Ctrl-C at the question, T6's same spec,
-the function's signature at loading; review round 1 of applying 0066–0085). **Depends on:** P3; AR1–AR4, AR6; records 0010, 0016, 0018,
-0019, 0020, 0022, 0025, 0026, 0028, 0029, 0030, 0049, 0050, 0053, 0054, 0056 (OD-7 and OD-11 are decided);
+the function's signature at loading; review round 1 of applying 0066–0085); 2026-10-03 (0086 item 1). **Depends on:** P3; AR1–AR4, AR6; records 0010, 0016, 0018,
+0019, 0020, 0022, 0025, 0026, 0028, 0029, 0030, 0049, 0050, 0053, 0054, 0056, 0086 (OD-7 and OD-11 are decided);
 `model_interface.md` (M2, M9, M13–M15, M17, M20), `contracts.md` (C32, C33, C38, C39), `data_model.md` (W1, W2,
 W3, Q12, the run lock), `architecture.md` (§3, §5–§8), `export.md` (E1, E4, E7), `use_cases.md` (U2, U6, U9),
 `diagnostics/shared.md` (the notes), `scope.md`; C50, I4.
@@ -277,7 +277,7 @@ the name and character checks, about 25); `ema.models` about 35 (the environment
 same-bytes branch); `ema.report` and `ema.plotting` about 10. The ported sandbox and worker are
 about 500 lines (v1's 534 less little); without v1's limits (about 50 lines) and its withheld variables (about
 15), about 435, as `architecture.md` §11 counts them. Net about 80 more: about 7,940 of `scope.md`'s then 8,000;
-after 0061–0063, about 8,200 of 8,300 (0064); the budget is 11,000 since 0084.
+after 0061–0063, about 8,200 of 8,300 (0064); the budget is 12,000 since 0086 item 1 (11,000 in 0084).
 
 ## Not in v2.0
 

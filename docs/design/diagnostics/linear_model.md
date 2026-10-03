@@ -1,10 +1,10 @@
 # Linear model
 
-**Status:** accepted. **Updated:** 2026-10-01 (step 11); 2026-10-02 (the per-level table's units, the constant
-case, and the rank and leave-one-out notes, 0078; the in-sample relative residual and R² as observations, 0085;
-review round 1 of applying 0066–0085).
-**Module:** `ema/diagnostics/linear_model.py`. **Depends on:** `shared.md`; `../designs.md`; `../uncertainty.md`;
-records 0012, 0032, 0033, 0034, 0035, 0041, 0042, 0044, 0048, 0049, 0051, 0052, 0078, 0085.
+**Status:** accepted. **Updated:** 2026-10-01 (step 11); 2026-10-02 (the per-level table's units, the constant case,
+and the rank and leave-one-out notes, 0078; the in-sample relative residual and R² as observations, 0085; review
+round 1 of applying 0066–0085); 2026-10-03 (0086 item 6). **Module:** `ema/diagnostics/linear_model.py`. **Depends
+on:** `shared.md`; `../designs.md`; `../uncertainty.md`; records 0012, 0032, 0033, 0034, 0035, 0041, 0042, 0044,
+0048, 0049, 0051, 0052, 0078, 0085, 0086.
 
 > A least-squares linear fit of the model prediction in unit coordinates, over a convergent design: its
 > coefficients, how well it fits, and how well it predicts runs it wasn't fitted to (0012, U4). Written from an
@@ -29,8 +29,8 @@ records 0012, 0032, 0033, 0034, 0035, 0041, 0042, 0044, 0048, 0049, 0051, 0052, 
 | `alpha` | decimal in (0, 1) | 0.7072 | the error factor per level (`../designs.md`, Convergent) | yes |
 | `level` | integer ≥ 0 | 2 | L, the last level | yes |
 | `seed` | integer ≥ 0 | 0 | the design's seed, and the bootstrap's (`shared.md`) | yes |
-| `sampler` | name | `random` | the sampler (0032); convergent needs a nested one | yes |
-| `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
+| `sampler` | name | `random` (0032) | the sampler; convergent needs a nested one | yes |
+| `prediction` | model prediction name | the only one (0022) | the model prediction analyzed | no |
 
 - **d** is the number of varied model parameters; the fit has d + 1 coefficients.
 - **The defaults:** n_min = 2(d + 1), twice the coefficients, as U4 assumes; alpha = 0.7072, just above 1/√2, so

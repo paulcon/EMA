@@ -1,9 +1,9 @@
 # Scatter
 
-**Status:** accepted. **Updated:** 2026-10-01 (step 11); 2026-10-02 (the figures' limits, cards, and captions,
-0076; the mock's symbols and line, 0073; review round 1 of applying 0066–0085). **Module:**
+**Status:** accepted. **Updated:** 2026-10-01 (step 11); 2026-10-02 (the figures' limits, cards, and captions, 0076;
+the mock's symbols and line, 0073; review round 1 of applying 0066–0085); 2026-10-03 (0086 item 6). **Module:**
 `ema/diagnostics/scatter.py`. **Depends on:** `shared.md`; `../designs.md`; records 0012, 0032, 0034, 0035, 0037,
-0042, 0044, 0048, 0049, 0051, 0052, 0073, 0076.
+0042, 0044, 0048, 0049, 0051, 0052, 0073, 0076, 0086.
 
 > The model prediction against each model parameter, over a uniform design (U1). Written from an interview on
 > 2026-09-30 (TODO step 6). Everything not stated here follows `shared.md`.
@@ -25,8 +25,8 @@
 | `space` | model parameter space | required | the ranges varied, and the values held (`../designs.md`) | yes |
 | `n` | integer ≥ 1 | 200 | the number of points | yes |
 | `seed` | integer ≥ 0 | 0 | the design's seed, and the bootstrap's (`shared.md`) | yes |
-| `sampler` | name | `random` | the sampler (0032) | yes |
-| `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
+| `sampler` | name | `random` (0032) | the sampler | yes |
+| `prediction` | model prediction name | the only one (0022) | the model prediction analyzed | no |
 
 - **Which model parameters:** the space says which vary; there is no separate parameter. To scatter fewer, hold
   the others in the space (0023, 0033).

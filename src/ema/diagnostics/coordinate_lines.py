@@ -58,7 +58,7 @@ class CoordinateLines(LinesDiagnostic):
             {"a": 0.3},
             Point(),
         ),
-        seed_parameter("recorded; coordinate lines make no random draws (0061).", "no"),
+        seed_parameter("recorded; coordinate lines make no random draws.", "no"),
     )
     nesting = ("n",)
 

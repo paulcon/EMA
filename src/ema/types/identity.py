@@ -341,9 +341,10 @@ def version_hash(spec: "ModelSpec", files: Sequence[TrackedFile]) -> str:
     """Return a model version's id (data_model.md §3.4; M3, 0029).
 
     The SHA-256 of the canonical JSON of ``{"spec": …, "files": […]}``: the spec as ``versioned_json`` writes it
-    (every field, each default filled in, without its location, ``keep``, ``batch_size``, and ``timeout_s``), and
-    each tracked file as ``[relative path, sha256 of its contents, shared]``, sorted by path. The digests are
-    given: reading and hashing the files is ``ema.models``'s (architecture.md §1).
+    (every field, each default filled in, without its location, ``keep``, ``batch_size``, and ``timeout_s``), with
+    its ``files`` sorted by path and ``pass_env`` by name, here only, since no order changes what a run does (0086
+    item 4); and each tracked file as ``[relative path, sha256 of its contents, shared]``, sorted by path. The
+    digests are given: reading and hashing the files is ``ema.models``'s (architecture.md §1).
 
     Parameters
     ----------
@@ -358,4 +359,7 @@ def version_hash(spec: "ModelSpec", files: Sequence[TrackedFile]) -> str:
         64 hex digits.
     """
     tracked = [[f.path, f.sha256, f.shared] for f in sorted(files, key=lambda f: f.path)]
-    return sha256_hex(canonical_json({"spec": json.loads(spec.versioned_json()), "files": tracked}))
+    hashed = json.loads(spec.versioned_json())
+    hashed["files"].sort(key=lambda f: f["path"])
+    hashed["pass_env"].sort()
+    return sha256_hex(canonical_json({"spec": hashed, "files": tracked}))

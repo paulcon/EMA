@@ -1,12 +1,11 @@
 # Polynomial model
 
 **Status:** accepted. **Updated:** 2026-10-01 (step 11, 0058); 2026-10-02 (the build's choices: the constants'
-factor, the notes, V = 0, the figures' cards, R2's known answer without intervals, 0079; the mock's Provenance
-line, 0073; the in-sample relative residual and R² as observations, 0085; review round 1 of applying
-0066–0085). **Module:**
-`ema/diagnostics/polynomial_model.py`. **Depends on:** `shared.md`; `linear_model.md`; `../designs.md`;
-`../uncertainty.md`; records 0012, 0032, 0033, 0034, 0035, 0039, 0041, 0042, 0044, 0048, 0049, 0051, 0052, 0058,
-0068, 0073, 0079, 0085.
+factor, the notes, V = 0, the figures' cards, R2's known answer without intervals, 0079; the mock's Provenance line,
+0073; the in-sample relative residual and R² as observations, 0085; review round 1 of applying 0066–0085);
+2026-10-03 (0086 item 6). **Module:** `ema/diagnostics/polynomial_model.py`. **Depends on:** `shared.md`;
+`linear_model.md`; `../designs.md`; `../uncertainty.md`; records 0012, 0032, 0033, 0034, 0035, 0039, 0041, 0042,
+0044, 0048, 0049, 0051, 0052, 0058, 0068, 0073, 0079, 0085, 0086.
 
 > A least-squares polynomial fit of the model prediction in unit coordinates, over a convergent design: how well
 > it fits, how its variance splits among the model parameters (Sobol indices), and how fast its coefficients
@@ -33,9 +32,9 @@ line, 0073; the in-sample relative residual and R² as observations, 0085; revie
 | `alpha` | decimal in (0, 1) | 0.7072 | the error factor per level (`../designs.md`, Convergent) | yes |
 | `level` | integer ≥ 0 | 2 | L, the last level | yes |
 | `seed` | integer ≥ 0 | 0 | the design's seed, and the bootstrap's (`shared.md`) | yes |
-| `sampler` | name | `random` | the sampler (0032); convergent needs a nested one | yes |
+| `sampler` | name | `random` (0032) | the sampler; convergent needs a nested one | yes |
 | `basis` | name | `total_degree` | the set of terms; v2.0 accepts only `total_degree` | no |
-| `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
+| `prediction` | model prediction name | the only one (0022) | the model prediction analyzed | no |
 
 - **d** is the number of varied model parameters; **P** = C(d + p, p) is the number of terms, and of
   coefficients.

@@ -2,8 +2,9 @@
 
 **Status:** accepted. **Updated:** 2026-10-01 (0054, 0055, 0057, 0061); 2026-10-02 (text in a result is plain, and
 the Provenance line's form, 0073, 0077; the shared notes' texts, 0075; units named by a table's title, 0078; the
-PDF's figures, 0081; review round 1 of applying 0066–0085). **Depends on:** P1, P2, P4, P5, P6; records 0004,
-0010, 0018, 0022, 0034, 0035, 0040, 0042, 0044, 0049, 0051, 0052, 0054, 0055, 0057, 0073, 0075, 0077, 0078, 0081.
+PDF's figures, 0081; review round 1 of applying 0066–0085); 2026-10-03 (0086 item 5). **Depends on:** P1, P2, P4,
+P5, P6; records 0004, 0010, 0018, 0022, 0034, 0035, 0040, 0042, 0044, 0049, 0051, 0052, 0054, 0055, 0057, 0073,
+0075, 0077, 0078, 0081, 0086.
 
 > The parts of a diagnostic's spec that are the same for all six: the report's layout, how numbers are
 > written, the precheck, how runs that aren't usable are counted and drawn, and where a diagnostic's own
@@ -116,15 +117,17 @@ A note is a caveat about the data (glossary). Shared notes, in this order:
   runs the estimates use ("Observations use" for a diagnostic without estimates, or below its minimum), and the
   call that lists them all, with the result's id as 12 hex digits. Runs are counted once each, at their first
   row in design order (a shared anchor's run, 0075 item 8). The note is plain text, like every text in a result
-  (0073 item 1, 0075 item 30): the report escapes it, and shows the call as written:
+  (0073 item 1, 0075 item 30): the report escapes it, and shows the call as written. In the report's Markdown,
+  each line of a note but the last ends in a hard line break (a trailing `\`), so each renders as a line, not
+  joined to the one before; the stored note has no such break (0086 item 5):
 
   ```markdown
-  - 34 of 200 runs are not usable for T_max: 30 failed (error), 4 failed (timeout).
-    Most frequent reasons:
-      27  exited with code 3
-       4  timeout after 600 s
-       3  solver.cfg: max iterations reached
-    Estimates use the 166 usable runs. ws.failed_runs("3f2a91c07d4e") lists each one.
+  - 34 of 200 runs are not usable for T\_max: 30 failed (error), 4 failed (timeout).\
+    Most frequent reasons:\
+      27  exited with code 3\
+       4  timeout after 600 s\
+       3  solver.cfg: max iterations reached\
+    Estimates use the 166 usable runs. ws.failed\_runs("3f2a91c07d4e") lists each one.
   ```
 
 - **Reused failed runs** (0010): how many of the reused runs had failed before, and that `retry_failed` runs

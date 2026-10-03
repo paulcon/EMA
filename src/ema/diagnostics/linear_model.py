@@ -114,7 +114,7 @@ class LinearModel(DiagnosticBase):
             "name",
             "random",
             "random",
-            "the sampler (0032); convergent needs a nested one.",
+            "the sampler; convergent needs a nested one.",
             "yes",
             "sobol",
             Name(samplers.names),

@@ -71,7 +71,7 @@ POLY_BOOT_TAG = 2**32 + 3
 #: The bootstrap's progress is reported about this often, in seconds (PM10).
 PROGRESS_SECONDS = 1.0
 
-_SAMPLER = "the sampler (0032); convergent needs a nested one."
+_SAMPLER = "the sampler; convergent needs a nested one."
 _BASIS = "the set of terms; v2.0 accepts only total_degree. Part of the request's identity, not the design's."
 _SUBSCRIPTS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
 _FIT, _SOBOL, _DECAY, _RESIDUALS = (f"polynomial_model_{s}" for s in ("fit", "sobol", "decay", "residuals"))
@@ -286,7 +286,7 @@ class PolynomialModel(DiagnosticBase):
                 values = [fit.relative_residual, fit.r2, fit.loo, *map(float, fit.total)]
             columns[0].append(Observation("usable", "Usable runs", f"{len(rows)} of {n_l}", ""))
             labels = ["Relative residual", "R²", "Leave-one-out error", f"Total index of {names[0]}", *names[1:]]
-            keys = ["rel_residual", "r2", "loo", *(f"total:{n}" for n in names)]
+            keys = ["relative_residual", "r2", "loo", *(f"total:{n}" for n in names)]  # 0086 item 8
             for k, (key, label, value) in enumerate(zip(keys, labels, values, strict=True)):
                 columns[k + 1].append(Observation(key, label, _finite_or_none(value), ""))
         heading = ("The fit at each level", *(f"Level {lvl}" for lvl in range(len(sizes))))

@@ -126,6 +126,23 @@ def test_a_changed_file_is_refused_until_loaded_again(ws, tmp_path, toy):
     assert len({r.model_version for r in listed}) == 2
 
 
+def test_a_reordered_files_list_is_not_a_spec_change(ws, tmp_path):
+    """0086 item 4: a spec that only reorders ``files`` and ``pass_env`` has the same model version; a new version
+    from a file's change names the file only, not "the model spec changed"."""
+    spec = copy_model("python", tmp_path / "toy")
+    ws.load_model(spec)
+    obj = json.loads(spec.read_text())
+    obj["files"].reverse()
+    obj["pass_env"] = ["ZZ_VAR", *obj["pass_env"]]
+    spec.write_text(json.dumps(obj))
+    ws.load_model(spec)
+    obj["pass_env"].reverse()
+    spec.write_text(json.dumps(obj))
+    (spec.parent / "helper.py").write_text((spec.parent / "helper.py").read_text() + "\n# edited\n")
+    loading = ws.load_model(spec)
+    assert loading.new_version and loading.changed_files == ("helper.py changed",)
+
+
 def test_a_change_during_the_runs_keeps_the_runs_made(ws, tmp_path, toy):
     """U6: a change between an approval and its runs is refused at the next call, and the runs before it are kept."""
     spec = copy_model("python", tmp_path / "toy")

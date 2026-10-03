@@ -235,7 +235,7 @@ class CoordinateLines:
             elif np.any(column == value):
                 raise RequestError(
                     f"coordinate_lines: the anchor's model parameter {name} = {float(value)!r} is a point of "
-                    "its coordinate line, off the range's center; give another anchor (0051)"
+                    "its coordinate line, off the range's center; give another anchor"
                 )
             segments.append(segment)
             records.append((anchor_x, direction))

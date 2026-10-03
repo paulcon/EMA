@@ -637,7 +637,7 @@ class EmaServer:
     async def _list_templates(self, ctx: Any, params: Any) -> types.ListResourceTemplatesResult:
         templates = [
             types.ResourceTemplate(uri_template="ema://results/{id}/report", name="report",
-                                   description="A diagnostic result's report, byte for byte (U9).",
+                                   description="A diagnostic result's report, byte for byte.",  # U9
                                    mime_type="text/markdown"),
             types.ResourceTemplate(uri_template="ema://results/{id}/figures/{name}.png", name="figure",
                                    description="One of a result's figures.", mime_type="image/png"),
@@ -645,7 +645,7 @@ class EmaServer:
                                    description="A figure's data card: the numbers it draws.",
                                    mime_type="application/json"),
             types.ResourceTemplate(uri_template="ema://diagnostics/{name}", name="diagnostic",
-                                   description="A diagnostic and its parameters' JSON schemas (C55).",
+                                   description="A diagnostic and its parameters' JSON schemas.",  # C55
                                    mime_type="application/json"),
         ]  # fmt: skip
         return types.ListResourceTemplatesResult(resource_templates=templates)

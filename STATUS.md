@@ -12,8 +12,8 @@
   end through a real MCP client. The demo's instructions: `docs/notes/demo_mcp.md` (the demo root,
   `~/ema_demo`, is set up with three models loaded). Every step's review rounds are done, the final integrated
   review and a rehearsal of the demo's 13 prompts passed, and every test passes (2,076 in the slow tier). Not
-  done: step 17's guides' full text and release. The size: 11,034 code lines; the owner raised the budget to
-  11,000 (0084), and to 12,000 in record 0086 (answered, not yet accepted).
+  done: step 17's guides' full text and release. The size: 11,040 code lines of a budget of 12,000
+  (0084, 0086).
 - Writing the design documents by hand (`TODO.md`): steps 1–13 done.
 - "Before the first line of code" (`TODO.md`) done: the specs checked against each other, and the contradictions
   resolved (records 0061–0064). The first plan written: `docs/plans/01-scaffolding-and-designs.md`
@@ -100,8 +100,10 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
 
 ## Next
 
-- **The owner:** accept record 0086 (answered in an interview, 2026-10-02); then its edits and code are applied and
-  the demo root recomputed. Decide on merging `demo` into `main`.
+- **The owner:** review `demo` and decide on merging it into `main`.
+- Records 0086 (the review's leftovers, answered in an interview) and 0087 (three follow-ups) accepted and applied
+  (2026-10-03): the budgets 12,000 source lines (11,040 used) and a 90 s fast tier; EMA `2.0.0.dev1`; the demo root
+  rebuilt.
 - Records 0066–0085 accepted and applied (f012505), then reviewed in two rounds by fresh agents (round 1: 2 major,
   20 minor, 25 nits; round 2: 1 major, 6 minor, 15 nits); the plain findings fixed in place, the rest in 0086
   (`docs/notes/demo_build.md`).

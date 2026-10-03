@@ -10,17 +10,19 @@ errors, the runner's contract; 0075: the diagnostics' base; 0076: the column-wis
 0078: `_fits.py`; 0079: `dtrtrs`, `Name`; 0080: the workspace's paths, rebuilds, and texts, `model_names`,
 `fenced`; 0081: the MCP server, `Stopped`, AR3's two contracts, export's PDF, a repeated request's text,
 `describe_model`'s settings; 0082: the CLI; 0084: §11's measured counts against 11,000; 0085: the fits' in-sample
-measures as observations; review round 1 of applying 0066–0085). **Depends on:** P1–P7; `scope.md`;
-`use_cases.md` (U1–U9); `model_interface.md` (M1–M21); `designs.md` (G1–G18); `diagnostics/shared.md` (S1–S10)
+measures as observations; review round 1 of applying 0066–0085); 2026-10-03 (0086 items 1, 9, 11, 12, and 13: the
+budget of 12,000, EMA's version, `python -m ema.mcp`, `_values` and `_vector`, the names not listed).
+**Depends on:** P1–P7; `scope.md`; `use_cases.md` (U1–U9); `model_interface.md` (M1–M21); `designs.md` (G1–G18); `diagnostics/shared.md` (S1–S10)
 and the six diagnostic specs; `uncertainty.md` (V1–V7);
 `contracts.md` (C1–C56); `data_model.md` (Q1–Q12, W1–W6, I1–I12; Q13–Q15 added by 0056); `export.md` (E1–E7);
 records 0005, 0008, 0010, 0015–0022, 0024–0030, 0032–0036, 0040, 0041, 0046, 0047, 0049, 0050, 0053–0055, 0057,
-0067–0082, 0084, 0085;
+0067–0082, 0084, 0085, 0086;
 `trust.md` (T1–T10). Rewritten from the specs' "Architecture (step 9)" asks and the consistency review's "Step 9
 inputs"; the draft of 2026-09-28 (`api_spec_draft.md`) is replaced.
 
 > Every package and module in v2.0, what each is for, its layer, and its public names, with signatures, so
-> each module's code and contract tests can be written against it. Signatures are Python stubs (`...` for the
+> each module's code and contract tests can be written against it. Constants and helpers that only their own
+> package (and its tests) use aren't listed (0086 item 13). Signatures are Python stubs (`...` for the
 > body); every public class is a frozen dataclass unless marked otherwise, and nothing public returns a bare
 > `dict`. A mapping field is made read-only (`MappingProxyType`) in `__post_init__`, and a default mapping is
 > `field(default_factory=dict)`. A class holding numpy arrays is `eq=False` (a dataclass's own equality can't
@@ -175,13 +177,16 @@ src/ema/
     server.py                 the tools and resources; serve, ELICITATION_TIMEOUT_S, PROGRESS_INTERVAL_S
     __main__.py               python -m ema.mcp, as ema mcp (0081)
     tools.md                  the tool descriptions and the server's instructions, one reviewed file (0019)
-  reference_models/           not counted in the 11,000 lines (scope, 0084); §11
+  reference_models/           not counted in the 12,000 lines (scope, 0084, 0086); §11
 tests/
   contracts/                  one module of check_* functions per interface (§9)
   support/                    the tests' shared helpers and fakes (LeanIntervalMethod, 0084 item 3)
   models/                     the toy models: python, batch, command_line, imports (contracts.md)
   unit/  slow/
 ```
+
+`_values` and `_vector` are private to EMA, not to their package: `ema.types._values` is read by layers 0–1 and
+`ema.diagnostics.base`, `ema.numerics._vector` by every computation (0067 item 8, 0068, 0086 item 12).
 
 ## 3. Layer 0: `ema.types`
 
@@ -1467,10 +1472,15 @@ def estimate(key: str, label: str, value: float, interval: Interval) -> Estimate
 def interval_info(ctx: AnalysisContext, n_usable: int, *, distinct: str | None = None,
                   undefined: Mapping[str, int] | None = None) -> IntervalInfo: ...   # the method's settings,
                                                                                      # seed, distinct (0073)
-def library_versions() -> dict[str, str]: ...    # ema, numpy, scipy, matplotlib
+def library_versions() -> dict[str, str]: ...    # ema, numpy, scipy, matplotlib; as installed (EMA's is
+                                                 # pyproject.toml's version)
 def make_provenance(batch: RunBatch, ctx: AnalysisContext, diagnostic: Diagnostic, model_version_id: str, *,
                     approval_id: str | None, versions: Mapping[str, str]) -> Provenance: ...
 ```
+
+The provenance and the reuse key hold these versions (0062). EMA's version is raised whenever a change alters a
+diagnostic's stored or printed output (0086 item 9), so a reproduce (U8) names the version difference, and a
+repeated request computes the result again instead of returning the older one; `2.0.0.dev1` is the first.
 
 Importing `ema.diagnostics` imports every module of the package but `base` and the private ones, and each
 diagnostic module ends with `register(...)`: adding a diagnostic is one module, with no other file to edit (0075).
@@ -1738,9 +1748,10 @@ formats a number (C54, C55; P1).
 
 ### `ema.mcp`
 
-Started by `ema mcp`, or `python -m ema.mcp --root DIR [--workspace DIR]` (`ema/mcp/__main__.py`, the same
-root refusals (exit 2); 0081); needs the `ema[mcp]` extra, bounded `mcp>=2.2.0`, the SDK release whose API it
-is written and tested against (`scope.md`; 0081). Each tool is one workspace call (0016). It speaks the
+Started by `ema mcp`, or `python -m ema.mcp --root DIR [--workspace DIR]` (`ema/mcp/__main__.py`, kept: the
+same root refusals, and without the extra the same message as `ema mcp`, exit 2; 0081, 0086 item 11); needs the
+`ema[mcp]` extra, bounded `mcp>=2.2.0`, the SDK release whose API it is written and tested against (`scope.md`;
+0081). Each tool is one workspace call (0016). It speaks the
 `initialize` handshake era only, where a server may ask (elicitation) while a tool call is open; a client that
 probes the stateless era first falls back to it (0081). `serve(*, root, workspace="ema_workspace")` refuses a
 relative root and `/` (`PathRefused`), beside `open_workspace`'s refusals (T5; 0081).
@@ -1946,27 +1957,28 @@ forbidden_modules = ["ema.reference_models"]
 
 ## 11. Size
 
-Source lines per package against `scope.md`'s 11,000 (0084: raised from 8,300 by the owner, 2026-10-02), measured
-on `demo` at the end of the demo build (step 17), after every step's review fixes: code lines, without docstrings,
-comments, or blank lines, the same counter for every package. They replace 0064's estimates (8,200 against 8,300);
-most of the difference is validation the reviews asked for, not features (0084).
+Source lines per package against `scope.md`'s 12,000 (0084: raised from 8,300 to 11,000 by the owner, 2026-10-02;
+0086 item 1: to 12,000, 2026-10-03), measured on `demo` after the demo build (step 17), every step's review fixes,
+and records 0081 items 28–32, 0085, and 0086: code lines, without docstrings, comments, or blank lines, the same
+counter for every package. They replace 0064's estimates (8,200 against 8,300); most of the difference is
+validation the reviews asked for, not features (0084).
 
 | Package | Lines | Main parts |
 |---|---|---|
-| `ema.types` | 2,167 | the model spec's reader, each field named in its refusals, and `trust.md`'s checks (0069); the run and result types' strict reading, the store's columns, and the cross-checks (0070); `identity.py`; values as doubles, `DesignStructure`, `duration()`'s rule (0061–0063) |
+| `ema.types` | 2,170 | the model spec's reader, each field named in its refusals, and `trust.md`'s checks (0069); the run and result types' strict reading, the store's columns, and the cross-checks (0070); `identity.py`; values as doubles, `DesignStructure`, `duration()`'s rule (0061–0063) |
 | `ema.numerics` | 390 | the basis (ported), fits and PRESS, the bootstrap, the Gram spectrum; `_vector` (0068); the column-wise statistics (0076) |
 | `ema.designs` | 586 | the `random` sampler, six generators; convergent's exact sizes (0067); `lines_through_anchor` (0073) |
-| `ema.models` | 1,363 | the sandbox and worker (ported, without v1's limits and withheld variables), the environment and path checks, the three phases, parsers, `ModelProcesses`; Ctrl-C held while a process starts, exits seen without reaping, the reply checked again in EMA (0071) |
+| `ema.models` | 1,418 | the sandbox and worker (ported, without v1's limits and withheld variables), the environment and path checks, the three phases, parsers, `ModelProcesses`; Ctrl-C held while a process starts, exits seen without reaping, the reply checked again in EMA (0071) |
 | `ema.store` | 1,235 | `data_model.md` §10; W5's checks, the result directory's swap, `current_keys` (0072) |
-| `ema.plotting`, `ema.report` | 708 | the drawing helpers the diagnostics share (0073); escaping text EMA didn't write; the PDF |
-| `ema.runner`, `ema.approval`, the root's `__init__` | about 488 | the questions' rendering (`trust.md`; 0074); the root's lazy re-exports (0080) |
-| `ema.diagnostics` | 2,282 | base and precheck, with the readers and the request, identity, and provenance helpers (0075); the six; `_lines.py`, `_fits.py` |
-| `ema.workspace` | 915 | the evaluation's order; export (E1–E7); reproduce (0062, 0063); the root's checks and the thread guard (0080) |
-| `ema.cli`, `ema.mcp` | 823 | the CLI (0082); the server, its SIGTERM handling and reply relay (0081) |
-| **Total** | **10,957** | 43 under the budget of 11,000 (0084) |
+| `ema.plotting`, `ema.report` | 715 | the drawing helpers the diagnostics share (0073); escaping text EMA didn't write; the PDF |
+| `ema.runner`, `ema.approval`, the root's `__init__` | 488 | the questions' rendering (`trust.md`; 0074); the root's lazy re-exports (0080) |
+| `ema.diagnostics` | 2,276 | base and precheck, with the readers and the request, identity, and provenance helpers (0075); the six; `_lines.py`, `_fits.py` |
+| `ema.workspace` | 931 | the evaluation's order; export (E1–E7); reproduce (0062, 0063); the root's checks and the thread guard (0080) |
+| `ema.cli`, `ema.mcp` | 831 | the CLI (0082); the server, its SIGTERM handling and reply relay (0081) |
+| **Total** | **11,040** | 960 under the budget of 12,000 (0086 item 1; counted 2026-10-03, with 0086 applied) |
 
 - **Reference models ship with `ema`,** in `ema/reference_models/` (each a model spec with its function or
-  program), counted against their own 1,000 lines, not the 11,000 (82 lines of Python, 0084). The get-started
+  program), counted against their own 1,000 lines, not the 12,000 (0086; 82 lines of Python, 0084). The get-started
   guide and the use cases' "Done when" tests load them from an installed EMA; `ema.reference_models.path(id)`
   gives one's model spec (its `model.json`; 0060), and `space(id)` the space of its expected answers (its
   `space.json`; 0075).
@@ -2000,7 +2012,7 @@ most of the difference is validation the reviews asked for, not features (0084).
 | v1's approval rules | placed by layer (§6) | 0057 |
 | vector-vector BLAS (P4) | none in `ema`: `_vector`'s `dot`, `norm`, `matvec`; TID251 and an AST test | 0068 |
 | AR3's contracts | one per interface; no `numpy`, `scipy`, `matplotlib`, or reference models in either | 0081, 0082 |
-| the size budget | 11,000; §11's rows the measured counts | 0084 |
+| the size budget | 12,000; §11's rows the measured counts | 0084, 0086 |
 
 ## What this spec asks of other documents
 
