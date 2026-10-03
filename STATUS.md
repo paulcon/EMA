@@ -1,19 +1,18 @@
 # EMA v2 status
 
-**Updated:** 2026-10-02. Update this file at the end of every step, in the same commit as the work.
+**Updated:** 2026-10-03. Update this file at the end of every step, in the same commit as the work.
 
 ## Now
 
-- **Demo build (record 0066, 2026-10-01–02), on the `demo` branch, not `main`:** every build step of the roadmap
-  (01–16, and T, the rest of `ema.types`) built autonomously in waves, each reviewed by independent agents, fixed,
-  and re-reviewed; provisional choices in records 0066–0085, accepted by the owner (2026-10-02) and applied to the specs.
-  Log of every wave and review round: `docs/notes/demo_build.md`. On `demo`: the six diagnostics, the workspace
-  (U1–U8 and the get-started guide pass), the CLI (`ema`), and the MCP server (`ema mcp --root DIR`), checked end to
-  end through a real MCP client. The demo's instructions: `docs/notes/demo_mcp.md` (the demo root,
-  `~/ema_demo`, is set up with three models loaded). Every step's review rounds are done, the final integrated
-  review and a rehearsal of the demo's 13 prompts passed, and every test passes (2,076 in the slow tier). Not
-  done: step 17's guides' full text and release. The size: 11,040 code lines of a budget of 12,000
-  (0084, 0086).
+- **The `demo` branch (records 0066–0087), not merged into `main`; pushed to GitHub as `origin/demo`
+  (2026-10-03):** every build step of the roadmap (01–16, and T, the rest of `ema.types`), built autonomously and
+  reviewed by independent agents; the six diagnostics, the workspace (U1–U8; the get-started guide passes), the CLI
+  (`ema`), and the MCP server (`ema mcp --root DIR`), checked end to end through a real MCP client. Records
+  0066–0087 are accepted and applied to the specs. EMA `2.0.0.dev1`; 11,040 code lines of a budget of 12,000
+  (0084, 0086); the fast tier 50–70 s of a 90 s budget (0086); every test passes (2,127 in the slow tier). Log of
+  every wave and review round: `docs/notes/demo_build.md`. The demo's instructions: `docs/notes/demo_mcp.md`; its
+  root, `~/ema_demo`, rebuilt under `2.0.0.dev1` with four models loaded (the old workspace kept beside it as
+  `ema_workspace.pre0086/`). Not done: step 17's guides' full text and the release.
 - Writing the design documents by hand (`TODO.md`): steps 1–13 done.
 - "Before the first line of code" (`TODO.md`) done: the specs checked against each other, and the contradictions
   resolved (records 0061–0064). The first plan written: `docs/plans/01-scaffolding-and-designs.md`
@@ -97,18 +96,24 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   requests refused, G18; four more words in the terminology test; a given line's anchor at the geometric center
   and its direction as given), applied to `architecture.md`, `designs.md`, `contracts.md`, the glossary, and
   0008's status.
+- 2026-10-01–02: the demo build on `demo` (record 0066): steps 01–16 and T built in waves, each reviewed and fixed
+  by independent agents; provisional choices in records 0067–0082 and 0084; the final integrated review and the
+  demo's rehearsal passed; record 0085 (a fit's in-sample measures as observations) after the owner's rehearsals.
+- 2026-10-02: records 0066–0085 accepted by the owner (0084's budget raised to 11,000) and applied to the specs
+  (f012505); reviewed in two rounds by fresh agents (2 major, 20 minor, 25 nits; then 1 major, 6 minor, 15 nits),
+  the plain findings fixed in place, the rest as record 0086, answered by the owner in an interview.
+- 2026-10-03: records 0086 (the budgets 12,000 source lines and a 90 s fast tier; model names; `files` and
+  `pass_env` sorted before hashing; notes' line breaks; no ids in text users see; one per-level key; the version
+  raised when a diagnostic's output changes, `2.0.0.dev1`; `python -m ema.mcp` kept; and smaller items) and 0087
+  (three follow-ups from its review) accepted and applied; the demo root rebuilt; `demo` pushed to GitHub.
 
 ## Next
 
-- **The owner:** review `demo` and decide on merging it into `main`.
-- Records 0086 (the review's leftovers, answered in an interview) and 0087 (three follow-ups) accepted and applied
-  (2026-10-03): the budgets 12,000 source lines (11,040 used) and a 90 s fast tier; EMA `2.0.0.dev1`; the demo root
-  rebuilt.
-- Records 0066–0085 accepted and applied (f012505), then reviewed in two rounds by fresh agents (round 1: 2 major,
-  20 minor, 25 nits; round 2: 1 major, 6 minor, 15 nits); the plain findings fixed in place, the rest in 0086
-  (`docs/notes/demo_build.md`).
-- Build steps 01–16 are on `demo` (above). The BLAS question for `ema.numerics` was measured and settled
-  provisionally (`docs/notes/blas_determinism_2026-10-01.md`; record 0068 item 1: no 1-D BLAS products or norms).
+- **The owner:** review `demo` (on GitHub: `origin/demo`, 100 commits ahead of `main`) and decide on merging it
+  into `main`.
+- Step 17: the guides' full text and the release.
+- The BLAS question for `ema.numerics` is settled (`docs/notes/blas_determinism_2026-10-01.md`; record 0068 item 1,
+  accepted: no 1-D BLAS products or norms).
 
 ## Specs
 
