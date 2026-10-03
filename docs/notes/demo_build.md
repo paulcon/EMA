@@ -282,6 +282,37 @@ Each wave's review rounds: the findings (counted by severity), what was fixed, a
   principles, glossary, purpose, the guides, README, CLAUDE.md); the contracts/diagnostics group (contracts,
   uncertainty, designs, reference_models, diagnostics/*); and record 0085's code (`src/`, `tests/`).
 
+- **Data/model/trust group applied** (model_interface, trust, data_model, export, use_cases, scope, principles,
+  CLAUDE.md, two guides). For the review: left unapplied (no record names them): glossary, purpose, README (still
+  says "there is no code yet"); 0069's questions for the owner (a name starting with "-"; ordering files and
+  pass_env); 0081's elicitation details only in `architecture.md` §8, not trust.md; `--pdf` not in the
+  run-a-diagnostic guide. Inconsistencies found: U2's transcript line vs `ResultSummary.make`'s text; the guides'
+  approval-question lines vs 0074 item 11's text; a T10 test cell added from 0073 item 2 (confirm); U4 updated for
+  0085 though 0085 doesn't name use_cases.
+
+- **`architecture.md` applied** (§1–§12; §11 at 0084's final counts, 10,957 of 11,000). For the review:
+  inconsistencies found: `Stopped` not retryable though its docstring says a rerun reuses the runs; the registries'
+  `get` raising different errors on an unknown name (`RequestError` for the four seams, `NotFound` for
+  diagnostics, `KeyError` for parsers); 0082 vs 0081 on AR3's shape (the code has two contracts; followed);
+  0073 item 11's PDF reader without `-implicit_figures` (code and 0081 item 30 have it; followed); private modules
+  imported across packages (`ema.types._values`, `ema.numerics._vector`) against 0080 item 24 / 0069 item 37's
+  rule; `python -m ema.mcp` documented as kept. Not applied: 0073 item 18's interim §11 numbers (superseded by
+  0084); the D20 bound (contracts.md's).
+
+- **Contracts/diagnostics group applied** (contracts, uncertainty, designs, reference_models, the seven diagnostics
+  specs; the mocks now carry 0073's and 0085's edits). For the review: `shared.md` says "Markdown with TeX math"
+  while 0073 item 11 says the report writes no math (drop "with TeX math"?); the tests' now-no-op mock
+  replacements (sent to the 0085 code agent); `polynomial_model.md`'s 2026-09-30 interval-width measurement
+  counted the relative residual and R²; C18 runs in the fast tier on the degree-1 example request, the defaults
+  at d = 20 in the slow tier.
+
+- **Record 0085 in the code:** both fits' in-sample relative residual and R² are observations (level L of the
+  per-level table), with the record's line in that table's title; every remaining interval bit-identical before
+  and after (242 estimates over 8 evaluations, and two permanent tests); golden tests against the raw mocks. For
+  the review: `polynomial_model.md` says R1's intervals are "about 10⁻¹⁵" wide, but the LOO error's reaches
+  1.5·10⁻¹⁰ at 2P = 30 runs (leverages near 1); the specs may say the line sits in the per-level table's title.
+- All checks pass on the combined changes (fast tier 2,042 passed; lint, mypy, 8 import contracts, docs).
+
 ## How to resume (if the session stops)
 
 State lives in git and on disk; nothing is only in the conversation.
@@ -293,12 +324,10 @@ State lives in git and on disk; nothing is only in the conversation.
    (`docs/plans/NN-*.md`) and record, saying "finish this step".
 2. The last entries in "Rounds" above say which step is at which stage (built, in review, fixing). A step whose
    fixing round is committed but not re-reviewed gets a round-2 review.
-3. **Next (after the four agents above):** if `git status` shows their edits uncommitted, run the checks
-   (`uv run pytest -q -n auto && uv run lint-imports && uv run ruff check && uv run ruff format --check && uv run
-   mypy && uv run sphinx-build -W --keep-going docs docs/_build/html`), commit the spec edits and 0085's code, then
-   run an independent review: one fresh agent per area checking that every accepted record's "Spec edits on
-   acceptance" is applied, that the specs agree with each other and with the code, and that 0085's code matches
-   its record; fix, re-review until minor; update STATUS.md.
+3. **Next:** the four agents' work is committed. Run an independent review: one fresh agent per area checking
+   that every accepted record's "Spec edits on acceptance" is applied, that the specs agree with each other and
+   with the code, and that 0085's code matches its record; the agents' findings for the review are the bullets
+   above, from "Data/model/trust group applied" on. Fix, re-review until minor; update STATUS.md.
 4. What is left is the owner's: review `demo` and records 0066–0084 (each lists its spec edits on acceptance),
    and decide on merging into `main`. Open questions from the final review, for the owner: the shared notes'
    "Most frequent reasons" list renders as one line in CommonMark, and the notes name Python calls

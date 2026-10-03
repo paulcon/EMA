@@ -1,6 +1,6 @@
 # Model interface
 
-**Status:** accepted. **Updated:** 2026-10-01 (0043, 0052, 0053, 0054, 0056, 0057, 0061). **Depends on:** OD-3 (0003, 0005), OD-6 (0014),
+**Status:** accepted. **Updated:** 2026-10-02 (0043, 0052, 0053, 0054, 0056, 0057, 0061, 0069, 0071, 0081). **Depends on:** OD-3 (0003, 0005), OD-6 (0014),
 OD-9 (0022), OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0015, 0020, 0021, 0024, 0025, 0028, 0029, 0030,
 0031, 0057.
 
@@ -22,8 +22,14 @@ OD-9 (0022), OD-10 (0023), OD-11 (0026), OD-20 (0027); records 0015, 0020, 0021,
   U+200D, Cs, Zl, Zp), and a key may appear only once in an object; each is refused at loading, naming the
   field (`trust.md`, T7).
 - **Names:** a model's name is lowercase letters, digits, `_`, and `-`. Model parameter and model prediction
-  names are Python identifiers, unique across both lists, so they work as keyword arguments and in templates;
-  none may start with `ema_`, the prefix of EMA's columns in an export (`export.md`, 0053).
+  names are ASCII Python identifiers (`[A-Za-z_][A-Za-z0-9_]*`, not a keyword; 0069 item 26), unique across both
+  lists, so they work as keyword arguments and in templates; none may start with `ema_`, the prefix of EMA's
+  columns in an export (`export.md`, 0053). Loading checks that a Python function takes them (0081 item 29): when
+  `f` is a plain top-level `def`, a spec whose model parameters `f` doesn't take by name, an argument of `f` with
+  no default that isn't a model parameter, or a positional-only one, is refused (a batch function: anything but
+  one positional argument), naming `f`'s arguments and the model parameters. A function bound otherwise
+  (decorated, assigned, imported, a class, a star import) isn't checked, since its signature can't be read
+  without running the file; one the file doesn't bind at its top level is refused.
 - **The model version id** is the full version hash (`data_model.md`); it is shown as its label, `name@` and
   the first 12 hexadecimal digits of the hash.
 - **`noisy`** is allowed only as `false` (the default); `noisy: true` is refused at loading, with a message
@@ -90,10 +96,11 @@ A Python function model (U1's beam):
 - **Non-numeric settings** (a solver's name, a scheme) stay literal in the model's files, which the model
   version covers.
 - **Files** (0030): the files a run needs, listed in the spec, for both kinds of model. Each is copied into
-  every run directory, keeping its relative path; a file marked `"shared": true` (a large mesh) is stored once,
-  read-only, at `<workspace>/files/<sha256>/<name>`, and linked into every run directory instead. A stored
-  copy never changes: editing the source makes a new model version and a new copy. A model that writes to a
-  shared file fails with a permission error. All listed files are tracked (Versions).
+  every run directory (a batch model's: every batch call's directory, 0071), keeping its relative path; a file
+  marked `"shared": true` (a large mesh) is stored once, read-only, at `<workspace>/files/<sha256>/<name>`, and
+  linked into every run directory instead. A stored copy never changes: editing the source makes a new model
+  version and a new copy. A model that writes to a shared file fails with a permission error. All listed files
+  are tracked (Versions).
 
 ## What a model returns
 
@@ -111,8 +118,9 @@ A Python function model (U1's beam):
 
 - **Found by** `"function": "file.py:f"`: a file relative to the model's directory, and a function in it
   (0014). The file is tracked. Code in an installed package is reached through a short wrapper file. The
-  function's file and its local imports are imported from the model's directory; listed files are copied or
-  linked into the run directory (0030).
+  function's file and its local imports are imported from the model's directory (the file as a module of it:
+  `sub/model.py` is `sub.model`; the file's own directory isn't added, 0071); listed files are copied or linked
+  into the run directory, or a batch call's directory (0030).
 - **Called** as `f(**x)`, with one keyword float per model parameter, held ones included (0023), and with the
   run directory as its working directory (0020).
 - **Returns** a float when the model has one model prediction, or a mapping from model prediction names to
@@ -130,16 +138,19 @@ A Python function model (U1's beam):
   Environment below), stdin from `/dev/null`, and a timeout on every call. The child is started by its
   worker's path, and replaces its `sys.path` with EMA's, made absolute, received over its pipe (0057). What the
   child returns is JSON, or arrays in a format that runs no code; never pickle. On a timeout, a crash, or
-  Ctrl-C, the child's process group is killed, and the next call starts a new child. No in-process option, and no memory or CPU
+  Ctrl-C, the child's process group is killed, and the next call starts a new child; a process the function
+  leaves running lives until its child is stopped (M20, 0071). No in-process option, and no memory or CPU
   limits in v2.0. A function shouldn't keep state between calls; the add-a-model guide says so.
 - **Loading never imports** the function's file: M17's check parses it (`ast`) and resolves module names to
-  paths, so nothing of the model runs in EMA's process (`trust.md`, T4).
+  paths against the model's directory only, a relative import from the file's directory (0069 item 34), so
+  nothing of the model runs in EMA's process (`trust.md`, T4).
 
 ### Command line
 
 - **Command:** a list of strings, run without a shell, with the run directory as its working directory. A
   shell is used only when the spec says so (`["sh", "-c", "…"]`). stdin is `/dev/null`; the program runs in
-  its own process group, which EMA kills on a timeout or Ctrl-C.
+  its own process group, which EMA kills on a timeout, on Ctrl-C, and when the program exits, so nothing it left
+  running writes to its run directory after collect (M20, 0071).
 - **Input decks:** one or more, each a template file and the name it is written to in the run directory
   (relative, with no `..`). Templates use Python's `string.Template`: `$k` or `${k}` for a model parameter,
   `$$` for a literal `$`. A name that isn't a model parameter is refused when the model is loaded.
@@ -185,7 +196,8 @@ A Python function model (U1's beam):
   a link the model left there, and run and batch directories are deleted without following links
   (`trust.md`, T9).
 - **A batch** (0025) is prepared, executed, and collected as one call, in a batch directory beside its runs'
-  directories.
+  directories (a call of one point too): the function runs there, with the listed files and the call's streams;
+  each run's directory holds its `point.json`, `predictions.json`, and `run.json` (0071).
 - **Kept** (0020, 0028): the model spec's `keep` setting is `all` (the default), `incomplete` (runs that failed
   or have any model prediction missing), or `none`. It is not part of the model version. A directory not kept
   is deleted after collect. EMA never changes a run directory after its run.
@@ -255,7 +267,7 @@ A Python function model (U1's beam):
 | M17 | Loading warns about an import in the function's file that resolves to an unlisted local file. | `beam.py` imports `helper.py`, not listed: one warning naming it. |
 | M18 | `noisy: true` is refused at loading. | A spec with `noisy: true`. |
 | M19 | Each run records its host and its program's resolved path. | A command found on `PATH`: the record holds its absolute path. |
-| M20 | A command runs without a shell, in its own process group, which a timeout or Ctrl-C kills whole. | A command whose argument holds `;` is passed literally; a program that starts a child and sleeps: both are gone after the timeout. |
+| M20 | A command runs without a shell, in its own process group, which a timeout, Ctrl-C (also while the program starts), or the program's exit kills whole; a process that leaves the group (`setsid`) is not EMA's to kill. A Python function's child is killed with its group on a timeout, a crash, or Ctrl-C; a process the function leaves running lives until its child is stopped (0071). | A command whose argument holds `;` is passed literally; a program that starts a child and sleeps: both are gone after the timeout; a program that leaves a background job: it is gone after the run. |
 | M21 | A model parameter or model prediction name that starts with `ema_` is refused at loading, naming it (0053). | A spec with a model prediction `ema_status`, as M18's test is for `noisy: true`. |
 
 

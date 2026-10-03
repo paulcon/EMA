@@ -1,6 +1,7 @@
 # Coordinate lines
 
-**Status:** accepted. **Updated:** 2026-10-01 (the mock's Provenance, 0054; step 11, 0058; the seed row, 0061). **Module:**
+**Status:** accepted. **Updated:** 2026-10-01 (the mock's Provenance, 0054; step 11, 0058; the seed row, 0061); 2026-10-02 (a line's
+cells' precedence and CL9's test, 0077). **Module:**
 `ema/diagnostics/coordinate_lines.py`. **Depends on:**
 `shared.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0051, 0052, 0058.
 
@@ -125,7 +126,7 @@ k*/K at n = 33; R6a and R6b from one draw of their noise):
 | Observation | Definition |
 |---|---|
 | Usable | the line's usable runs, "17 of 17" |
-| Range | max − min of the line's usable runs, in the model prediction's units: which model parameters move y at the anchor, one at a time |
+| Range | max − min of the line's usable runs, in the model prediction's units: which model parameters move y at the anchor, one at a time; "none" with no usable run on the line |
 | Degrees above the floor | "k* of K" |
 | Decay rate | as above, in decades per degree; or "none" and why |
 
@@ -139,6 +140,19 @@ the longest evenly spaced segment (one interior gap leaves 8 of 17 points).
 is 0, its degrees 0 of K, its rate "none: constant", and the report has a note for it, after the shared notes:
 "y is the same in all 17 usable runs along f: 1." (R8 along f and g; R2 along x3 through the nominal point,
 where y = 0 exactly.)
+
+**A line's cells, in this precedence** (0077 item 2; shared with lines):
+
+1. No usable run on the line: range "none", degrees "none", rate "none: 17 runs not usable".
+2. Every usable run of the diagnostic one double (0035): rate "none: constant", degrees "0 of K" on a complete
+   line ("none" otherwise), no per-line note.
+3. Any run not usable on the line: degrees "none", rate "none: 2 runs not usable" ("1 run" singular), the range
+   over its usable runs.
+4. A constant line among others (two or more usable runs, one double): "0 of K", "none: constant", and its note.
+5. Otherwise the spectrum: "k* of K", and the rate, or "none" when k* < 3.
+
+A constant line with runs not usable still gets its note ("all 15 usable runs along f"), and its rate names the
+runs not usable.
 
 ## Uncertainty
 
@@ -308,7 +322,7 @@ range on R7's lines (2·10⁻¹⁴ on R3's r). Step 11 recomputed every value wi
 | CL6 | A constant line: range 0, 0 of K, "none: constant", and a note; a constant diagnostic result: the shared note only. | R8 along f and g; R10 along c and e; R4a. |
 | CL7 | The Design row says which lines contain the anchor. | 6 model parameters: n = 17, centered: "all 6 lines share the anchor's run"; the anchor off center in b: "lines through the anchor: a, c, e, f, g"; n = 16: "none (n is even)". |
 | CL8 | y → a·y + b (a a power of 2) leaves the rates within `RATE_SHIFT_TOL` = 10⁻⁵ under the shift, 10⁻¹² under a·y alone (0048), and k* and the notes unchanged, and scales the ranges by a. | R2 with a = 2⁻¹⁰, b = 3. |
-| CL9 | One PNG per varied model parameter, with the line and its spectrum; the data card's c_k equal the result's; a line with no spectrum keeps its empty panel, with the reason. | R8 at n = 17: 6 PNGs, 2 with "no spectrum: constant"; R5's z: the × strip's count equals the header's; a constructed spectrum with one value below `SPECTRUM_YMIN`: 1 open marker on the bottom edge (0048). |
+| CL9 | One PNG per varied model parameter, with the line and its spectrum; the data card's c_k are the line's Gram coefficients, and its k* and rate the result's (the result holds observations only, no c_k; 0077); a line with no spectrum keeps its empty panel, with the reason. | R8 at n = 17: 6 PNGs, 2 with "no spectrum: constant"; R5's z: the × strip's count equals the header's; a constructed spectrum with one value below `SPECTRUM_YMIN`: 1 open marker on the bottom edge (0048). |
 | CL10 | The known answers and the golden report. | Expected answers. |
 
 ## Tests it implies

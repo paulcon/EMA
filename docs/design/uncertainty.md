@@ -1,7 +1,9 @@
 # Uncertainty
 
-**Status:** accepted. **Updated:** 2026-10-01. **Depends on:** OD-4 (0004), OD-12 (0040); records 0017, 0034–0036,
-0038, 0041, 0042, 0049, 0051, 0052; `diagnostics/shared.md` and the six diagnostic specs.
+**Status:** accepted. **Updated:** 2026-10-01; 2026-10-02 (non-finite values and constant resamples, 0068; the
+settings' keys, 0073; the fits' in-sample measures as observations, 0085). **Depends on:** OD-4 (0004), OD-12
+(0040); records 0017, 0034–0036, 0038, 0041, 0042, 0049, 0051, 0052, 0068, 0073, 0085; `diagnostics/shared.md` and
+the six diagnostic specs.
 
 > The interval methods EMA uses, what each interval means, and which method each v2.0 diagnostic uses. Written
 > from record 0040's table and the diagnostic specs' Uncertainty sections (TODO step 7, 2026-09-30). Each
@@ -33,7 +35,7 @@ no interval in one diagnostic evaluation stays an estimate, with "none" and the 
 | none | nothing | | none | the point run, coordinate lines, lines: their numbers are observations (0040) |
 | subsampling the levels | subsets of n_(L−1) runs drawn without replacement from level L's | a rate for the estimate, to rescale the spread (the sampler's r) | no new runs | later, behind the interface (`diagnostics/linear_model.md`) |
 | convergence over the levels | the design's levels, nested | none | the runs of the earlier levels | not an interval method: the levels' estimates are observations, in the per-level tables; nested levels share runs, and their span understated the spread over designs about fourfold (R3, `diagnostics/linear_model.md`) |
-| cross-validation, held-out error | runs left out of a fit | | refits, or none by PRESS | not an interval method: the fits' leave-one-out error is an estimate, with a bootstrap interval |
+| cross-validation, held-out error | runs left out of a fit | | refits, or none by PRESS | not an interval method: the fits' leave-one-out error is an estimate, with a bootstrap interval; their in-sample relative residual and R² are observations (0085) |
 
 ## The bootstrap
 
@@ -45,15 +47,22 @@ tag (Per diagnostic, below). None of the six changes a step or a constant.
    runs, in the design's order, by
    `Generator(PCG64(SeedSequence(seed, spawn_key=(tag,)))).integers(0, n_u, (1000, n_u))`, with `seed` the
    request's and `tag` the diagnostic's (`SCATTER_BOOT_TAG`, `LINEAR_BOOT_TAG`, `POLY_BOOT_TAG`; below). Every
-   estimate in a diagnostic evaluation uses the same resamples.
+   estimate in a diagnostic evaluation uses the same resamples. They are drawn one row per resample, which gives
+   the same numbers as the single call (a test compares them) without holding all 1000 rows (0068 item 13).
 2. **As drawn, or on distinct runs:** each estimate is recomputed on each resample as drawn, duplicates
    included, except an estimate whose formula assumes distinct runs, which is recomputed on the resample's
    distinct runs (about 0.63·n_u of them). In v2.0 these are scatter's binned index (copies of one run fall in
    one bin, and the bias adjustment assumes distinct runs) and the fits' leave-one-out error (a left-out run's
-   copy stays in the fit). The diagnostic's spec names them, and so does the line under their table.
+   copy stays in the fit). The diagnostic's spec names them, and so does the line under their table. A fit's
+   in-sample relative residual and R², recomputed as drawn, sit on the optimistic side of the full fit's value
+   (each refit has fewer distinct points per coefficient), and their intervals can miss their estimate, so they
+   are observations, with no interval (0085).
 3. **Undefined resamples:** a resample on which an estimate is undefined (0/0; a fit's matrix of rank below its
    terms, by the rank rule below; too few distinct runs for leave-one-out) is dropped for that estimate, and
-   counted.
+   counted. Any non-finite value is undefined: NaN, and ±inf (x/0 gives inf) (0068 item 13). **A constant y on
+   a resample** is every value the same double (`is_constant`, as the precheck's, `shared.md`); its centered values
+   are then exact zeros, so a 0/0 that makes an estimate undefined on it (ρ and S, a fit's LOO error, the Sobol
+   indices; Per diagnostic, below) is decided exactly, never by rounding (0035; 0068 items 2, 10).
 4. **Interval:** the 0.5th and 99.5th percentiles (`BOOTSTRAP_PERCENTILES`) of the estimate's defined
    resampled values, by numpy's `percentile` with linear interpolation. Not the full range: the extremes come
    from the most degenerate resamples, and widen with the number of resamples toward the observed range (on
@@ -73,7 +82,9 @@ tag (Per diagnostic, below). None of the six changes a step or a constant.
 - **Every estimate** has a value, an interval or "none" with the reason, the method, and the method's settings
   (0004, 0041); with "none" it stays an estimate, not an observation. Only the interval may be "none". Where a
   value can't be computed, there is no estimate, and a note says why: the polynomial model reports no Sobol
-  estimates when the fitted polynomial is constant (`diagnostics/polynomial_model.md`, 0049). The diagnostic
+  estimates when the fitted polynomial is constant (`diagnostics/polynomial_model.md`, 0049), and neither fit
+  reports a LOO error that is undefined on the usable runs (a usable run of leverage 1; 0078 item 5, 0079 item
+  10). The diagnostic
   result stores estimates with full doubles, and a "none" interval as null with its reason; the report prints
   them (`shared.md`).
 - **"None" in an interval cell:** when fewer than `BOOTSTRAP_MIN_DEFINED` = 201 resamples are defined for that
@@ -112,7 +123,11 @@ behind it (`diagnostics/linear_model.md`).
   runs"; and the diagnostic's spawned stream.
 - **Gives:** for each estimate, its interval or "none" with the reason, the count of undefined resamples, and
   the method's name and settings, from which the report writes the line under the table; the diagnostic
-  result also records the spawn tag, which the line leaves out (0041).
+  result also records the spawn tag, which the line leaves out (0041). **The settings' keys** (0073 item 19): the
+  method's own (the bootstrap's `resamples`, `percentiles`, `min_defined`, as a fresh dict of JSON values, 0068
+  item 15), and the diagnostic's `seed` and `distinct` (what is recomputed on the distinct runs, "the index",
+  "the error"). The line prints `resamples`, `distinct`, `percentiles`, any other key as `key = value` (a fake
+  method's, V7), and `seed`; `min_defined` is a constant of this spec, and isn't printed (`shared.md`, S4).
 - **Doesn't:** read the store, make runs, or know which diagnostic calls it (layer 1, `architecture.md`).
 - **Tested by** a fake method registered in the tests: it replaces the bootstrap in each diagnostic with
   intervals (scatter, the linear and polynomial models), and the report's lines name it
@@ -126,8 +141,8 @@ behind it (`diagnostics/linear_model.md`).
 | scatter | mean, standard deviation, rank correlations, binned indices | bootstrap | binned index | ρ and S: y constant on the resample (0/0); S: fewer than 2 distinct runs; the mean and standard deviation: never | 2³² + 1 | 10 |
 | coordinate lines | none: each line's spectrum, degrees, and rate are observations (0038) | none | | | none | 1 (`COORD_MIN_RUNS`); a line's rate needs all its runs |
 | lines | none: as coordinate lines | none | | | none | 1, as coordinate lines |
-| linear model | coefficients, relative residual, R², LOO error | bootstrap over level L | LOO error | A of rank below d + 1; for LOO, fewer than d + 2 distinct runs (`diagnostics/linear_model.md`); R², the relative residual, and the LOO error, y constant on the resample (0/0, by step 3 of the bootstrap) | 2³² + 2 | 2(d + 1) |
-| polynomial model | relative residual, R², Sobol indices, √E_k, LOO error; the coefficients, in the result and their data card, not the report (0041) | bootstrap over level L | LOO error | A of rank below P; for LOO, fewer than P + 1 distinct runs (`diagnostics/polynomial_model.md`); R², the relative residual, the LOO error, and the Sobol indices, y or the fitted polynomial constant on the resample (0/0, by step 3 of the bootstrap) | 2³² + 3 | 2P |
+| linear model | coefficients, LOO error; the in-sample relative residual and R² are observations, with no interval (0085) | bootstrap over level L | LOO error | A of rank below d + 1; for LOO, fewer than d + 2 distinct runs (`diagnostics/linear_model.md`); the LOO error, y constant on the resample (0/0, by step 3 of the bootstrap) | 2³² + 2 | 2(d + 1) |
+| polynomial model | Sobol indices, √E_k, LOO error; the coefficients, in the result and their data card, not the report (0041); the in-sample relative residual and R² are observations, with no interval (0085) | bootstrap over level L | LOO error | A of rank below P; for LOO, fewer than P + 1 distinct runs (`diagnostics/polynomial_model.md`); the LOO error and the Sobol indices, y or the fitted polynomial constant on the resample (0/0, by step 3 of the bootstrap) | 2³² + 3 | 2P |
 
 **Undefined resamples at the minimum** (the chance a resample of n runs has too few distinct runs; exact, from
 the number of distinct values in n draws with replacement from n, 2026-09-30):

@@ -1,6 +1,7 @@
 # Export
 
-**Status:** accepted. **Updated:** 2026-10-01, from an interview; the MCP root by 0057; `result.json`'s keys by 0061. **Depends on:** 0050, 0053, U5, P5,
+**Status:** accepted. **Updated:** 2026-10-01, from an interview; the MCP root by 0057; `result.json`'s keys by 0061; 2026-10-02: the spec
+and the column dictionary's kinds by 0080; `report.pdf` when asked by 0081. **Depends on:** 0050, 0053, U5, P5,
 C17; records 0015, 0020, 0022, 0025, 0029, 0046.
 
 > What `export` writes, so a user can use a diagnostic result's runs in another tool, and how reading it
@@ -9,9 +10,9 @@ C17; records 0015, 0020, 0022, 0025, 0029, 0046.
 
 ## What an export holds
 
-- **One diagnostic result:** `export(result_id, directory)` (U5). It holds the runs that result used, its
-  design, and the result with its provenance. There is no export of a model version's runs without a result:
-  to get every run, export the result of the largest design.
+- **One diagnostic result:** `export(result_id, directory, *, pdf=False)` (U5). It holds the runs that result
+  used, its design, and the result with its provenance. There is no export of a model version's runs without a
+  result: to get every run, export the result of the largest design.
 - **Every run of the design,** in design order, failed and unusable runs included, each with its status, kind,
   and reason, so the export shows what the diagnostic saw (U3).
 - **One row per design row.** A design that repeats a point (U2's coordinate lines: 102 rows, 97 runs) has
@@ -22,8 +23,10 @@ C17; records 0015, 0020, 0022, 0025, 0029, 0046.
 ## Files and columns
 
 - **The directory** holds `runs.csv` and `result.json` (U5) at the top, and `report/`: a copy of the result's
-  report, its PNGs, and their data cards, laid out as in the workspace so the report's links work. It can be
-  shared as it is.
+  report, its PNGs, and their data cards, laid out as in the workspace so the report's links work, and, when
+  asked (`pdf=True`), the report's PDF, `report/report.pdf` (0081). The PDF is made first, beside the stored
+  report, as `report(pdf=True)` makes it; one that can't be made (`PandocMissing`, `PdfFailed`) leaves the
+  export's directory unmade. It can be shared as it is.
 - **`runs.csv`:** one row per design row, in design order. Columns, in this order:
   - EMA's, each named with the prefix `ema_`, so no model's name can collide with them (a model parameter or
     model prediction name may not start with `ema_`):
@@ -48,9 +51,11 @@ C17; records 0015, 0020, 0022, 0025, 0029, 0046.
   - `export_format`: 1;
   - `design`: its request in `../designs.md`'s JSON form (kind, space, generator parameters, seed, sampler
     and its version, generator version) and its model version id (0046);
-  - `spec`: the model version's spec, as JSON, without its location;
-  - `columns`: a column dictionary: for each column of `runs.csv`, its kind (EMA, model parameter, model prediction),
-    units, and description, and for a model parameter its scale and range in this design's space;
+  - `spec`: the model version's spec, as JSON, without its location and without the loading's settings (`keep`,
+    `batch_size`, `timeout_s`), as the model version covers it (`versioned_json`, 0080);
+  - `columns`: a column dictionary: for each column of `runs.csv`, its kind (`"ema"`, `"model parameter"`, or
+    `"model prediction"`), units, and description, and for a model parameter its scale and range in this
+    design's space, or its held value (0080);
   - `result`: `DiagnosticResult.to_json()`'s object, which `reproduce` reads, with its full `Provenance`, as
     `get_result` returns it: the ids of the runs used,
     in design order, each measured-noisy record read, and the design's structure (its levels; each line's
@@ -67,23 +72,26 @@ C17; records 0015, 0020, 0022, 0025, 0029, 0046.
   read it back: the same model parameter values and model predictions bit for bit, and the same diagnostic
   result and provenance (U5). With pandas: `pd.read_csv(path, float_precision="round_trip")`; its default
   parser isn't guaranteed to read every double exactly.
-- **An existing directory** that isn't empty is refused, naming it; an export never overwrites a file.
+- **An existing directory** that isn't empty, or a file at the path, is refused (`PathRefused`), naming it,
+  before anything is written; an export never overwrites a file. A directory that can't be made (a read-only
+  file system) is `PathRefused` too (0080).
 - **Text columns** (`ema_reason`, `ema_missing`) are not escaped for spreadsheets: a cell that starts with `=`,
   `+`, `-`, or `@` may be read as a formula there, and the run-a-diagnostic guide says to open `runs.csv` as
   data (`trust.md`).
 
 ## Interfaces
 
-- **Python:** `ws.export(result_id, directory)` (U5).
-- **CLI:** `ema export RESULT_ID DIR`.
-- **MCP:** an export tool, one of the server's 10 (0016, 0053), writing only inside the directory the user named
-  when starting the server, `ema mcp --root DIR`, and outside any workspace (`trust.md`, T5).
+- **Python:** `ws.export(result_id, directory, *, pdf=False)` (U5).
+- **CLI:** `ema export RESULT_ID DIR [--pdf]`; it prints the export's absolute directory.
+- **MCP:** an export tool, one of the server's 10 (0016, 0053), with an optional `pdf` argument (0081), writing
+  only inside the directory the user named when starting the server, `ema mcp --root DIR`, and outside any
+  workspace (`trust.md`, T5).
 
 ## Requirements
 
 | Id | Requirement | Test |
 |---|---|---|
-| E1 | `export` writes `runs.csv`, `result.json`, and `report/` (the report, its PNGs, and their data cards) into a new or empty directory, and refuses one that isn't empty, naming it, without writing anything. | U5's `r2`, twice into one directory: the second is refused and the files are unchanged. |
+| E1 | `export` writes `runs.csv`, `result.json`, and `report/` (the report, its PNGs, and their data cards, and `report.pdf` when asked) into a new or empty directory, and refuses one that isn't empty, naming it, without writing anything; with `pdf`, a PDF that can't be made writes nothing (0081). | U5's `r2`, twice into one directory: the second is refused and the files are unchanged; with `pdf=True`, `report/report.pdf` is there, and without pandoc it raises `PandocMissing` and nothing is written. |
 | E2 | `runs.csv` has one row per design row, in design order, every run included, with the columns above in their order. | U2's coordinate lines: 102 rows, 97 run ids; U3's `r1`: 34 failed rows with their kinds and reasons. |
 | E3 | Every number in `runs.csv` is `%.17g`, and a missing value is an empty cell; `csv` and `float()` read back every model parameter value and model prediction bit for bit. | U5's `r2` read back equals the stored doubles; a fixture of doubles over 10^±300, subnormals, and −0.0. |
 | E4 | `ema_missing` lists each model prediction missing from an `ok` run, with its reason, in the model spec's order. | R5 with z: every `ok` run with b > 0.8 has `z: <reason>`, and every failed run an empty `ema_missing`; a reason containing `;` is written with `,`. |

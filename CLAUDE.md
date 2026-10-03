@@ -63,10 +63,10 @@ work is `TODO.md`, and where things stand is `STATUS.md`.
 
 ## Commands
 
-> Record 0059. Python 3.13 and newer; develop on 3.14.
+> Records 0059 and 0084 (the fast tier with `-n auto`). Python 3.13 and newer; develop on 3.14.
 
 - Install: `uv sync`
-- Fast tier, with the import contracts (after every edit): `uv run pytest -q && uv run lint-imports`
+- Fast tier, with the import contracts (after every edit): `uv run pytest -q -n auto && uv run lint-imports`
 - Full tests (before reporting a step done): `uv run pytest -q --slow -n auto`
 - Lint (before reporting a step done): `uv run ruff check && uv run ruff format --check && uv run mypy`
 - Docs (before reporting a step done): `uv run sphinx-build -W --keep-going docs docs/_build/html`

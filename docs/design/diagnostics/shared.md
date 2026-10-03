@@ -1,7 +1,9 @@
 # What every diagnostic shares
 
-**Status:** accepted. **Updated:** 2026-10-01 (0054, 0055, 0057, 0061). **Depends on:** P1, P2, P4, P5, P6; records 0004, 0010,
-0018, 0022, 0034, 0035, 0040, 0042, 0044, 0049, 0051, 0052, 0054, 0055, 0057.
+**Status:** accepted. **Updated:** 2026-10-01 (0054, 0055, 0057, 0061); 2026-10-02 (text in a result is plain, and
+the Provenance line's form, 0073, 0077; the shared notes' texts, 0075; units named by a table's title, 0078; the
+PDF's figures, 0081). **Depends on:** P1, P2, P4, P5, P6; records 0004, 0010, 0018, 0022, 0034, 0035, 0040, 0042,
+0044, 0049, 0051, 0052, 0054, 0055, 0057, 0073, 0075, 0077, 0078, 0081.
 
 > The parts of a diagnostic's spec that are the same for all six: the report's layout, how numbers are
 > written, the precheck, how runs that aren't usable are counted and drawn, and where a diagnostic's own
@@ -10,7 +12,8 @@
 
 ## The report
 
-One report per diagnostic evaluation, in Markdown with TeX math and PNG figures (0018), in this order:
+One report per diagnostic evaluation, in Markdown with TeX math (the report's own; text in a result is plain,
+escaped) and PNG figures (0018), in this order:
 
 1. **Title:** `# <Diagnostic>: <model>, <model prediction>`.
 2. **Header,** a table:
@@ -30,7 +33,13 @@ One report per diagnostic evaluation, in Markdown with TeX math and PNG figures 
 5. **Observations** (0034): numbers read or computed directly from the usable runs, with no interval.
 6. **Figures:** each PNG, its caption, and the name of its data card.
 7. **Provenance** (P5): EMA's version, the library versions, the model version, the request, the runs used,
-   and the approval of its new runs (0054).
+   and the approval of its new runs (0054). The request's diagnostic parameters but the seed are printed sorted
+   by name (the order a result read back from the store keeps, so the line is byte-identical on a rebuild, S10),
+   `key = value`, but `anchor`, `basis`, `degree`, and `level` as "level 2", and the sampler as "sampler random
+   1"; then the seed and the model prediction. A parameter whose value is none is left out (lines' `m` with
+   given lines; 0077). The runs are "runs: N" (the point run's "runs: 5 (replicates 0–4)"); where reused runs
+   came from isn't in a result (0073 item 6). The mocks list the parameters as each spec does; the golden
+   comparison reads them as a set.
 
 - **An empty section is left out** (S1, 0051), with its opening sentence: a report with no estimates has no
   Estimates section, and no explanation of intervals. Each diagnostic spec's degenerate cases list the figures
@@ -44,7 +53,15 @@ One report per diagnostic evaluation, in Markdown with TeX math and PNG figures 
   may print both ends the same.
 - **Ids** (0055) are written as their first 12 hex digits (a model version as `name@` and 12); the mocks'
   shorter ids are placeholders.
-- **Units:** a number with units is followed by them ("412.3 K"); dimensionless numbers have none.
+- **Units:** a number with units is followed by them ("412.3 K"), or, in a table whose title names its units
+  ("Coefficients in m³/yr."), by none; the result keeps the units on each number (0078). Dimensionless numbers
+  have none.
+- **Text in a result is plain** (0073 item 1; T10): labels, columns, titles, notes, captions, header rows, and
+  observation text are plain text, and the report escapes all of them, as it escapes a spec's names; so EMA's own
+  symbols in a result are Unicode, not TeX ("Rank correlation ρ", "Sᵢ", "√E_k", "R²", "‖y - ŷ‖"). The report's
+  own sentences (`EXPLAIN_INTERVALS`, the headings, the line under a table) are the only Markdown it writes
+  unescaped. A table's title, unless it repeats its row heading, is printed under it: an estimates table's opens
+  the line under it ("14 bins. Variability intervals: …"; 0073 item 3).
 
 ### Estimates
 
@@ -94,8 +111,12 @@ A note is a caveat about the data (glossary). Shared notes, in this order:
 
 - **Runs not usable:** the count by kind, then the most frequent one-line reasons, verbatim (escaped in the Markdown so that they render as written,
   `trust.md`, T10), with counts (at
-  most 5; the rest summed), ordered by count, descending, ties broken by the first run in design order with
-  that reason (0051); then the number of usable runs the estimates use, and the call that lists them all:
+  most 5; the rest summed, "k  (m other reasons)"), failure and missing reasons alike, ordered by count,
+  descending, ties broken by the first run in design order with that reason (0051); then the number of usable
+  runs the estimates use ("Observations use" for a diagnostic without estimates, or below its minimum), and the
+  call that lists them all, with the result's id as 12 hex digits. Runs are counted once each, at their first
+  row in design order (a shared anchor's run, 0075 item 8). The note is plain text, like every text in a result
+  (0073 item 1, 0075 item 30): the report escapes it, and shows the call as written:
 
   ```markdown
   - 34 of 200 runs are not usable for T_max: 30 failed (error), 4 failed (timeout).
@@ -103,19 +124,25 @@ A note is a caveat about the data (glossary). Shared notes, in this order:
       27  exited with code 3
        4  timeout after 600 s
        3  solver.cfg: max iterations reached
-    Estimates use the 166 usable runs. `ws.failed_runs("3f2a")` lists each one.
+    Estimates use the 166 usable runs. ws.failed_runs("3f2a91c07d4e") lists each one.
   ```
 
 - **Reused failed runs** (0010): how many of the reused runs had failed before, and that `retry_failed` runs
-  them again (U3).
-- **Too few usable runs:** "k usable runs; <diagnostic> needs at least m (<why>)". No estimates (P6).
-- **All runs failed:** the counts, and no estimates or observations (P6).
+  them again (U3): "34 of the 200 reused runs had failed before; retry_failed=True runs them again." (0075).
+- **Too few usable runs:** "k usable runs; <diagnostic> needs at least m (<why>)." No estimates (P6).
+- **All runs failed:** the counts, and no estimates or observations (P6): "All 200 runs failed: no estimates or
+  observations." ("no observations" for a diagnostic without estimates; 0075).
 - **No usable run** (0051): some runs are ok, but none read the model prediction analyzed: "No run is usable for
   z: 0 failed, 200 missing z." No estimates or observations, as when all runs failed (P6).
-- **Constant:** "T_max is the same in all k usable runs: <value>." No estimates (P6, 0035). The point run
-  has no such note: one distinct value is its ordinary answer for a deterministic model (`point_run.md`).
+- **Constant:** "T_max is the same in all k usable runs: <value>." No estimates (P6, 0035). It needs at least
+  two usable runs: one run isn't "the same in all"; below the minimum and constant, both notes are written
+  (0075 item 8). The point run has no such note: one distinct value is its ordinary answer for a deterministic
+  model (`point_run.md`).
 - **Measured noisy** (P7, U7): one line per point run that measured the model version noisy in this model
-  prediction, with the standard deviation as a fraction of this result's range (`point_run.md`).
+  prediction, newest first, with the standard deviation as a fraction of this result's range (`point_run.md`);
+  "so no fraction" when that range is 0, there is no usable run, or the standard deviation is none (0075).
+- **Order:** runs not usable; reused failed runs; then one of all runs failed, no usable run, and too few usable
+  runs; constant; measured noisy; then the diagnostic's own notes (0075 item 9).
 
 ## The precheck
 
@@ -127,7 +154,8 @@ One precheck, in the diagnostic base, before `compute` (P6):
   diagnostic parameters, with the reason. There is no shared floor. Below it: counts, a note, and no
   estimates.
 - **Constant** (0035): the model prediction is constant when every usable run gives the same value, as a
-  double. There is no flatness tolerance. Then: counts, the note, the observations, and no estimates.
+  double, and there are at least two usable runs (0075). There is no flatness tolerance. Then: counts, the
+  note, the observations, and no estimates.
 - **Every other tolerance** on a model prediction is relative to its range (P6), and is a named constant in
   the spec that uses it.
 
@@ -183,6 +211,9 @@ the data cards are byte-identical (S10).
   (P1); the runs not usable, with their kind. About 100 bytes per point.
 - **Byte identity:** the data cards are byte-identical on rerun and reproduction (0018); the PNGs are not held
   to it. Reproduce (U8) compares data cards.
+- **In the PDF** (0081 item 30): pandoc reads a copy of the report in which each line holding only EMA's figure
+  links gives its figures widths, 48% each where a line holds several, 60% for one alone, with implicit figures
+  off, so a figure stays where the report puts it, unnumbered. The stored Markdown is unchanged (S10).
 - **Held model parameters** have no panel (`../designs.md`).
 
 ## Named constants

@@ -1,6 +1,6 @@
 # Add a model
 
-**Status:** outline. **Use cases:** U1, U2, U6. **Specs:** `../design/model_interface.md` (M1–M21),
+**Status:** outline. **Updated:** 2026-10-02 (0080: a run's and a loading's shown text). **Use cases:** U1, U2, U6. **Specs:** `../design/model_interface.md` (M1–M21),
 `../design/trust.md` (T2–T4, T7, T8, T10). **Tested:** through the use cases (C53); its examples are U1's
 beam and U2's heat solver, which the use cases run on reference models.
 
@@ -64,7 +64,7 @@ beam and U2's heat solver, which the use cases run on reference models.
    #   (the first approval for a model version: the function, the child's interpreter, the files, the
    #   environment)
    #   Approve? [y/N] y
-   #   Run 5d02: ok; delta = 0.002026
+   #   Run 5d02: ok; delta = 0.002026; at E = 2e+11, L = 1.5, P = 3000; run directory: …/runs/5d02…
    ```
 
    ```text
@@ -93,7 +93,10 @@ beam and U2's heat solver, which the use cases run on reference models.
    #   environment)
    #   Approve? [y/N] y
    print(info)
-   #   Run 9b3e: failed (error): ZeroDivisionError: division by zero at beam.py:3; run directory: …/runs/9b3e…/
+   #   Run 9b3e: failed (error): ZeroDivisionError: division by zero at beam.py:3; at E = 2e+11, L = 1.5,
+   #   P = 3000; run directory: …/runs/9b3e…
+   #   Its stderr's last lines (the model's own output, quoted):
+   #   (the traceback's last lines, in a fenced block)
    print(ws.run_dirs(info.run_id)[0].run_dir)   # then list it: point.json, run.json, stdout.txt,
                                                 # stderr.txt, and the files copied into it
    ```
@@ -184,7 +187,8 @@ beam and U2's heat solver, which the use cases run on reference models.
 
   ```text
   $ ema model add heat/model.json
-    New model version heat@7c1e (was heat@b204): solver.cfg changed
+    Loaded heat@7c1e…: 6 model parameters (k, q, …), 1 model prediction (T_max)
+    New model version heat@7c1e… (was heat@b204… at /…/heat/model.json): solver.cfg changed
   ```
 
 - **Stored runs:** kept, with their model version; a new model version reuses none of them, and its first

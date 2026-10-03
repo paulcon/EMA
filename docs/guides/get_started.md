@@ -1,6 +1,6 @@
 # Get started
 
-**Status:** outline. **Use cases:** U1, U5, U9. **Specs:** `../design/architecture.md` §7–§8,
+**Status:** outline. **Updated:** 2026-10-02 (0080: a run's shown text). **Use cases:** U1, U5, U9. **Specs:** `../design/architecture.md` §7–§8,
 `../design/reference_models.md` (R2), `../design/uncertainty.md`, `../design/trust.md`. **Tested:** its
 Python blocks run as written on R2, from an installed EMA, in the slow tier (C53; record 0060).
 
@@ -62,7 +62,7 @@ Python blocks run as written on R2, from an installed EMA, in the slow tier (C53
    #   (the first approval for a model version also shows the function, the child's interpreter, the files,
    #   and the environment: trust.md, What needs the user's yes)
    #   Approve? [y/N] y
-   #   Run <short id>: ok; y = 0 (x1 = x2 = x3 = 0)
+   #   Run <short id>: ok; y = 0; at x1 = 0, x2 = 0, x3 = 0; run directory: /…/first_study/runs/<run id>
    ```
 
    - Why "time unknown": EMA estimates time only from stored runs (P3). <…>
