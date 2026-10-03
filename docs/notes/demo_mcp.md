@@ -31,7 +31,7 @@ mkdir -p "$DEMO/beam"
 cp -R "$EMA/src/ema/reference_models/r2" "$DEMO/ishigami"     # the Ishigami function: x1, x2, x3 in [-pi, pi]
 cp -R "$EMA/src/ema/reference_models/r3" "$DEMO/borehole"     # the borehole function: 8 parameters with units
 cp -R "$EMA/src/ema/reference_models/r5" "$DEMO/r5"           # fails in known regions (failed runs)
-cp "$EMA/src/ema/reference_models/r2/ishigami.py" "$DEMO/beam/beam.py"   # a function with no model spec yet
+cp "$EMA/docs/notes/demo/beam.py" "$DEMO/beam/beam.py"   # a cantilever beam's tip deflection, with no model spec yet
 sed -i '' 's/"name": "r3"/"name": "borehole"/' "$DEMO/borehole/model.json"
 rm -rf "${DEMO:?}"/*/__pycache__
 ```
@@ -52,14 +52,15 @@ two). The layout is then:
 
 ```text
 /Users/paulconstantine/ema_demo/
-├── beam/beam.py              # the U9 segment drafts a spec for it
+├── beam/beam.py              # a cantilever beam f(P, L, E); prompt 11 drafts its spec
 ├── borehole/  model.json  borehole.py  space.json
 ├── ishigami/  model.json  ishigami.py  space.json
 ├── r5/        model.json  r5.py        space.json
 └── ema_workspace/            # EMA's: ema.db, runs/, results/, files/
 ```
 
-To start the demo again from nothing, delete `ema_workspace/`, `beam/beam.json`, and `exports/`, and load again.
+To start the demo again from nothing, delete `ema_workspace/`, `exports/`, and the spec prompt 11 saved in `beam/`
+(`beam/beam.json`, or whatever name the agent chose; keep `beam/beam.py`), and load again.
 
 ### Check the server by hand
 
@@ -159,10 +160,13 @@ If there is time:
     loads it, writing nothing (record 0081 item 17): "Loaded ishigami@…", followed by "Already loaded: nothing
     changed" when §1 loaded it. This is how a client loads a spec that wasn't loaded in §1. A file at the path with another spec
     is refused.
-11. **"Set up beam/beam.py as an EMA model: f(x1, x2, x3), each nominal 0, no units, a short description of
-    each, one prediction y. Then test it."** [`propose_model`, `save_model`, `test_model`] The agent drafts the spec; the form shows the absolute path
+11. **"Set up beam/beam.py as an EMA model: f(P, L, E) gives a cantilever beam's tip deflection in mm, for the
+    load P in N (nominal 1000), the length L in m (nominal 2), and the elastic modulus E in GPa (nominal 200), each
+    greater than 0; one model prediction, deflection, in mm; a short description of each. Save it as beam/beam.json,
+    then test it."** [`propose_model`, `save_model`, `test_model`] The agent drafts the spec; the form shows the absolute path
     `/Users/paulconstantine/ema_demo/beam/beam.json` and the spec's full text; approve, and EMA writes that one file
-    (never code) and loads it. The test run asks its own form: "1 new run, 0 reused, time unknown".
+    (never code) and loads it. The test run asks its own form: "1 new run, 0 reused, time unknown"; then "deflection = 3.2" at the nominal
+    point.
 12. **"Run a scatter of r5's y over a and b in [-1, 1] with n = 100, then list the failed runs."**
     [`run_diagnostic`, `failed_runs`] "100 runs: 100 new, 0 reused, 16 failed"; each failed run with its kind and
     reason ("failed (timeout): timeout after 0.2 s", "failed (error): ValueError: no convergence at r5.py:13") and
