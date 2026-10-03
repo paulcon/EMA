@@ -133,8 +133,9 @@ def covered_changes(spec: dict[str, Any]) -> list[dict[str, Any]]:
         )
     )
     if spec["interface"] == "python_function":
+        # g, added to the file by check_model_version, takes any arguments, so either kind of call (0081 item 29)
         changed(lambda s: s.update(function="model.py:g"))
-        changed(lambda s: s.update(batch=not s.get("batch", False), batch_size=None))
+        changed(lambda s: s.update(function="model.py:g", batch=not s.get("batch", False), batch_size=None))
     else:
         changed(lambda s: s.update(command=[*s["command"], "--fast"]))
         changed(lambda s: s["predictions"][0]["parser"].update(key="z"))
@@ -163,6 +164,9 @@ def check_model_version(adapter: Any) -> None:
         spec_path = copy_model(adapter.kind, root / "a")
         model_dir = spec_path.parent
         original = json.loads(spec_path.read_text())
+        if original["interface"] == "python_function":  # a function the covered changes can name (0081 item 29)
+            with open(model_dir / "model.py", "a") as source:
+                source.write("\n\ndef g(*args, **kwargs):\n    return f(*args, **kwargs)\n")
 
         def version(path: Path = spec_path) -> str:
             return adapter.load(str(path)).model_version_id

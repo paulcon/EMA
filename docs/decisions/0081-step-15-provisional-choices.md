@@ -148,6 +148,18 @@ The independent review of steps 15 and 16, and the coordinator's rulings; each f
     server show it unchanged (C54, C55); `get_result` and `results` keep the plain line. Spec edits on
     acceptance: `architecture.md` §7, What is shown (a repeated request's text), and U1's repeat line.
 
+29. **Loading checks that the function takes the model parameters.** EMA calls a Python function with every model
+    parameter by name, and a batch function with one positional argument, the points' array (0025). Until now a
+    mismatch (a spec naming `M` where `f` takes `E`) loaded, and failed every run. `load_spec` now parses the
+    function's file (as M17 does; never importing it, T4) and, when `f` is a plain top-level `def`, refuses a spec
+    whose model parameters `f` doesn't take by name, or an argument of `f` with no default that isn't a model
+    parameter, or a positional-only one; for a batch function, anything but one positional argument. The message
+    names `f`'s arguments and the model parameters. A function bound otherwise (decorated, assigned, imported, a
+    class, a star import) isn't checked, since its signature can't be read without running the file; one not
+    bound at all is refused. Units, nominal values, limits, and descriptions can't be checked against code: the
+    save form (T6) shows the spec for the user to check, and the test run exercises the nominal point. Spec edits
+    on acceptance: `model_interface.md`, Names (the check), and `trust.md`'s list of loading's checks.
+
 ## Alternatives considered
 
 - **Pin `mcp>=1.9`, using `FastMCP`:** the installed SDK is 2.2.0 and the code would not run on it; 1.x would also

@@ -160,13 +160,14 @@ If there is time:
     loads it, writing nothing (record 0081 item 17): "Loaded ishigami@…", followed by "Already loaded: nothing
     changed" when §1 loaded it. This is how a client loads a spec that wasn't loaded in §1. A file at the path with another spec
     is refused.
-11. **"Set up beam/beam.py as an EMA model: f(P, L, E) gives a cantilever beam's tip deflection in mm, for the
-    load P in N (nominal 1000), the length L in m (nominal 2), and the elastic modulus E in GPa (nominal 200), each
-    greater than 0; one model prediction, deflection, in mm; a short description of each. Save it as beam/beam.json,
-    then test it."** [`propose_model`, `save_model`, `test_model`] The agent drafts the spec; the form shows the absolute path
-    `/Users/paulconstantine/ema_demo/beam/beam.json` and the spec's full text; approve, and EMA writes that one file
-    (never code) and loads it. The test run asks its own form: "1 new run, 0 reused, time unknown"; then "deflection = 3.2" at the nominal
-    point.
+11. **"Set up beam/beam.py as an EMA model from what its file says, save it as beam/beam.json, then test it."**
+    [`propose_model`, `save_model`, `test_model`] The agent reads `beam.py` (its docstring gives what `f(P, L, E)`
+    computes, each argument's units and nominal value, and the result's units) and drafts the spec; the form shows
+    the absolute path `/Users/paulconstantine/ema_demo/beam/beam.json` and the spec's full text, which is where you
+    check its units and nominal values against the file; approve, and EMA writes that one file (never code) and
+    loads it. Loading refuses a spec whose model parameters aren't `f`'s arguments, naming both (record 0081 item
+    29). The test run asks its own form: "1 new run, 0 reused, time unknown"; then "deflection = 3.2" at the
+    nominal point. (In a client that can't read files, give the details in the prompt instead.)
 12. **"Run a scatter of r5's y over a and b in [-1, 1] with n = 100, then list the failed runs."**
     [`run_diagnostic`, `failed_runs`] "100 runs: 100 new, 0 reused, 16 failed"; each failed run with its kind and
     reason ("failed (timeout): timeout after 0.2 s", "failed (error): ValueError: no convergence at r5.py:13") and

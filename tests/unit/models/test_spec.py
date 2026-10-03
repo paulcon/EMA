@@ -161,7 +161,7 @@ class TestImports:
         spec_path = copy_model("python", tmp_path)
         model_dir = spec_path.parent
         (model_dir / "sub").mkdir()
-        (model_dir / "sub" / "model.py").write_text("import nearby\nimport top\n\ndef f(a, b):\n    return a\n")
+        (model_dir / "sub" / "model.py").write_text("import nearby\nimport top\n\ndef f(a, b, mode):\n    return a\n")
         (model_dir / "sub" / "nearby.py").write_text("")
         (model_dir / "top.py").write_text("")
         write_spec(spec_path, function="sub/model.py:f")
@@ -174,7 +174,7 @@ class TestImports:
         model_dir = spec_path.parent
         (model_dir / "first.py").write_text("")
         (model_dir / "second.py").write_text("")
-        (model_dir / "model.py").write_text("def f(a, b):\n    import first\n    return a\n\nimport second\n")
+        (model_dir / "model.py").write_text("def f(a, b, mode):\n    import first\n    return a\n\nimport second\n")
         warned = load_spec(str(spec_path)).warnings
         assert [w.split(" resolves to ")[1].split(",")[0] for w in warned] == ["first.py", "second.py"]
 
@@ -186,7 +186,7 @@ class TestImports:
         (model_dir / "lib" / "tool.py").write_text("")
         (model_dir / "near.py").write_text("")
         (model_dir / "model.py").write_text(
-            "from helper import scale\nfrom lib import tool\nfrom . import near\n\ndef f(a, b):\n    return a\n"
+            "from helper import scale\nfrom lib import tool\nfrom . import near\n\ndef f(a, b, mode):\n    return a\n"
         )
         warned = load_spec(str(spec_path)).warnings
         assert [w.split(" resolves to ")[1].split(",")[0] for w in warned] == [
@@ -283,3 +283,64 @@ def test_resolve_program(tmp_path):
     text["command"] = ["ema-no-such-program"]
     spec_path.write_text(json.dumps(text))
     assert resolve_program(load_spec(str(spec_path))) is None
+
+
+class TestSignature:
+    """Record 0081 item 29: a function whose arguments EMA can't call it with is refused at loading, before any run.
+
+    EMA calls a function with every model parameter by name (the toy's are a, b, mode), and a batch function with
+    one positional argument, the points' array (0025); a function bound other than by a plain ``def`` isn't checked.
+    """
+
+    @pytest.mark.parametrize(
+        ("source", "fragment"),
+        [
+            ("def f(a, b):\n    return a\n", "it has no argument mode"),
+            ("def f(a, b, mode, c):\n    return a\n", "its argument c isn't a model parameter and has no default"),
+            ("def f(x, y, z):\n    return x\n", "it has no argument a"),
+            ("def f(a, /, b, mode):\n    return a\n", "a is positional-only"),
+            ("def g(a, b, mode):\n    return a\n", "model.py defines no f at its top level"),
+        ],
+    )
+    def test_refused_naming_the_mismatch(self, tmp_path, source, fragment):
+        spec_path = copy_model("python", tmp_path)
+        (spec_path.parent / "model.py").write_text(source)
+        with pytest.raises(SpecError, match=f"function: model.py:f.*{fragment}"):
+            load_spec(str(spec_path))
+
+    @pytest.mark.parametrize(
+        "source",
+        [
+            "def f(a, b, mode):\n    return a\n",
+            "def f(mode, b, a, c=1.0):\n    return a\n",
+            "def f(*, a, b, mode, scale=2.0):\n    return a\n",
+            "def f(a, **rest):\n    return a\n",
+            "import functools\n\n@functools.cache\ndef f(x):\n    return x\n",  # decorated: not checked
+            "def _g(x):\n    return x\n\nf = _g\n",  # assigned: not checked
+            "from helper import *\n",  # a star import may bind f: not checked
+        ],
+    )
+    def test_allowed_or_not_checked(self, tmp_path, source):
+        spec_path = copy_model("python", tmp_path)
+        (spec_path.parent / "model.py").write_text(source)
+        assert load_spec(str(spec_path)).spec.interface.function == "model.py:f"
+
+    @pytest.mark.parametrize(
+        ("source", "ok"),
+        [
+            ("def f(X):\n    return X\n", True),
+            ("def f(X, scale=1.0):\n    return X\n", True),
+            ("def f(*points):\n    return points[0]\n", True),
+            ("def f(X, Y):\n    return X\n", False),
+            ("def f(*, X):\n    return X\n", False),
+            ("def f(a, b, mode):\n    return a\n", False),
+        ],
+    )
+    def test_a_batch_function_takes_one_positional_argument(self, tmp_path, source, ok):
+        spec_path = copy_model("batch", tmp_path)
+        (spec_path.parent / "model.py").write_text(source)
+        if ok:
+            load_spec(str(spec_path))
+        else:
+            with pytest.raises(SpecError, match="a batch function takes one positional argument"):
+                load_spec(str(spec_path))

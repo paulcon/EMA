@@ -98,24 +98,95 @@ def _imports(tree: ast.AST) -> list[ast.Import | ast.ImportFrom]:
     return sorted(nodes, key=lambda n: (n.lineno, n.col_offset))
 
 
-def _unlisted_imports(spec: ModelSpec, model_dir: str, files: tuple[TrackedFile, ...]) -> tuple[str, ...]:
+def _parse_function(spec: ModelSpec, model_dir: str) -> tuple[str, str, ast.Module] | None:
+    """Parse the Python function's file (``ast``; never imported, T4): its name, path, and tree; None for a command."""
+    if not isinstance(spec.interface, PythonFunction):
+        return None
+    file = spec.interface.function.rpartition(":")[0]
+    path = os.path.join(model_dir, *file.split("/"))
+    source = _read_text(path, "function")
+    try:
+        return file, path, ast.parse(source, filename=file)
+    except SyntaxError as e:
+        raise SpecError(f"function: {file} doesn't parse: {e.msg} (line {e.lineno})") from None
+    except (ValueError, MemoryError, RecursionError) as e:
+        raise SpecError(f"function: {file} doesn't parse: {type(e).__name__}") from None
+
+
+def _binder(tree: ast.Module, name: str) -> ast.stmt | None:
+    """Find the last top-level statement that binds ``name`` in the module, or None; a star import binds any name."""
+    last: ast.stmt | None = None
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name == name:
+            last = node
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            if any(a.name == "*" or (a.asname or a.name.split(".")[0]) == name for a in node.names):
+                last = node
+        elif isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if any(isinstance(n, ast.Name) and n.id == name for t in targets for n in ast.walk(t)):
+                last = node
+    return last
+
+
+def _check_signature(spec: ModelSpec, parsed: tuple[str, str, ast.Module] | None) -> None:
+    """Refuse a function whose arguments EMA can't call it with (record 0081 item 29; model_interface.md, Names).
+
+    EMA calls a function with every model parameter as a keyword argument, and a batch function (0025) with one
+    positional argument, the points' array. When the file defines it with a plain
+    top-level ``def``, its arguments are compared with the model parameters, so a mismatch is refused at loading
+    rather than failing every run. A function bound otherwise (decorated, assigned, imported, a class) isn't
+    checked: its signature can't be read without running the file (T4).
+    """
+    if parsed is None:
+        return
+    assert isinstance(spec.interface, PythonFunction)
+    file, _, tree = parsed
+    name = spec.interface.function.rpartition(":")[2]
+    node = _binder(tree, name)
+    where = f"function: {file}:{name}"
+    if node is None:
+        raise SpecError(f"{where}: {file} defines no {name} at its top level")
+    if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) or node.decorator_list:
+        return
+    a = node.args
+    positional = a.posonlyargs + a.args
+    defaulted = {arg.arg for arg in positional[len(positional) - len(a.defaults) :]}
+    defaulted |= {arg.arg for arg, d in zip(a.kwonlyargs, a.kw_defaults, strict=True) if d is not None}
+    keyword = [arg.arg for arg in a.args + a.kwonlyargs]
+    given = [p.name for p in spec.parameters]
+    signature = ", ".join(arg.arg for arg in positional + a.kwonlyargs)
+    if spec.interface.batch:
+        required = [arg.arg for arg in positional[1:] + a.kwonlyargs if arg.arg not in defaulted]
+        if (not positional and a.vararg is None) or required:
+            raise SpecError(
+                f"{where}({signature}): a batch function takes one positional argument, the points' array (0025)"
+            )
+        return
+    problems = [f"{arg.arg} is positional-only" for arg in a.posonlyargs if arg.arg not in defaulted]
+    if a.kwarg is None:
+        problems += [f"it has no argument {n}" for n in given if n not in keyword]
+    problems += [f"its argument {n} isn't a model parameter and has no default" for n in keyword
+                 if n not in given and n not in defaulted]  # fmt: skip
+    if problems:
+        raise SpecError(
+            f"{where}({signature}) doesn't take the model parameters ({', '.join(given)}) by name: "
+            + "; ".join(problems)
+        )
+
+
+def _unlisted_imports(
+    spec: ModelSpec, model_dir: str, files: tuple[TrackedFile, ...], parsed: tuple[str, str, ast.Module] | None
+) -> tuple[str, ...]:
     """M17: each import in the function's file that resolves to an unlisted file in the model's directory.
 
     The file is parsed (``ast``), never imported (T4). Module names are resolved against the model's directory,
     the first entry of the child's ``sys.path`` (trust.md, Python function); a relative import against the
     file's directory, as when the file is imported as a module of its package.
     """
-    if not isinstance(spec.interface, PythonFunction):
+    if parsed is None:
         return ()
-    file = spec.interface.function.rpartition(":")[0]
-    path = os.path.join(model_dir, *file.split("/"))
-    source = _read_text(path, "function")
-    try:
-        tree = ast.parse(source, filename=file)
-    except SyntaxError as e:
-        raise SpecError(f"function: {file} doesn't parse: {e.msg} (line {e.lineno})") from None
-    except (ValueError, MemoryError, RecursionError) as e:
-        raise SpecError(f"function: {file} doesn't parse: {type(e).__name__}") from None
+    file, path, tree = parsed
     tracked = [os.path.join(model_dir, *f.path.split("/")) for f in files]
     here = os.path.dirname(path)
     warnings: dict[str, str] = {}
@@ -169,7 +240,8 @@ def load_spec(path: str) -> LoadedModel:
     SpecError
         Starting with the spec's path, and naming the field: a spec that doesn't validate, a credentials file
         (the spec itself, or a file it names, through links), a tracked file missing, a template naming something
-        that isn't a model parameter, or a function file that doesn't parse.
+        that isn't a model parameter, a function file that doesn't parse, or a function whose arguments don't
+        take the model parameters by name.
     """
     spec_path = _as_given(path)
     real = os.path.realpath(path)
@@ -181,7 +253,9 @@ def load_spec(path: str) -> LoadedModel:
         spec = ModelSpec.from_json(_read_text(real, "the model spec"))
         files = hash_files(spec, model_dir)
         _check_templates(spec, model_dir)
-        warnings = _unlisted_imports(spec, model_dir, files)
+        parsed = _parse_function(spec, model_dir)
+        _check_signature(spec, parsed)
+        warnings = _unlisted_imports(spec, model_dir, files, parsed)
     except SpecError as e:
         raise SpecError(f"{spec_path}: {e}") from None
     return LoadedModel(spec, spec_path, model_dir, files, version_hash(spec, files), warnings)
