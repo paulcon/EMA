@@ -1,6 +1,6 @@
 # Get started
 
-**Status:** outline. **Use cases:** U1, U5, U9. **Specs:** `../design/architecture.md` §7–§8,
+**Status:** outline. **Updated:** 2026-10-02 (0080: a run's shown text; review round 1 of applying 0066–0085). **Use cases:** U1, U5, U9. **Specs:** `../design/architecture.md` §7–§8,
 `../design/reference_models.md` (R2), `../design/uncertainty.md`, `../design/trust.md`. **Tested:** its
 Python blocks run as written on R2, from an installed EMA, in the slow tier (C53; record 0060).
 
@@ -57,12 +57,12 @@ Python blocks run as written on R2, from an installed EMA, in the slow tier (C53
 
    ```python
    print(ws.test_model("ishigami", approve=ema.ask))
-   #   ishigami@<12 hex>: test run at the nominal point
+   #   New runs of the model version `ishigami@<12 hex>`: the test run at the nominal point.
    #   Price: 1 new run, 0 reused, time unknown
    #   (the first approval for a model version also shows the function, the child's interpreter, the files,
    #   and the environment: trust.md, What needs the user's yes)
    #   Approve? [y/N] y
-   #   Run <short id>: ok; y = 0 (x1 = x2 = x3 = 0)
+   #   Run <short id>: ok; y = 0; at x1 = 0, x2 = 0, x3 = 0; run directory: /…/first_study/runs/<run id>
    ```
 
    - Why "time unknown": EMA estimates time only from stored runs (P3). <…>
@@ -83,7 +83,7 @@ Python blocks run as written on R2, from an installed EMA, in the slow tier (C53
 
    ```python
    result = ws.run("ishigami", "scatter", space, n=200, seed=1, approve=ema.ask)
-   #   ishigami@<12 hex>
+   #   New runs of the model version `ishigami@<12 hex>`: scatter on `y`.
    #   Price: 200 new runs, 0 reused, about <t> (from 1 stored run)
    #   Approve? [y/N] y
    print(result)
@@ -113,11 +113,11 @@ Python blocks run as written on R2, from an installed EMA, in the slow tier (C53
 
    ```python
    r2 = ws.run("ishigami", "polynomial_model", space, degree=2, level=4, seed=1, approve=ema.ask)
-   #   ishigami@<12 hex>
+   #   New runs of the model version `ishigami@<12 hex>`: polynomial_model on `y`.
    #   Price: 120 new runs, 200 reused, about <t> (from 201 stored runs)
    #   Approve? [y/N] y
    print(r2)
-   #   Diagnostic result <id>: polynomial model on ishigami@<12 hex>, y; 320 runs: 120 new, 200 reused,
+   #   Diagnostic result <id>: polynomial_model on ishigami@<12 hex>, y; 320 runs: 120 new, 200 reused,
    #   0 failed; report: ema report <id>
    ```
 

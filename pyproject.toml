@@ -1,0 +1,305 @@
+[project]
+name = "ema"
+version = "2.0.0.dev1"
+description = "Exploratory Model Analysis: diagnostics that find exploitable structure in computational models"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Paul G Constantine" }]
+# Lower bounds: the first releases with wheels for Python 3.13 (record 0059).
+dependencies = [
+    "numpy>=2.1.0",
+    "scipy>=1.14.1",
+    "matplotlib>=3.9.2",
+]
+
+# The command line (architecture.md §8; build step 16).
+[project.scripts]
+ema = "ema.cli:main"
+
+# The MCP server's extra (scope.md; architecture.md §8): its lower bound is the release the server's code was written
+# and tested against (record 0081 item 1).
+[project.optional-dependencies]
+mcp = [
+    "mcp>=2.2.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.21,<0.13"]
+build-backend = "uv_build"
+
+# Development tools, not shipped; each bounded below at its release when first locked (record 0059).
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.16.10",
+    "mypy>=2.4.0",
+    "import-linter>=2.15",
+    "sphinx>=9.1.0",
+    "myst-parser>=5.1.0",
+    "furo>=2025.12.19",
+    # The MCP server and its tests (record 0059, item 3; step 15).
+    "ema[mcp]",
+]
+
+# ---------------------------------------------------------------------------------------------------------
+# Ruff (record 0059, item 4)
+
+[tool.ruff]
+line-length = 120
+# Python files only: the Markdown documents are not formatted (they hold specs and guides, edited by hand).
+extend-exclude = ["docs/checks", "*.md", "src/ema/reference_models"]
+
+[tool.ruff.lint]
+extend-select = ["B905", "NPY", "I", "D", "TID251"]
+# Docstrings are required of public names only: not of magic methods such as a dataclass's __post_init__.
+extend-ignore = ["D105"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+# No vector-vector BLAS in EMA (record 0068 item 1, and its review round 1): on Accelerate their results depend on
+# the operands' addresses mod 64 (docs/notes/blas_determinism_2026-10-01.md). Inner products and norms of 1-D arrays
+# go through ema.numerics._vector's dot and norm, matrix-vector products through its matvec. What Ruff can't see,
+# `.dot(`, `@`, and `__matmul__`, an AST test refuses (tests/unit/numerics/test_determinism.py): `@` only in
+# _vector.matvec. Both see EMA's own code only, not a library's internals (a scipy function may call BLAS inside):
+# step 09's diagnostic contract checks each whole compute for identical bytes at memory offsets (record 0068, review
+# round 2).
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"numpy.linalg.norm".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.norm (0068)"
+"numpy.dot".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot or matvec (0068)"
+"numpy.inner".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot (0068)"
+"numpy.vdot".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot (0068)"
+"numpy.vecdot".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot (0068)"
+"numpy.linalg.vecdot".msg = "vector-vector BLAS varies with memory alignment: use ema.numerics._vector.dot (0068)"
+"numpy.tensordot".msg = "reduces to vector-vector BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
+"numpy.linalg.tensordot".msg = "reduces to vector-vector BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
+"numpy.linalg.multi_dot".msg = "reduces to vector-vector BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
+"numpy.einsum".msg = "with optimize, reduces to vector-vector BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
+"numpy.matmul".msg = "a one-row product is vector-vector BLAS: use ema.numerics._vector.matvec (0068)"
+"numpy.linalg.matmul".msg = "a one-row product is vector-vector BLAS: use ema.numerics._vector.matvec (0068)"
+"operator.matmul".msg = "`@` by another name; a one-row product is vector-vector BLAS: use ema.numerics._vector.matvec (0068)"
+"numpy.cov".msg = "its products are BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
+"numpy.corrcoef".msg = "its products are BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
+"scipy.stats.pearsonr".msg = "its products are BLAS, which varies with memory alignment: use ema.numerics._vector (0068)"
+"scipy.stats.linregress".msg = "its products are BLAS, which varies with memory alignment: use ema.numerics.fitting (0068)"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "TID251"]
+"**/conftest.py" = ["D"]
+
+# ---------------------------------------------------------------------------------------------------------
+# mypy (record 0059, item 4): not strict
+
+[tool.mypy]
+files = ["src"]
+# The reference models are data beside the layers: model files, not EMA's code (architecture.md §11).
+exclude = ["^src/ema/reference_models/"]
+
+[[tool.mypy.overrides]]
+module = ["scipy", "scipy.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------------------------------------
+# pytest (record 0059, item 4); the --slow option and the slow marker are in the root conftest.py
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "src"]
+addopts = ["--doctest-modules"]
+xfail_strict = true
+
+# ---------------------------------------------------------------------------------------------------------
+# Import contracts (architecture.md §1 and §10; record 0059, item 4). Each contract lists only the layers and
+# source modules that exist, one per line, and grows as build steps add packages; a forbidden module may be
+# named before it exists.
+
+[tool.importlinter]
+root_package = "ema"
+include_external_packages = true
+# An import under TYPE_CHECKING never runs (collect names ExecutedCall in its annotations only; record 0071).
+exclude_type_checking_imports = true
+
+[[tool.importlinter.contracts]]
+name = "AR1 One-way layers"
+type = "layers"
+layers = [
+    # ema.cli over ema.mcp over ema.workspace (0061; records 0081, 0082).
+    "ema.cli",
+    "ema.mcp",
+    "ema.workspace",
+    "ema.runner | ema.approval | ema.diagnostics",
+    "ema.plotting | ema.report",
+    "ema.models | ema.store",
+    "ema.numerics | ema.designs",
+    "ema.types",
+]
+
+[[tool.importlinter.contracts]]
+name = "AR2 No I/O in layers 0-1"
+type = "forbidden"
+source_modules = [
+    "ema.types",
+    "ema.numerics",
+    "ema.designs",
+]
+forbidden_modules = [
+    "os",
+    "pathlib",
+    "subprocess",
+    "sqlite3",
+    "shutil",
+    "tempfile",
+    "time",
+    "random",
+    "socket",
+    "matplotlib",
+]
+
+[[tool.importlinter.contracts]]
+name = "AR3 The CLI calls only the workspace"
+type = "forbidden"
+allow_indirect_imports = true
+# Step 16: ema.cli imports only ema.workspace and ema.types (and ema.mcp.server lazily, in its mcp command: the AST
+# test in tests/unit/test_ast.py) (record 0082).
+source_modules = [
+    "ema.cli",
+]
+forbidden_modules = [
+    "ema.numerics",
+    "ema.designs",
+    "ema.models",
+    "ema.store",
+    "ema.plotting",
+    "ema.report",
+    "ema.runner",
+    "ema.approval",
+    "ema.diagnostics",
+    "ema.reference_models",
+    "numpy",
+    "scipy",
+    "matplotlib",
+]
+
+[[tool.importlinter.contracts]]
+name = "AR3 The MCP server calls only the workspace"
+type = "forbidden"
+allow_indirect_imports = true
+# Step 15 (record 0081): the MCP server imports only ema.workspace and ema.types, the standard library, and the mcp
+# SDK; never ema.cli, which sits above it (0061); and no numerical library, so it can compute no number itself (P1).
+source_modules = [
+    "ema.mcp",
+]
+forbidden_modules = [
+    "ema.numerics",
+    "ema.designs",
+    "ema.models",
+    "ema.store",
+    "ema.plotting",
+    "ema.report",
+    "ema.runner",
+    "ema.approval",
+    "ema.diagnostics",
+    "ema.reference_models",
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "ema.cli",
+]
+
+[[tool.importlinter.contracts]]
+name = "AR4 Only the runner runs a model"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+    "ema.types",
+    "ema.numerics",
+    "ema.designs",
+    "ema.models.spec",
+    "ema.models.files",
+    # Steps 04 and 05 (record 0071): every module of ema.models but execute itself; collect names ExecutedCall
+    # under TYPE_CHECKING only, which exclude_type_checking_imports leaves out.
+    "ema.models.collect",
+    "ema.models.prepare",
+    "ema.models.parsers",
+    "ema.models.processes",
+    "ema.models.sandbox",
+    "ema.models._worker",
+    "ema.store",
+    "ema.plotting",
+    "ema.report",
+    # Step 07: ema.runner is the one module that imports ema.models.execute; its sibling ema.approval may not.
+    "ema.approval",
+    "ema.diagnostics",
+    # Step 14: the workspace orchestrates the runs through ema.runner, and never runs a model itself.
+    "ema.workspace",
+    "ema.cli",
+    # Step 15: the MCP server.
+    "ema.mcp",
+]
+forbidden_modules = [
+    "ema.models.execute",
+]
+
+[[tool.importlinter.contracts]]
+name = "AR5 Only the store opens the database"
+type = "forbidden"
+allow_indirect_imports = true
+source_modules = [
+    "ema.types",
+    "ema.numerics",
+    "ema.designs",
+    "ema.models",
+    "ema.plotting",
+    "ema.report",
+    "ema.runner",
+    "ema.approval",
+    "ema.diagnostics",
+    "ema.workspace",
+    "ema.cli",
+    "ema.mcp",
+]
+forbidden_modules = [
+    "sqlite3",
+]
+
+[[tool.importlinter.contracts]]
+name = "AR6 No LLM SDK (P1)"
+type = "forbidden"
+source_modules = [
+    "ema",
+]
+forbidden_modules = [
+    "anthropic",
+    "openai",
+    "google",
+    "langchain",
+    "langchain_core",
+    "litellm",
+    "mistralai",
+    "cohere",
+    "ollama",
+]
+
+[[tool.importlinter.contracts]]
+name = "Reference models are data beside the layers"
+type = "forbidden"
+source_modules = [
+    "ema.types",
+    "ema.numerics",
+    "ema.designs",
+    "ema.models",
+    "ema.store",
+    "ema.plotting",
+    "ema.report",
+    "ema.runner",
+    "ema.approval",
+    "ema.diagnostics",
+    "ema.workspace",
+    "ema.cli",
+    "ema.mcp",
+]
+forbidden_modules = [
+    "ema.reference_models",
+]

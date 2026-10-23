@@ -1,0 +1,14 @@
+{
+  "name": "r1",
+  "description": "R1: linear in unit coordinates, with a log range on k; c has no effect",
+  "interface": "python_function",
+  "function": "r1.py:f",
+  "parameters": [
+    {"name": "a", "units": "", "nominal": 1.0, "description": "a, in [0, 2]: slope 3 in unit coordinates"},
+    {"name": "b", "units": "", "nominal": 0.0, "description": "b, in [-1, 1]: slope -1 in unit coordinates"},
+    {"name": "c", "units": "", "nominal": 15.0, "description": "c, in [10, 20]: no effect"},
+    {"name": "k", "units": "", "nominal": 10.0, "description": "k, in [1, 100] on a log range: 2 log10 k",
+     "limits": {"gt": 0}}
+  ],
+  "predictions": [{"name": "y", "units": "", "description": ""}]
+}

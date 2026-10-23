@@ -1,8 +1,11 @@
 # Polynomial model
 
-**Status:** accepted. **Updated:** 2026-10-01 (step 11, 0058). **Module:** `ema/diagnostics/polynomial_model.py`. **Depends on:**
-`shared.md`; `linear_model.md`; `../designs.md`; `../uncertainty.md`; records 0012, 0032, 0033, 0034, 0035,
-0039, 0041, 0042, 0044, 0048, 0049, 0051, 0052, 0058.
+**Status:** accepted. **Updated:** 2026-10-01 (step 11, 0058); 2026-10-02 (the build's choices: the constants'
+factor, the notes, V = 0, the figures' cards, R2's known answer without intervals, 0079; the mock's Provenance line,
+0073; the in-sample relative residual and R² as observations, 0085; review round 1 of applying 0066–0085);
+2026-10-03 (0086 item 6). **Module:** `ema/diagnostics/polynomial_model.py`. **Depends on:** `shared.md`;
+`linear_model.md`; `../designs.md`; `../uncertainty.md`; records 0012, 0032, 0033, 0034, 0035, 0039, 0041, 0042,
+0044, 0048, 0049, 0051, 0052, 0058, 0068, 0073, 0079, 0085, 0086.
 
 > A least-squares polynomial fit of the model prediction in unit coordinates, over a convergent design: how well
 > it fits, how its variance splits among the model parameters (Sobol indices), and how fast its coefficients
@@ -15,9 +18,9 @@
 |---|---|
 | **User provides** | a model parameter space, degree p (2), n_min (2P), alpha (0.7072), level (2), seed (0), sampler (`random`), basis (`total_degree`), the model prediction |
 | **Design** | convergent (`../designs.md`): levels 0 … L, level l the first n_l points of one uniform design |
-| **Compute** | the least-squares fit over the usable runs of level L, in the orthonormal Legendre terms of total degree ≤ p; its relative residual and R²; its leave-one-out error; the Sobol indices of the fitted polynomial; the root energy at each degree; bootstrap intervals; the fit at each level, as observations |
+| **Compute** | the least-squares fit over the usable runs of level L, in the orthonormal Legendre terms of total degree ≤ p; its leave-one-out error; the Sobol indices of the fitted polynomial; the root energy at each degree; bootstrap intervals for these; its in-sample relative residual and R², and the fit at each level, as observations (0085) |
 | **Plots** | y against the fitted and the held-out predictions; the Sobol indices with their intervals; the root energy against the degree; a histogram of the residuals |
-| **Report** | four tables of estimates with variability intervals (the fit; the LOO error; the Sobol indices; the root energy per degree), the shared observations, the per-level table, the figures |
+| **Report** | three tables of estimates with variability intervals (the LOO error; the Sobol indices; the root energy per degree), the shared observations, the per-level table (with the relative residual and R², no interval), the figures |
 
 ## Parameters
 
@@ -29,9 +32,9 @@
 | `alpha` | decimal in (0, 1) | 0.7072 | the error factor per level (`../designs.md`, Convergent) | yes |
 | `level` | integer ≥ 0 | 2 | L, the last level | yes |
 | `seed` | integer ≥ 0 | 0 | the design's seed, and the bootstrap's (`shared.md`) | yes |
-| `sampler` | name | `random` | the sampler (0032); convergent needs a nested one | yes |
+| `sampler` | name | `random` (0032) | the sampler; convergent needs a nested one | yes |
 | `basis` | name | `total_degree` | the set of terms; v2.0 accepts only `total_degree` | no |
-| `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
+| `prediction` | model prediction name | the only one (0022) | the model prediction analyzed | no |
 
 - **d** is the number of varied model parameters; **P** = C(d + p, p) is the number of terms, and of
   coefficients.
@@ -51,7 +54,11 @@
   (U3, U4), and its price is in the approval (P3). p = 1 is accepted: it gives the linear fit's Sobol indices,
   with coefficients scaled by ψ₁(u) = √3·u rather than the linear model's slopes.
 - **The basis:** `total_degree` is the only value v2.0 accepts; any other is refused with "basis X comes in a later
-  version", as `sampler` is (0032). Later index sets (hyperbolic cross, which has 53 terms (Π(αᵢ + 1) ≤ p + 1)
+  version", as `sampler` is (0032): the diagnostic reads any well-formed name, and the registry refuses one it
+  lacks when the design is built, before any run (0079 items 2, 19). Its "Changes the design?" stays "no": C14
+  passes a "no" whose other value is refused as coming later, and the promise is tested with a second basis
+  registered (C29's fake): the same design bit for bit, and another request, so another reuse key (0079 item
+  20). Later index sets (hyperbolic cross, which has 53 terms (Π(αᵢ + 1) ≤ p + 1)
   against 165 at d = 8, p = 3; a sparse fit by orthogonal matching pursuit) are about 30–80 lines each, with a
   record and known answers. The basis is not part of the design, but is part of the request's identity.
 - **A small n_min** is accepted (`../designs.md` refuses only sizes that aren't strictly increasing): the
@@ -86,6 +93,7 @@ u_k ∈ [−1, 1]^d (`../designs.md`: through the logarithm for a log range).
 **How well it fits,** as the linear model (`linear_model.md`):
 
 - **Relative residual:** ‖r‖ / ‖y − ȳ‖, with r = y − Ac over the usable runs; and **R²:** 1 − ‖r‖² / ‖y − ȳ‖².
+  Both are observations (0085), level L's in the per-level table, with no variability interval (Uncertainty).
 - **Leave-one-out (LOO) error** by PRESS: √(Σ_k (r_k / (1 − h_kk))²) / ‖y − ȳ‖, with the leverages h_kk the
   squared row norms of Q. No refits and no random draws. U4's "cross-validated error".
 - **Why:** on R3 at p = 2, over 50 designs, the LOO error at 90, 180, and 360 runs is 0.051, 0.041, 0.038, and
@@ -154,8 +162,10 @@ header and the note (`shared.md`), and drawn in the fit figure's strip.
 **The levels, as observations** (as the linear model's): the fit on each level's usable runs among its first n_l
 points: its usable runs, relative residual, R², LOO error, and each model parameter's total index (4 + d rows).
 The estimates are level L's; the earlier levels show whether the fit and the ranking settle as the runs double.
-No check of the observed rate against the sampler's r (P2). A level with fewer than 2P usable runs has "none" in
-its column.
+No check of the observed rate against the sampler's r (P2). A level with fewer than 2P usable runs, with A of
+rank below P, or where a number is 0/0 (a constant model prediction) has "none" in its column (0079 item 8).
+Under the table, after "Each level is fitted on the usable runs among its first points." (both in the per-level
+table's title), the linear model's line on the in-sample measures (`linear_model.md`, 0085).
 
 ## Uncertainty
 
@@ -163,15 +173,23 @@ OD-12, for the polynomial model: **the bootstrap over the usable runs of level L
 (`linear_model.md`): `../uncertainty.md`'s bootstrap (The bootstrap), from the polynomial model's stream
 (`POLY_BOOT_TAG`). What differs (0052):
 
-- **On distinct runs:** the LOO error, as the linear model's. The coefficients, relative residual, R², Sobol
-  indices, and √E_k are refitted on each resample as drawn, duplicates included (the pairs bootstrap).
+- **On distinct runs:** the LOO error, as the linear model's. The coefficients, Sobol indices, and √E_k are
+  refitted on each resample as drawn, duplicates included (the pairs bootstrap). The as-drawn estimates share one
+  refit per resample; the LOO error is a second, on distinct runs, skipped below P + 1 distinct runs (0079 item 7).
+- **No interval for the relative residual and R²** (0085), as the linear model's: refits on repeated runs look
+  better than the fit, by more as P grows against the distinct runs (on Ishigami at degrees 6, 8, and 10, both
+  fell outside their own intervals every time; the LOO error never did). They are observations, in the
+  per-level table.
 - **Undefined resamples:** a resample whose A has rank below P (numpy's `matrix_rank` rule, as at level L, below),
-  or whose distinct runs are fewer than P + 1 for LOO. R², the relative residual, the LOO error, and the Sobol
-  indices are also undefined on a resample whose y or fitted polynomial is constant (0/0, `../uncertainty.md`'s
-  bootstrap step 3).
+  or whose distinct runs are fewer than P + 1 for LOO. The LOO error and the Sobol indices are also undefined on
+  a resample whose y or fitted polynomial is constant (0/0, `../uncertainty.md`'s bootstrap step 3; each
+  resample's y as drawn is tested with `is_constant`, 0068 item 10). They are counted per estimate, keyed by a
+  short name ("leave-one-out error", "rw first-order", "rw total", "√E_2"); the report prints those that aren't 0
+  (0079 item 7).
 - **Checked** against the spread over 200 designs (R3, p = 2, 360 runs; a scratch script, 2026-09-30): the
-  intervals' widths are 0.85–2.3 times 5.15 standard deviations over designs, across the 20 estimates.
-  Refitting on distinct runs gave 0.66–1.7, and was not chosen, so that the two fits' bootstraps stay alike.
+  intervals' widths are 0.85–2.3 times 5.15 standard deviations over designs, across the 20 estimates (the
+  relative residual and R² among them, before 0085). Refitting on distinct runs gave 0.66–1.7, and was not
+  chosen, so that the two fits' bootstraps stay alike.
 - **The bias of squared coefficients:** each c_α² sits above its limit by about Var(c_α), and a resample adds
   that again, so the interval of a model parameter with no effect sits just above 0 (R3's r, total: 4.3·10⁻⁵
   [1.7·10⁻⁵, 2.2·10⁻⁴], as in the mock report below). The indices are reported as computed, the indices of the
@@ -211,20 +229,28 @@ OD-12, for the polynomial model: **the bootstrap over the usable runs of level L
 
 - **Fewest usable runs:** 2P (`POLY_MIN_RUNS`), as the linear model's 2(d + 1): a bootstrap resample then keeps
   about 1.26P distinct runs, above P. Below it: counts and a note, no estimates (P6); the shared observations
-  and the per-level table stay. U3's r2 (68 usable runs, 84 coefficients) gets "68 usable runs; the polynomial
-  model of degree 3 needs at least 168 (twice its 84 coefficients)".
+  and the per-level table stay. U3's r2 (68 usable runs, 84 coefficients) gets the precheck's note (`shared.md`;
+  0079 item 5): "68 usable runs; polynomial model needs at least 168 (twice its 84 coefficients at degree 3)."
 - **All runs failed:** counts by kind and the note; no estimates or observations (`shared.md`).
 - **Constant:** the note, the observations, no estimates (0035). R4b is not constant: estimates of its wiggle.
 - **Exactly a polynomial of degree ≤ p** (R1 at any p, R10 at p ≥ 2): relative residual and LOO at rounding
-  (about 10⁻¹⁵), R² = 1, the exact coefficients, and intervals of about that width.
+  (about 10⁻¹⁵), R² = 1, the exact coefficients; the relative residual and R² have no interval (0085). At the
+  defaults the intervals are of about that width (the LOO error's 4.2·10⁻¹⁵, seed 0). Near the fewest runs the
+  LOO error's interval widens, as leverages near 1 amplify rounding: R1 at p = 2 and 2P = 30 runs, 1.53·10⁻¹⁰
+  (the others' intervals at most 1.9·10⁻¹⁴).
 - **A at level L with rank below P** (usable runs that don't determine every term, as when failures leave
-  fewer than P distinct values along a model parameter of degree p): no estimates, and a note: "the 2P or more
-  usable runs don't determine the degree-p polynomial: A has rank k of P". The observations stay. A's rank is
-  numpy's `matrix_rank` rule: the number of singular values above max(n_u, P)·ε·σ_max, ε the double's machine
-  epsilon (0051).
-- **V = 0** (every fitted c_α with α ≠ 0 exactly 0, though y varies; only in a contrived design): the fit's
-  numbers, no Sobol estimates, and a note: "The fitted polynomial is constant (V = 0), so it has no Sobol
-  indices." (0049).
+  fewer than P distinct values along a model parameter of degree p): no estimates, and a note: "The 40 usable
+  runs don't determine the degree-2 polynomial: A has rank 9 of 10." (0079 item 9). The observations stay, and
+  the Fit header row is written in every case. A's rank is numpy's `matrix_rank` rule: the number of singular
+  values above max(n_u, P)·ε·σ_max, ε the double's machine epsilon (0051).
+- **The LOO error undefined on the usable runs** (a run of leverage 1): no Held out table, "none" in the
+  per-level table's LOO row, and a note: "The leave-one-out error is undefined: a usable run has leverage 1."
+  (`../uncertainty.md`, Rules; 0079 items 10, 22).
+- **V = 0** (every fitted c_α with α ≠ 0 exactly 0, though y varies; only in a contrived design, such as R11's
+  space at degree 1 with 8 runs at (±0.375, ±0.375), y = 0, and at (±1, ±1), y = 1, where the ψ₁ coefficients
+  come out exactly 0 on some LAPACKs): the fit's numbers, no Sobol estimates, and a note: "The fitted
+  polynomial is constant (V = 0), so it has no Sobol indices." (0049). The decay table stays, every √E_k 0
+  (0079 items 11, 21).
 - **Runs not usable:** estimates from the usable runs of level L; each level's column in the per-level table
   uses its usable runs among its first n_l points.
 - **Figures** (0051): with no estimates (too few usable runs, all runs failed, constant, or A of rank below P),
@@ -243,13 +269,18 @@ OD-12, for the polynomial model: **the bootstrap over the usable runs of level L
 - **Runs not usable:** × in the strip below each panel, at the fitted polynomial's value at their point (they
   were not fitted, so it is a held-out prediction in both panels).
 - **Not a shadow** (0039): the polynomial model's shadows come with the active subspace, later.
-- **Data card:** each point's run id, y, ŷ, and ŷ₋ₖ; the runs not usable with their kind and ŷ.
+- **Data card:** each point's run id, y, ŷ, and ŷ₋ₖ, every usable run in each panel; a held-out prediction that
+  isn't finite (a leverage of 1) is null, and that run is not drawn in the right panel; the runs not usable with
+  their kind and ŷ; and the coefficients, each with its multi-index, term, value, and interval (0079 items 13,
+  25).
 
 **`polynomial_model_sobol.png`:**
 
 - For each varied model parameter, in the model spec's order, two points side by side, the first-order and the
-  total index, each with its variability interval as a bar.
-- **y axis:** `Sobol index of the fitted polynomial`, linear, [0, 1].
+  total index, each with its variability interval as a bar; a legend for the two, its swatches a dot with its
+  bar, as the series are drawn (0079 item 25).
+- **x axis:** "model parameter", with the names as ticks. **y axis:** `Sobol index of the fitted polynomial`,
+  linear, [0, 1].
 - **Data card:** each index and its interval.
 
 **`polynomial_model_decay.png`:**
@@ -258,7 +289,8 @@ OD-12, for the polynomial model: **the bootstrap over the usable runs of level L
   **x axis** `total degree k`, integers.
 - A degree whose √E_k is below the panel's lower limit, 10⁻¹⁷ of the largest (`SPECTRUM_YMIN`, as coordinate
   lines'), whether an exact zero or rounding, is an open marker on the bottom edge (0048).
-- **Data card:** each degree's number of terms, √E_k, and its interval.
+- **Data card:** each degree's number of terms, √E_k, and its interval; the lower limit, and the degrees drawn
+  as open markers (0079 item 13).
 
 **`polynomial_model_residuals.png`:** as the linear model's: ⌊√n_u⌋ equal-width bins of r = y − ŷ over the usable
 runs of level L; **x axis** `residual of name [units]`, **y axis** the number of runs; the data card has the bin
@@ -289,13 +321,6 @@ rows, 0032), the bootstrap from the polynomial model's stream; checked at step 1
 
 Each variability interval shows how much its estimate changes when the runs behind it change, by the method named
 under its table; it is not a confidence interval, and carries no coverage probability.
-
-| Fit | Estimate | Variability interval |
-|---|---|---|
-| Relative residual ‖y - ŷ‖ / ‖y - mean‖ | 0.03526 | [0.02607, 0.03786] |
-| R² | 0.9988 | [0.9986, 0.9993] |
-
-Variability intervals: bootstrap over the 360 usable runs, 1000 resamples, 0.5th to 99.5th percentiles, seed 3.
 
 | Held out | Estimate | Variability interval |
 |---|---|---|
@@ -351,6 +376,8 @@ bootstrap over the 360 usable runs, 1000 resamples, 0.5th to 99.5th percentiles,
 | Kw | 0.01158 | 0.01201 | 0.01251 |
 
 Each level is fitted on the usable runs among its first points.
+In-sample measures: refitting a resample's repeated runs makes the fit look better than it is, so they have no
+variability interval; the leave-one-out error's interval shows how the fit varies.
 
 ## Figures
 
@@ -376,7 +403,7 @@ The residuals of the 360 usable runs, 18 bins. Data card: `polynomial_model_resi
 
 EMA 2.0.0; numpy 2.3.1, scipy 1.16.0, matplotlib 3.10.0; model version R3@c05e; request: polynomial model,
 space as above, degree 2, basis total_degree, n_min = 90, alpha = 0.7072, level 2, sampler random 1, seed 3,
-prediction y; runs: 360 (72 reused from the linear model's evaluation); approvals: 4b1d (288 new runs).
+prediction y; runs: 360; approvals: 4b1d (288 new runs).
 ```
 
 (For comparison, by quadrature: the degree-2 polynomial over the space has relative residual 0.0341 and total
@@ -414,24 +441,31 @@ would put some of them off by more than their tolerance.
 | R11, p = 10 | relative residual; LOO | 0.0167170; the same | 9.6·10⁻⁴ (both; 0058) | quadrature, as R2's |
 | R4a | notes; estimates | the "constant" note; none | exact | trivial |
 | R4b | estimates | present | exact | 0035 |
-| R5, y and z | every estimate | equal to the polynomial model computed on the usable runs alone | exact | by construction (U3) |
+| R5, y and z | every estimate and observation | equal to the polynomial model computed on the usable runs alone | exact | by construction (U3) |
 | R3, p = 2, seed 3, defaults | the report | the mock report above | golden report (`shared.md`: structure, and numbers within one unit in the 4th digit) | this spec |
 
 - **No brute-force known answers:** R3's Sobol indices and √E_k, from a degree-5 fit, were dropped; every
   expected value above is analytic or by quadrature. R3 keeps only the golden report, a regression check, not an
   independent answer.
-- **Time:** these tests are in the slow tier, about 9 min, mostly R2's bootstrap: 1000 refits of 20,000 × 286,
-  0.46 s each; R11's takes 72 s.
+- **Observations:** the relative residual and R² are observations (level L's column of the per-level table,
+  0085); their known answers are checked as the estimates' are.
+- **Time:** these tests are in the slow tier. R2's at p = 10 compute no intervals (a test interval method that
+  gives every interval "none", through V7's seam; `../contracts.md`, Test tiers): the estimates don't depend on
+  the interval method, and the bootstrap's 1000 refits of 20,000 × 286, each as drawn and again on its distinct
+  runs for LOO (twice the 0.46 s per refit as drawn first measured), took about 0.9 s each under load, about
+  15 min (0079 items 15, 16). The tests then take about as long as R11's
+  bootstrap; the bootstrap's own known answers are the golden report's and PM5's, and R1, R10, and R11 at
+  20,000 runs run it as users do.
 
 ## Named constants
 
 | Name | Value | Meaning | Why this value |
 |---|---|---|---|
 | `POLY_DEGREE` | 2 | the default degree | the smallest step past the linear model; U5's |
-| `POLY_NMIN` | 2P | the default size of level 0 | twice the coefficients, as U4 assumes |
+| `POLY_NMIN` | 2 (n_min = 2P) | the factor of P in the default size of level 0, 2·C(d + p, p) of the parsed degree (0079 item 5) | twice the coefficients, as U4 assumes |
 | `POLY_ALPHA` | 0.7072 | the default error factor per level | as the linear model's: the points about double per level |
 | `POLY_LEVEL` | 2 | the default last level | as the linear model's: about 8P points (G7) |
-| `POLY_MIN_RUNS` | 2P | the fewest usable runs for estimates | resamples keep about 1.26P distinct runs |
+| `POLY_MIN_RUNS` | 2 (2P runs) | the factor of P in the fewest usable runs for estimates (0079 item 5) | resamples keep about 1.26P distinct runs |
 | `POLY_BOOT_TAG` | 2³² + 3 | the spawn key of the polynomial model's bootstrap stream | the next diagnostic tag after the linear model's (`shared.md`) |
 
 ## Requirements
@@ -440,7 +474,7 @@ would put some of them off by more than their tolerance.
 |---|---|---|
 | PM1 | The design is convergent with the request's n_min (2P by default), alpha, level, seed, sampler, and space; a space with no varied model parameter, a degree below 1, or a basis other than `total_degree` is refused before building. | The design equals `convergent(...)` bit for bit; degree 0; `basis="hyperbolic_cross"`: refused as later. |
 | PM2 | The fit is least squares, by QR, in the orthonormal Legendre terms of total degree ≤ p in unit coordinates, over the usable runs of level L, the terms in the stated order. | R10 at p = 2: the three coefficients within 10⁻¹², the rest below 10⁻¹²; P = C(d + p, p) for d = 1 … 8, p = 1 … 4. |
-| PM3 | The relative residual, R², and the LOO error by PRESS, as the linear model's. | A fixture of 12 runs in d = 2, p = 2: LOO equal to explicit refits within 10⁻¹². |
+| PM3 | The relative residual, R², and the LOO error by PRESS, as the linear model's; the relative residual and R² as observations, with no interval (0085). | A fixture of 12 runs in d = 2, p = 2: LOO equal to explicit refits within 10⁻¹². |
 | PM4 | The Sobol indices are the first-order and total indices of the fitted polynomial, from its coefficients over V; √E_k per total degree k = 1 … p. | R1 and R10 at p = 2 (Expected answers); a fixture whose coefficients are set by hand. |
 | PM5 | Intervals: 1000 resamples from the polynomial model's stream, the same for every estimate, the P coefficients included (in the result, 0041); refits as drawn; LOO on each resample's distinct runs; the 0.5th and 99.5th percentiles; undefined resamples dropped and counted. | Changing `POLY_BOOT_TAG` changes the intervals, not the design (S8); a fixture at 2P runs: the count under the table. |
 | PM6 | The per-level table: each level fitted on its usable runs among its first n_l points: usable runs, relative residual, R², LOO, and total indices; "none" below 2P. | R3 at the defaults (the mock report); R5 where level 0 has too few usable runs. |

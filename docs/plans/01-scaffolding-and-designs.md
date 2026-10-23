@@ -1,6 +1,7 @@
 # 01. Scaffolding, the design types, and the design generators
 
-**Status:** approved (2026-10-01). **Branch:** `build-01-scaffolding-and-designs`. **Updated:** 2026-10-01.
+**Status:** in progress (demo; record 0066): approved 2026-10-01, built through task 8 on `demo` without the Review A
+and end stops (0066); its further choices are record 0067. **Branch:** `demo`. **Updated:** 2026-10-01.
 
 ## Goal
 
@@ -241,3 +242,35 @@ Not in a spec, and small; listed so the review can object.
   over `scope.md`'s 8,300. The step reports its actual count and the projection from it.
 - From the consistency review (D, BUILD-7 and BUILD-8): collecting the contract modules (Choices) is settled
   here; the reference models' Ruff and mypy exclusions are their step's.
+- **Built on `demo` (record 0066),** through task 8 with no stop at Review A; `STATUS.md` is the coordinator's.
+  The choices beyond this plan's list (30) are record 0067, `proposed (provisional; record 0066)`.
+- **AR2 on EMA's own code** (task 2): with `import os` added to `ema/types/text.py`, `uv run lint-imports` gave
+  "AR2 No I/O in layers 0-1 BROKEN ... ema.types is not allowed to import os: ema.types.text -> os (l.4)"
+  (5 kept, 1 broken); without it, 6 kept, 0 broken.
+- **Ruff 0.16 formats Markdown** (Python code blocks in `.md` files): its first `ruff format` rewrote six accepted
+  documents, restored from `HEAD` at once; `*.md` is excluded from Ruff (0067 item 2).
+- **Tests:** 407 (406 in the fast tier, 5 of them doctests; 1 slow, the wheel build): the design contract's 8 checks
+  over the six generators and the toy, the sampler contract over `random` and two fakes, both meta-tests, G1–G18,
+  the independent constructions, the golden points, the terminology and AST tests. Each broken toy was run once
+  against its check and fails it for the intended reason.
+- **Times** (this Mac, 2026-10-01): the fast tier 1.3 s serially (`uv run pytest -q`; budget 30 s); both tiers
+  2.1 s with `-n auto`; `lint-imports` about 1 s.
+- **Source lines** (code lines: no docstrings, comments, or blank lines; physical lines in brackets): `ema.types`
+  this step's modules 494 [1,242], with its `__init__.py`'s 92 lines of re-exports beside them; `ema.designs` 496
+  [815] against §11's 388 (`lines.py` 230 against "about 150"). The projection: `ema.types` near the forecast
+  above (about 1,500 in all), and `ema.designs` about 110 over, so the total near 8,950 against `scope.md`'s 8,300
+  (question 6: the budget record is the coordinator's to propose).
+- **Golden values** (task 5): recorded from this Mac's build (numpy 2.5.3), each first checked against numpy's
+  `Generator.random`, lo + (hi − lo)·u, the log map computed directly, and step 11's `random_line` and
+  `given_line`.
+- **Deferred** (0066, 0067): the 3.13 lowest-versions run in a scratch copy (task 7); the workflow's third job is
+  written. About 15 minutes later.
+- **Review round 1** (2026-10-02; 0067 items 31–38, and two deferrals): convergent's sizes are exact and cheap
+  for any level (M1: n_min + L over the cap refused at once; a guarded float estimate per level, exact bounds
+  where it is unsure; 0067 item 24 corrected); the seed normalized before drawing (m1); alpha text must be a
+  decimal (m2), and identity canonicalization handed to step 09; the meta-tests expect each broken toy's own
+  failure (m4); C21 checks each end's bounding coordinates exactly (m3); C28 checks what EMA hashes (m5);
+  lines' `size` makes `build`'s checks, and 0051's check makes a few points a line (m6, m8); the nits. A block of
+  a lines design still makes every line's segment: deferred (0067). Tests: 472 in the fast tier (4.1 s
+  serially). `ema.designs` 556 code lines, from 496.
+

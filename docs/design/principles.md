@@ -1,6 +1,6 @@
 # Principles
 
-**Status:** accepted. **Updated:** 2026-10-01 (P1 clarified by 0019; P7's "Open" settled by 0021; held candidate updated by 0026; P3's hash settings by 0029, and its tracked files by 0031; P2's list by 0034; P6's constant by 0035, and its check by 0036; P3's budgets by 0050; P3, P4, P6, and P7 worded by 0051; the candidate "One-way layers" answered by architecture rules, and P2's pointer, by 0056; P3's uncovered values and file comparison, and the candidate "User code runs isolated" answered by trust rules, by 0057; "user" in P1's instructions by 0061; P4's "on one machine" by 0062).
+**Status:** accepted. **Updated:** 2026-10-01 (P1 clarified by 0019; P7's "Open" settled by 0021; held candidate updated by 0026; P3's hash settings by 0029, and its tracked files by 0031; P2's list by 0034; P6's constant by 0035, and its check by 0036; P3's budgets by 0050; P3, P4, P6, and P7 worded by 0051; the candidate "One-way layers" answered by architecture rules, and P2's pointer, by 0056; P3's uncovered values and file comparison, and the candidate "User code runs isolated" answered by trust rules, by 0057; "user" in P1's instructions by 0061; P4's "on one machine" by 0062; 2026-10-02: an MCP client's interpretation in P2 by 0081).
 
 ## Accepted
 
@@ -29,7 +29,9 @@ A diagnostic result holds only estimates, observations, counts, notes, and figur
 any comparison with a heuristic threshold, and anything that says what a number means or what to do next. It
 is never part of a diagnostic result or of a report's main body; if EMA produces any, it is labeled
 experimental and kept in its own section (OD-8). Every heuristic threshold used in interpretation is a named
-constant, documented in the spec that uses it.
+constant, documented in the spec that uses it. An MCP client's interpretation is the client's, not EMA's: the
+server's instructions ask it not to interpret unless the user asks, and, if it does, to say the reading is its
+own and keep it apart from what it quotes of EMA's (0081 item 27). This is a request, not enforcement.
 
 - **Why:** the user is the domain expert (`purpose.md`): EMA gives evidence, and judging what it means for the
   model is the user's job. Thresholds are heuristics that will be revised, and a diagnostic result must not

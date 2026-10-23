@@ -1,7 +1,7 @@
 # Scope of v2.0
 
-**Status:** accepted. **Updated:** 2026-10-01 (0022, 0025, 0037, 0039, 0050, 0057, 0059, 0061, 0064). **Depends on:** OD-2
-(0006), OD-5 (0012), OD-6 (0014), OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021.
+**Status:** accepted. **Updated:** 2026-10-02 (0022, 0025, 0037, 0039, 0050, 0057, 0059, 0061, 0064, 0073, 0081, 0084); 2026-10-03 (0086 items 1 and 2). **Depends on:** OD-2
+(0006), OD-5 (0012), OD-6 (0014), OD-7 (0016, 0019), OD-8 (0017), OD-14 (0013); records 0015, 0018, 0020, 0021, 0086.
 
 > What the first release does, what it explicitly doesn't, and the size budgets that keep it small. When
 > something new comes up, the question is "is it in this file?", and if not, it waits for a later version.
@@ -20,7 +20,7 @@
 | Agent | an MCP server: run and read, and set up models from specs; at most 10 tools (0016) |
 | Interpretation | none (0017) |
 | Model output | kept in each run's directory for inspection outside EMA, with a setting to limit it, and a lookup (0020) |
-| Reports | one per diagnostic evaluation: Markdown with TeX math and PNG figures, the reference; a PDF through pandoc and lualatex when installed (0018, 0059) |
+| Reports | one per diagnostic evaluation: Markdown (with no math: EMA's symbols are Unicode, 0073) and PNG figures, the reference; a PDF through pandoc and lualatex when installed (0018, 0059) |
 | Export | the runs a diagnostic result used, its design, and the result with its provenance, as CSV and JSON (U5; `export.md`, 0050) |
 | Reproduce | a stored diagnostic result recomputed from its provenance (U8, 0050) |
 
@@ -82,19 +82,26 @@
 | Measure | Budget |
 |---|---|
 | Diagnostics | 6 (0012) |
-| Source lines in `ema` (without tests and reference models) | 8,300 (0064) |
+| Source lines in `ema` (without tests and reference models) | 12,000 (0064, 0084, 0086) |
 | Source lines of reference models | 1,000 |
 | Public names in `ema.workspace` (`open_workspace` and the `Workspace` methods) | 20 |
 | CLI commands (`ema model add` and `ema model test` count as two) | 15 |
-| MCP tools | 10 (0016) |
+| MCP tools | 10 (0016; all 10 used, 0081) |
 | CLAUDE.md | 1,500 words |
-| Fast test tier | 30 s |
-| Runtime dependencies | numpy, scipy, matplotlib; `ema[mcp]` adds the `mcp` SDK; pandoc and lualatex are optional system tools (0018, 0059) |
+| Fast test tier | 90 s, wall-clock, run with `-n auto` (0084, 0086); 30 s a goal |
+| Runtime dependencies | numpy, scipy, matplotlib; `ema[mcp]` adds the `mcp` SDK (`mcp>=2.2.0`, 0081); pandoc and lualatex are optional system tools (0018, 0059) |
 
 - **Where the numbers come from** (2026-09-29): the source lines are estimated at about half of each v1
   counterpart: models ~1,500, store ~700, designs and numerics ~850, diagnostics ~2,200, types, runner,
   approval, and workspace ~1,300, plotting and reports ~500, CLI and MCP ~700; about 7,800 in all. v1's
-  `testfunctions/` was 1,411 lines.
+  `testfunctions/` was 1,411 lines. Measured at the end of the demo build (2026-10-02): 10,957 code lines,
+  without docstrings, comments, or blank lines, most of the overrun validation the reviews asked for; the
+  budget raised to 11,000, the owner's decision, and `architecture.md` §11's rows set to the measured counts
+  (0084). The code had grown past 11,000 before that budget was set; the owner raised it to 12,000, room for
+  the fixes before v2.0 (0086 item 1).
+- **The fast tier** (2026-10-03): 56–68 s wall-clock with `-n auto` on an 8-core Mac, about 34 s of CPU per
+  core, so 30 s can't be met without moving more than half the tier to the slow tier. The budget is 90 s, and
+  30 s a goal for a later step (0086 item 2).
 - **Names and commands:** the architecture draft has 16 public names and 10 CLI commands; the use cases and
   0020 add `failed_runs`, `reproduce`, and the run-directory lookup, which makes 19 and 13.
 - **Dependencies:** a new runtime dependency, in core or in an extra, is a decision with a record.

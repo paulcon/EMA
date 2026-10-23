@@ -23,6 +23,9 @@
 | <…> | <…> | <…> | <…> | <yes or no> |
 | `seed` | integer ≥ 0 | 0 | <its draws; or "recorded; no random draws"> | <yes or no> |
 
+The Meaning column is the code's text, which `info()`, `ema diagnostic describe`, and the MCP tools show: it cites
+no id of any kind, neither a record nor a spec id; a row cites its ids in another cell (0086 item 6; 0087 item 2).
+
 ## Computation
 
 > The formulas, with references. What is computed from which runs. How failed runs are handled.

@@ -3,7 +3,8 @@
 **Status:** accepted. **Updated:** 2026-10-01 (U9 added by 0016; U2's model spec follows `model_interface.md`;
 U3's failure map dropped by 0037; U2's per-line numbers by 0038; U4's polynomial figures by 0039; U4's budget
 dropped, and the features no use case exercises named, by 0050; asks trimmed by 0052; typed steps follow
-`architecture.md` §7 by 0056; the first approval's environment, and `ema mcp --root`, by 0057; "user", and U4's durations, by 0061; U8 on another machine by 0062).
+`architecture.md` §7 by 0056; the first approval's environment, and `ema mcp --root`, by 0057; "user", and U4's durations, by 0061; U8 on another machine by 0062;
+2026-10-02: U6's loading lines by 0080; U1's repeat line, and U9's spec already saved, by 0081; U2's "Stopped" line by 0082; U4's in-sample residual an observation by 0085; review round 1 of applying 0066–0085).
 
 > Each use case is a short scenario from the user's side: who they are, what model they have, what they
 > want to learn, what they type (in Python or the CLI), what EMA asks them, and the report they get. Write
@@ -85,7 +86,13 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
   - there is one figure per model parameter, labeled with its units;
   - every number in the report and the data cards is computed from the stored runs (P1);
   - running the same steps again asks nothing, makes no new runs, and gives a byte-identical report (P3,
-    P4).
+    P4); the repeated `run` says first that it returned the stored result, whose counts are those of the
+    evaluation that made it (0081 item 28):
+
+    ```text
+    Diagnostic result 3f2a: the stored result of the same request; no new runs, nothing asked. As made:
+    scatter on beam@91c0…, delta; 200 runs: 200 new, 0 reused, 0 failed; report: ema report 3f2a
+    ```
 
   Known answers for R2 belong to the scatter spec (step 6), not to this use case.
 
@@ -136,25 +143,46 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
      same command the next day. The model parameter space is given on the command line as a JSON file,
      `--space FILE` (`designs.md`).
 
-     ```text
+     ````text
      $ ema model add heat/model.json
+       Loaded heat@b204…: 6 model parameters (k, q, …), 1 model prediction (T_max)
      $ ema model test heat
+       New runs of the model version `heat@b204…`: the test run at the nominal point.
        Price: 1 new run, 0 reused, time unknown
+
+       The model version's first approval: what each run starts.
+       Command: `["./heat_solver", "plate.in"]`
+       Program: `/…/heat/heat_solver`
+       Input deck `plate.in`, from the template `plate.in.template`:
+       ```
+       conductivity = $k
+       heat_flux    = $q
+       ...
+       ```
+       Files in each run directory:
+       - `heat_solver`
+       - `solver.cfg`
+       - `mesh.dat` (shared: a link to a read-only stored copy)
+       Environment: EMA's base variables only.
        Approve? [y/N] y
+       Run e61d: ok; T_max = …; at k = 45, q = …, …; run directory: …/runs/e61d…
      $ ema run heat coordinate_lines --space space.json --param n=17
+       New runs of the model version `heat@b204…`: coordinate_lines on `T_max`.
        Price: 96 new runs, 1 reused, about 3 h 12 min (from 1 stored run)
        Approve? [y/N] y
        40/96 runs ... ^C
-       Stopped: 40 runs stored.
+       Stopped at 40/96 runs: every finished run is stored.
 
      # the next day
      $ ema run heat coordinate_lines --space space.json --param n=17
+       New runs of the model version `heat@b204…`: coordinate_lines on `T_max`.
        Price: 56 new runs, 41 reused, about 1 h 52 min (from 41 stored runs)
        Approve? [y/N] y
        56/56 runs
-       Diagnostic result 3f2a; report: ema report 3f2a
+       Diagnostic result 3f2a: coordinate_lines on heat@b204…, T_max; 97 runs: 56 new, 41 reused, 0 failed;
+       report: ema report 3f2a
      $ ema report 3f2a
-     ```
+     ````
 
      The same in Python:
 
@@ -299,8 +327,9 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
   - `r3` at level 1: 300 new, 360 reused, about 25 min.
 - **What they get:** three reports. The polynomial model's numbers and figures are settled in its spec
   (step 6); the lean set is:
-  - numbers: the fit's residual and cross-validated error, and the Sobol first-order and total indices, each
-    with its variability interval (for example, convergence over the design's levels, OD-12);
+  - numbers: the fit's cross-validated error, and the Sobol first-order and total indices, each with its
+    variability interval (for example, convergence over the design's levels, OD-12); the fit's in-sample
+    residual, as an observation with no interval (0085);
   - figures: the model prediction against the fitted polynomial and against its held-out predictions (0039),
     the Sobol indices with their intervals, and a histogram of the residuals.
 
@@ -363,7 +392,9 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
      except ema.ModelChanged as e:
          print(e)   # refused: beam.py changed since the model was loaded; load it again to make a new
                     # model version
-     ws.load_model("beam/model.json")   # new model version beam@3f2a (was beam@91c0): beam.py changed
+     ws.load_model("beam/model.json")   # Loaded beam@3f2a…: 3 model parameters (E, L, P), 1 model prediction
+                                        # (delta); New model version beam@3f2a… (was beam@91c0… at
+                                        # /…/beam/model.json): beam.py changed
      r = ws.run("beam", "scatter", space, n=200, seed=1, approve=ema.ask)
      ws.list_results(model="beam")      # U1's diagnostic result and this one, each with its model version
      ```
@@ -374,7 +405,8 @@ dropped, and the features no use case exercises named, by 0050; asks trimmed by 
 
      ```text
      $ ema model add heat/model.json
-       New model version heat@7c1e (was heat@b204): solver.cfg changed
+       Loaded heat@7c1e…: 6 model parameters (k, q, …), 1 model prediction (T_max)
+       New model version heat@7c1e… (was heat@b204… at /…/heat/model.json): solver.cfg changed
      $ ema run heat coordinate_lines --space space.json --param n=17
      ```
 
@@ -453,7 +485,10 @@ written.
   server, in a fresh workspace, and asks in their own words to set up `beam.py` as a model, test it, and
   run scatter over the same model parameter space with n = 200 and seed 1. The client's agent calls:
   `propose_model` (a model spec for `beam.py`), `save_model`, `test_model`, `run_diagnostic`, and
-  `results`, and the user opens the report through its resource, `ema://results/{id}/report`.
+  `results`, and the user opens the report through its resource, `ema://results/{id}/report`. A model spec
+  already in the root (one the user wrote) is loaded the same way: `save_model` with its text and its path
+  asks "already saved, unchanged: load it?", writes nothing, and loads the file after the yes (`trust.md`,
+  T6; 0080, 0081).
 - **What EMA asks, and when:** three elicitations: the model spec, before it is saved (the model
   parameters, units, nominal values, and the file); the test run: 1 new, 0 reused, time unknown; and
   scatter: 200 new, 0 reused, about 0.2 s. The client's agent answers none of them.

@@ -1,6 +1,6 @@
 # Add a model
 
-**Status:** outline. **Use cases:** U1, U2, U6. **Specs:** `../design/model_interface.md` (M1–M21),
+**Status:** outline. **Updated:** 2026-10-02 (0080: a run's and a loading's shown text; review round 1 of applying 0066–0085). **Use cases:** U1, U2, U6. **Specs:** `../design/model_interface.md` (M1–M21),
 `../design/trust.md` (T2–T4, T7, T8, T10). **Tested:** through the use cases (C53); its examples are U1's
 beam and U2's heat solver, which the use cases run on reference models.
 
@@ -59,12 +59,12 @@ beam and U2's heat solver, which the use cases run on reference models.
 
    ```python
    print(ws.test_model("beam", approve=ema.ask))
-   #   beam@91c0…: test run at the nominal point
+   #   New runs of the model version `beam@91c0…`: the test run at the nominal point.
    #   Price: 1 new run, 0 reused, time unknown
    #   (the first approval for a model version: the function, the child's interpreter, the files, the
    #   environment)
    #   Approve? [y/N] y
-   #   Run 5d02: ok; delta = 0.002026
+   #   Run 5d02: ok; delta = 0.002026; at E = 2e+11, L = 1.5, P = 3000; run directory: …/runs/5d02…
    ```
 
    ```text
@@ -87,13 +87,16 @@ beam and U2's heat solver, which the use cases run on reference models.
    ```python
    # after an edit to beam.py and loading it again: a new model version, beam@a417…
    info = ws.test_model("beam", approve=ema.ask)
-   #   beam@a417…: test run at the nominal point
+   #   New runs of the model version `beam@a417…`: the test run at the nominal point.
    #   Price: 1 new run, 0 reused, time unknown
    #   (the first approval for this model version: the function, the child's interpreter, the files, the
    #   environment)
    #   Approve? [y/N] y
    print(info)
-   #   Run 9b3e: failed (error): ZeroDivisionError: division by zero at beam.py:3; run directory: …/runs/9b3e…/
+   #   Run 9b3e: failed (error): ZeroDivisionError: division by zero at beam.py:3; at E = 2e+11, L = 1.5,
+   #   P = 3000; run directory: …/runs/9b3e…
+   #   Its stderr's last lines (the model's own output, quoted):
+   #   (the traceback's last lines, in a fenced block)
    print(ws.run_dirs(info.run_id)[0].run_dir)   # then list it: point.json, run.json, stdout.txt,
                                                 # stderr.txt, and the files copied into it
    ```
@@ -143,21 +146,31 @@ beam and U2's heat solver, which the use cases run on reference models.
 4. **What you approve, and why.** The first approval for a model version shows the command and the
    program's resolved path, the input deck templates, the files, and the environment the spec sets (U2,
    `trust.md`, What needs the user's yes; 0029, 0057); later ones show only the model version and the
-   price. Every question and answer is recorded (T3). <…>
+   price. Every question and answer is recorded (T3). Here the spec also sets `"env": {"OMP_NUM_THREADS": "4"}`,
+   so its model version, `heat@5e1a…`, is not U2's. <…>
 
-   ```text
+   ````text
    $ ema model add heat/model.json
    $ ema model test heat
-     heat@b204…: test run at the nominal point
+     New runs of the model version `heat@5e1a…`: the test run at the nominal point.
      Price: 1 new run, 0 reused, time unknown
-     Command: ./heat_solver plate.in (/…/heat/heat_solver)
-     Input deck plate.in.template → plate.in:
-       conductivity = $k
-       heat_flux    = $q
-     Files: heat_solver, solver.cfg, mesh.dat (shared)
-     Environment: OMP_NUM_THREADS=4
+
+     The model version's first approval: what each run starts.
+     Command: `["./heat_solver", "plate.in"]`
+     Program: `/…/heat/heat_solver`
+     Input deck `plate.in`, from the template `plate.in.template`:
+     ```
+     conductivity = $k
+     heat_flux    = $q
+     ```
+     Files in each run directory:
+     - `heat_solver`
+     - `solver.cfg`
+     - `mesh.dat` (shared: a link to a read-only stored copy)
+     Environment beyond EMA's base variables:
+     - `OMP_NUM_THREADS=4`
      Approve? [y/N] y
-   ```
+   ````
 
 5. **Test it at the nominal point; time a few runs:** as the Python function's steps 4–6, with `ema model test`
    and `ema run heat point_run --param repeats=3`. <…>
@@ -184,7 +197,8 @@ beam and U2's heat solver, which the use cases run on reference models.
 
   ```text
   $ ema model add heat/model.json
-    New model version heat@7c1e (was heat@b204): solver.cfg changed
+    Loaded heat@d93b…: 6 model parameters (k, q, …), 1 model prediction (T_max)
+    New model version heat@d93b… (was heat@5e1a… at /…/heat/model.json): solver.cfg changed
   ```
 
 - **Stored runs:** kept, with their model version; a new model version reuses none of them, and its first

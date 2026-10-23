@@ -1,7 +1,8 @@
 # Reference models
 
-**Status:** accepted. **Updated:** 2026-10-01 (step 11: the expected answers checked; 0058; R2's model name, 0060).
-**Depends on:** records 0009, 0021, 0022, 0024, 0027, 0030, 0058.
+**Status:** accepted. **Updated:** 2026-10-01 (step 11: the expected answers checked; 0058; R2's model name, 0060);
+2026-10-02 (the models' names, `space.json`, and R8's command, as built, 0075). **Depends on:** records 0009,
+0021, 0022, 0024, 0027, 0030, 0058, 0075.
 
 > The models v2 is developed and verified against, each with the answers a correct diagnostic must give. With
 > these, "done" means "matches what was worked out independently", not "the tests Claude wrote pass". Each
@@ -29,10 +30,18 @@
 - **Nominal values** are at the centers of the ranges (the geometric center for a log range), so coordinate
   lines through the nominal point share it when n is odd (`designs.md`, G12). A test that needs the anchor off
   center gives it.
-- **Model names:** R2's is `ishigami` (the get-started guide loads it; 0060); the others are named by the
-  build step that adds them.
+- **Model names:** R2's is `ishigami` (the get-started guide loads it; 0060); the others are their ids in lower
+  case: `r1`, `r3`, `r4a`, `r4b`, `r5`, `r6a`, `r6b`, `r7`, `r8`, `r10`, `r11` (0075 item 19).
+- **Where they are** (0075 item 19): each is a directory `src/ema/reference_models/<id>/` holding `model.json`,
+  its function file (R8: its program, its deck template, and the shared `table.dat`), and `space.json`, the
+  model parameter space of its expected answers, in `designs.md`'s JSON form.
+  `ema.reference_models.path(id)` gives the spec's path and `space(id)` the space; an id is read in any case,
+  and R9 is refused as later.
 - **Model predictions:** one, named `y`, unless a model says otherwise. Units are empty (dimensionless) except
-  R3's.
+  R3's; descriptions are empty except R3's ("water flow through the borehole"), so the header row reads as the
+  mocks do (0075 item 20).
+- **Limits** only where the model needs them (R1's and R6's k, R3's r and rw: `gt 0`); the reference ranges are
+  in `space.json`, not limits (0075 item 20).
 - **The shared rules** (a constant model prediction, 0035; the minimum runs) are in `diagnostics/shared.md`;
   R4a and R4b test them.
 - **Size:** within the budget of 1,000 source lines for reference models (`scope.md`).
@@ -157,7 +166,9 @@ f = max(0, a + e − 0.6) + 1[b > 0.2] + 1/(1 + 4c²); a, b, c, e in [−1, 1], 
 y = R7(a, b, c, e) + 0·f + 0·g; six model parameters in [−1, 1], linear, nominal 0, so U2's coordinate lines
 with n = 17 have 97 distinct points.
 
-- **Command:** `[<python>, "r8.py", "x.in"]`, with the interpreter's resolved path recorded (M19).
+- **Command:** `["python3", "r8.py", "x.in"]`, with the interpreter's resolved path recorded (M19); `r8.py`
+  uses the standard library only, reads R7's constants from `table.dat`, and writes the value with `repr`;
+  `timeout_s` 60 (0075 item 21).
 - **Input deck:** `x.in` from `x.in.template` (`a = $a`, one line per model parameter).
 - **Output parser:** regex on `out.txt`, `y = (\S+)` (0027).
 - **Shared file:** `table.dat`, holding R7's constants (0.6 and 0.2), stored once, read-only, and linked into

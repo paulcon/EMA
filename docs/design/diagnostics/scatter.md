@@ -1,7 +1,9 @@
 # Scatter
 
-**Status:** accepted. **Updated:** 2026-10-01 (step 11). **Module:** `ema/diagnostics/scatter.py`. **Depends on:**
-`shared.md`; `../designs.md`; records 0012, 0032, 0034, 0035, 0037, 0042, 0044, 0048, 0049, 0051, 0052.
+**Status:** accepted. **Updated:** 2026-10-01 (step 11); 2026-10-02 (the figures' limits, cards, and captions, 0076;
+the mock's symbols and line, 0073; review round 1 of applying 0066–0085); 2026-10-03 (0086 item 6). **Module:**
+`ema/diagnostics/scatter.py`. **Depends on:** `shared.md`; `../designs.md`; records 0012, 0032, 0034, 0035, 0037,
+0042, 0044, 0048, 0049, 0051, 0052, 0073, 0076, 0086.
 
 > The model prediction against each model parameter, over a uniform design (U1). Written from an interview on
 > 2026-09-30 (TODO step 6). Everything not stated here follows `shared.md`.
@@ -23,8 +25,8 @@
 | `space` | model parameter space | required | the ranges varied, and the values held (`../designs.md`) | yes |
 | `n` | integer ≥ 1 | 200 | the number of points | yes |
 | `seed` | integer ≥ 0 | 0 | the design's seed, and the bootstrap's (`shared.md`) | yes |
-| `sampler` | name | `random` | the sampler (0032) | yes |
-| `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
+| `sampler` | name | `random` (0032) | the sampler | yes |
+| `prediction` | model prediction name | the only one (0022) | the model prediction analyzed | no |
 
 - **Which model parameters:** the space says which vary; there is no separate parameter. To scatter fewer, hold
   the others in the space (0023, 0033).
@@ -85,8 +87,9 @@ OD-12, for scatter: **the bootstrap over the usable runs** (`../uncertainty.md`,
 
 - **Fewest usable runs:** 10 (`SCATTER_MIN_RUNS`): 3 bins of 3–4 runs, a rank correlation, a standard deviation,
   and a bootstrap, with room to spare. Below it: counts and a note, no estimates (P6); the shared observations
-  stay. Figures: the panels, with their strips and no bin means; the histogram (0051). At small n the intervals
-  are wide (R1's binned index varies by 0.23 over designs at n = 10), and say so.
+  stay. Figures: the panels, with their strips and no bin means; the histogram (0051), except with one usable
+  run (0076 item 9). At small n the intervals are wide (R1's binned index varies by 0.23 over designs at n = 10),
+  and say so.
 - **All runs failed, or no usable run:** counts by kind and the note; no estimates or observations
   (`shared.md`). Figures: the panels, with only their strips; no histogram (0051).
 - **Constant:** the note, the observations, no estimates (0035). Figures: the panels, with their strips; no
@@ -97,25 +100,34 @@ OD-12, for scatter: **the bootstrap over the usable runs** (`../uncertainty.md`,
 
 ## Figures
 
-**`scatter_<name>.png`,** one per varied model parameter, in the model spec's order:
+**`scatter_<name>.png`,** one per varied model parameter, in the model spec's order (a model parameter named
+`histogram`, in any case, is drawn as `scatter-<name>.png`, so it can't overwrite the histogram's file, also on a
+case-insensitive disk; 0076 items 10, 13):
 
 - **x axis:** the model parameter, in its units, on a log axis for a log range (`shared.md`).
-- **y axis:** the model prediction; the same limits in every scatter figure of the report, so they compare.
+- **y axis:** the model prediction; the same limits in every scatter figure of the report, so they compare: the
+  usable runs' range with 5% added at each end; with no range (constant, one usable run, none), matplotlib's
+  (0076 item 7).
 - **Points:** one marker per usable run.
 - **Bin means:** the B groups of the binned index as a step line: each group's mean ȳ_b, drawn from its
   smallest to its largest x_i. The index is the variance of this line over the variance of y; for R2's x₂ it
-  traces the U of sin² x₂ that the rank correlation misses.
+  traces the U of sin² x₂ that the rank correlation misses. Drawn only with estimates (the stored result's;
+  0076 item 8).
 - **Runs not usable:** × in the strip below the axes, at their x_i (`shared.md`).
 - **Title:** the model parameter's name; the estimates are in the tables, not on the figure.
-- **Data card:** as in `shared.md`, and each group's x range, size, and mean.
+- **Caption:** "y against each model parameter, with the means of the 14 bins of the binned index." with
+  estimates, else "y against each model parameter." (0076 item 8).
+- **Data card:** as in `shared.md`, with `"parameter"`, the y limits, and the panel's `"bins"`: one `{"x_lo",
+  "x_hi", "n", "mean"}` per group of the index (0076 item 7).
 
-**`scatter_histogram.png`:**
+**`scatter_histogram.png`,** only when the usable runs' y has a range: none with no usable run, a constant model
+prediction, or one usable run (its one bin would have no width; 0076 item 9):
 
 - ⌊√n_u⌋ equal-width bins from the minimum to the maximum of the usable runs' y (`SCATTER_HIST_BINS` rule, the
   same as the index's).
-- **x axis:** the model prediction, `name [units]`; **y axis:** the number of runs.
-- The caption gives the number of runs not usable, which are not in it.
-- **Data card:** the bin edges and counts.
+- **x axis:** the model prediction, `name [units]`; **y axis:** "number of runs".
+- **Caption:** "y over the n_u usable runs, B bins.", adding "The k runs not usable are not in it." when k > 0.
+- **Data card:** `"edges"` and `"counts"`, the bin edges and counts.
 
 ## Mock report
 
@@ -148,7 +160,7 @@ under its table; it is not a confidence interval, and carries no coverage probab
 Variability intervals: bootstrap over the 200 usable runs, 1000 resamples, 0.5th to 99.5th percentiles,
 seed 1.
 
-| Model parameter | Rank correlation $\rho$ | Variability interval |
+| Model parameter | Rank correlation ρ | Variability interval |
 |---|---|---|
 | x1 | 0.4185 | [0.2651, 0.5489] |
 | x2 | 0.02173 | [-0.1663, 0.1955] |
@@ -157,14 +169,14 @@ seed 1.
 Variability intervals: bootstrap over the 200 usable runs, 1000 resamples, 0.5th to 99.5th percentiles,
 seed 1.
 
-| Model parameter | Binned first-order index $S_i$ | Variability interval |
+| Model parameter | Binned first-order index Sᵢ | Variability interval |
 |---|---|---|
 | x1 | 0.2944 | [0.1888, 0.4248] |
 | x2 | 0.4068 | [0.2816, 0.5257] |
 | x3 | -0.004922 | [-0.07658, 0.103] |
 
-Variability intervals: bootstrap over the 200 usable runs, 1000 resamples, the index recomputed on the
-distinct runs of each resample, 0.5th to 99.5th percentiles, seed 1. 14 bins.
+14 bins. Variability intervals: bootstrap over the 200 usable runs, 1000 resamples, the
+index recomputed on the distinct runs of each resample, 0.5th to 99.5th percentiles, seed 1.
 
 ## Observations
 

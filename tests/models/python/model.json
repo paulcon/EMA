@@ -1,0 +1,19 @@
+{
+  "name": "toy",
+  "description": "a toy Python function: y = a + 2 b + scale, z = y + 1",
+  "interface": "python_function",
+  "function": "model.py:f",
+  "files": ["helper.py", {"path": "mesh.dat", "shared": true}],
+  "env": {"OMP_NUM_THREADS": "1"},
+  "pass_env": ["LM_LICENSE_FILE"],
+  "parameters": [
+    {"name": "a", "units": "m", "nominal": 1.0, "description": "the first model parameter", "limits": {"ge": 0}},
+    {"name": "b", "units": "", "nominal": 0.5, "description": "the second model parameter"},
+    {"name": "mode", "units": "", "nominal": 0, "description": "how the toy behaves (tests/support/models.py)"}
+  ],
+  "predictions": [
+    {"name": "y", "units": "m", "description": "a + 2 b + scale"},
+    {"name": "z", "units": "m", "description": "y + 1"}
+  ],
+  "timeout_s": 10
+}

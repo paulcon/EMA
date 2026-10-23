@@ -1,0 +1,48 @@
+# EMA's checks (record 0059, item 7): started by hand only, on Linux. macOS is tested on the owner's Mac.
+name: checks
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-imports-docs:
+    name: lint, import contracts, and docs (3.14)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      - run: uv run mypy
+      - run: uv run lint-imports
+      - run: uv run sphinx-build -W --keep-going docs docs/_build/html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs-html
+          path: docs/_build/html
+
+  tests-locked:
+    name: both tiers (3.14, locked)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - run: uv run pytest -q --slow -n auto
+
+  tests-lowest:
+    name: both tiers (3.13, lowest direct versions)
+    runs-on: ubuntu-latest
+    # Set for the whole job, so every uv command resolves the same way (record 0059, Context).
+    env:
+      UV_PYTHON: "3.13"
+      UV_RESOLUTION: lowest-direct
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - run: uv run pytest -q --slow -n auto

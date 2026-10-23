@@ -27,7 +27,7 @@
 
 ## Checks before reporting done
 
-- <fast tier passes in under 30 s>
+- <fast tier passes in under 90 s, with `-n auto` (0086 item 2)>
 - <slow tier passes>
 - <lint and layer checks pass>
 - <docs build with `-W` passes>

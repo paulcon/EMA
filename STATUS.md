@@ -1,9 +1,20 @@
 # EMA v2 status
 
-**Updated:** 2026-10-01. Update this file at the end of every step, in the same commit as the work.
+**Updated:** 2026-10-03. Update this file at the end of every step, in the same commit as the work.
 
 ## Now
 
+- **The `demo` branch (records 0066–0087), not merged into `main`; pushed to GitHub as `origin/demo`
+  (2026-10-03):** every build step of the roadmap (01–16, and T, the rest of `ema.types`), built autonomously and
+  reviewed by independent agents; the six diagnostics, the workspace (U1–U8; the get-started guide passes), the CLI
+  (`ema`), and the MCP server (`ema mcp --root DIR`), checked end to end through a real MCP client. Records
+  0066–0087 are accepted and applied to the specs. EMA `2.0.0.dev1`; 11,040 code lines of a budget of 12,000
+  (0084, 0086); the fast tier 50–70 s of a 90 s budget (0086); every test passes (2,127 in the slow tier). Log of
+  every wave and review round: `docs/notes/demo_build.md`. The demo's instructions: `docs/notes/demo_mcp.md`; its
+  root, `~/ema_demo`, rebuilt under `2.0.0.dev1` with four models loaded, and reset by
+  `docs/notes/demo/reset_demo.sh`, which moves the earlier workspace and exports to `archive/` in the root (now
+  `ema_workspace.pre0086/`, `exports.pre0086/`, and one workspace of the four loadings only). Not done: step 17's
+  guides' full text and the release.
 - Writing the design documents by hand (`TODO.md`): steps 1–13 done.
 - "Before the first line of code" (`TODO.md`) done: the specs checked against each other, and the contradictions
   resolved (records 0061–0064). The first plan written: `docs/plans/01-scaffolding-and-designs.md`
@@ -87,19 +98,24 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   requests refused, G18; four more words in the terminology test; a given line's anchor at the geometric center
   and its direction as given), applied to `architecture.md`, `designs.md`, `contracts.md`, the glossary, and
   0008's status.
+- 2026-10-01–02: the demo build on `demo` (record 0066): steps 01–16 and T built in waves, each reviewed and fixed
+  by independent agents; provisional choices in records 0067–0082 and 0084; the final integrated review and the
+  demo's rehearsal passed; record 0085 (a fit's in-sample measures as observations) after the owner's rehearsals.
+- 2026-10-02: records 0066–0085 accepted by the owner (0084's budget raised to 11,000) and applied to the specs
+  (f012505); reviewed in two rounds by fresh agents (2 major, 20 minor, 25 nits; then 1 major, 6 minor, 15 nits),
+  the plain findings fixed in place, the rest as record 0086, answered by the owner in an interview.
+- 2026-10-03: records 0086 (the budgets 12,000 source lines and a 90 s fast tier; model names; `files` and
+  `pass_env` sorted before hashing; notes' line breaks; no ids in text users see; one per-level key; the version
+  raised when a diagnostic's output changes, `2.0.0.dev1`; `python -m ema.mcp` kept; and smaller items) and 0087
+  (three follow-ups from its review) accepted and applied; the demo root rebuilt; `demo` pushed to GitHub.
 
 ## Next
 
-- Build step 01 (`docs/plans/01-scaffolding-and-designs.md`: the scaffolding, 0059; the parts of `ema.types`
-  designs need; `ema.designs`; C20–C28; G1–G18) on `build-01-scaffolding-and-designs`, stopping at Review A.
-- For the first plan of `ema.numerics` (roadmap step 02): the coordinate lines' Lanczos basis must be the same
-  bit for bit on every call (C7). With numpy on Accelerate (this Mac), the matrix products in its
-  reorthogonalization gave two different bases in 50 calls in one process (step 11's round 3 review). The same
-  exposure reaches the linear and polynomial models' QR fits, their bootstrap refits, and the Gram coefficients'
-  `Q.T @ y` (`docs/notes/consistency_review_2026-10-01_before_code.md`, D). Measure `qr`, `lstsq`, the Lanczos
-  process, and `Q.T @ y` at the polynomial model's size (50 calls, in one process and across processes), and
-  propose a record for any that varies. Building the basis from the exact Gram basis would contradict
-  `coordinate_lines.md` ("computed by the Lanczos process") and needs a record too.
+- **The owner:** review `demo` (on GitHub: `origin/demo`, 100 commits ahead of `main`) and decide on merging it
+  into `main`.
+- Step 17: the guides' full text and the release.
+- The BLAS question for `ema.numerics` is settled (`docs/notes/blas_determinism_2026-10-01.md`; record 0068 item 1,
+  accepted: no 1-D BLAS products or norms).
 
 ## Specs
 

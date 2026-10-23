@@ -1,8 +1,9 @@
 # Lines
 
-**Status:** accepted. **Updated:** 2026-10-01 (step 11, 0058). **Module:** `ema/diagnostics/lines.py`. **Depends on:**
-`shared.md`; `coordinate_lines.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0049,
-0051, 0052, 0058.
+**Status:** accepted. **Updated:** 2026-10-01 (step 11, 0058); 2026-10-02 (`m`'s default, 0077; review round 1 of
+applying 0066–0085); 2026-10-03 (0086 item 6). **Module:** `ema/diagnostics/lines.py`. **Depends on:** `shared.md`;
+`coordinate_lines.md`; `../designs.md`; records 0012, 0034, 0035, 0036, 0038, 0044, 0048, 0049, 0051, 0052, 0058,
+0077, 0086.
 
 > The model prediction along m random lines, or along lines the user gives, and the spectrum of each line
 > (0012; U2's finer line through a kink). Written from an interview on 2026-09-30 (TODO step 6). Each line is
@@ -24,15 +25,17 @@
 | Name | Type | Default | Meaning | Changes the design? |
 |---|---|---|---|---|
 | `space` | model parameter space | required | the ranges varied, and the values held (`../designs.md`) | yes |
-| `m` | integer ≥ 1 | 5 | the number of random lines | yes |
+| `m` | integer ≥ 1 | 5; none with `lines` | the number of random lines | yes |
 | `lines` | list of lines, each `{"anchor": {...}, "direction": {...}}` | none | given lines, in place of random ones | yes |
 | `n` | integer ≥ 7 | 17 | the number of points on each line, end to end | yes |
 | `seed` | integer ≥ 0 | 0 | the random lines' seed; recorded, and unused, with given lines | yes (random lines) |
-| `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
+| `prediction` | model prediction name | the only one (0022) | the model prediction analyzed | no |
 
 - **Two modes, one request:** with `lines`, the design is those lines, `lines(space, lines, n)`; without it, m
   random lines, `random_lines(space, m, n, seed)`. A request with both `lines` and `m` is refused before
-  building.
+  building. `m`'s default is a rule: none when `lines` is given, 5 otherwise (`null` in MCP's JSON is none); the
+  canonical request holds `m: null` with given lines, or `lines: null` with random ones, and the Provenance line
+  leaves out the one that is none (`shared.md`; 0077 items 10, 11).
 - **A given line** (`../designs.md`, Given lines): the anchor in model parameter units, a partial mapping,
   unnamed varied model parameters at the space's center and held ones at their held values; the direction in
   unit coordinates (`{"a": 1, "e": 1}`), unnamed components 0. Refused before building: an anchor outside the

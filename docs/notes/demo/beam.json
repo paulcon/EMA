@@ -1,0 +1,14 @@
+{
+  "name": "beam",
+  "description": "The tip deflection of a cantilever beam with a 50 mm by 100 mm rectangular section, P L^3 / (3 E I)",
+  "interface": "python_function",
+  "function": "beam.py:f",
+  "parameters": [
+    {"name": "P", "description": "The load at the beam's free end", "units": "N", "nominal": 1000, "limits": {"gt": 0}},
+    {"name": "L", "description": "The beam's length", "units": "m", "nominal": 2, "limits": {"gt": 0}},
+    {"name": "E", "description": "The beam's elastic modulus", "units": "GPa", "nominal": 200, "limits": {"gt": 0}}
+  ],
+  "predictions": [
+    {"name": "deflection", "description": "The deflection at the beam's free end", "units": "mm"}
+  ]
+}

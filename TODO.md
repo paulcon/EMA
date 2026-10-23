@@ -1,6 +1,6 @@
 # EMA v2: what to do by hand before coding
 
-Rewritten 2026-09-28. Paths are relative to the repository's root. `README.md` describes the layout and the id
+Rewritten 2026-09-28; the build's section added 2026-10-03. Paths are relative to the repository's root. `CONTRIBUTING.md` describes the layout and the id
 scheme; open decisions are the OD rows in `STATUS.md`.
 
 Work in order: each step depends on the ones above it. "You" means by hand. "Claude can help" means Claude
@@ -55,3 +55,16 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
       `docs/conf.py`, `docs/index.md`, `.github/workflows/checks.yml`; `pyproject.toml` with `license = "MIT"`,
       0060), the parts of `ema.types` that designs need, and the design generators, with their contracts. The
       later steps' order is a draft in `docs/notes/build_roadmap.md`.
+
+## The build
+
+- [x] **Build steps 01–16 and T,** built autonomously on the `demo` branch (record 0066), from the plans in
+  `docs/plans/` (04 covers steps 04 and 05), each reviewed and fixed by independent agents; the log is
+  `docs/notes/demo_build.md`. Records: 0067–0082, 0084, 0085. The MCP demo: `docs/notes/demo_mcp.md`.
+- [x] **The build's records accepted and applied.** Records 0066–0085 accepted (0084's budget raised to 11,000)
+  and applied to the specs, then reviewed in two rounds; what was left answered in an interview, record 0086 (the
+  budgets 12,000 source lines and a 90 s fast tier, and twelve smaller items), and its review's follow-ups,
+  record 0087; both accepted and applied. `demo` pushed to GitHub (`origin/demo`).
+- [ ] **Review `demo` and decide on merging it into `main`.** You.
+- [ ] **17. Guides and release** (`docs/notes/build_roadmap.md`): the guides' full text, the README, the wheel's
+  contents, and the budgets audited; its plan (`docs/plans/17-*.md`) is still to write.

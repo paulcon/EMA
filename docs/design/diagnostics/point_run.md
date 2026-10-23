@@ -1,7 +1,9 @@
 # Point run
 
-**Status:** accepted. **Updated:** 2026-10-01 (the seed row, 0061). **Module:** `ema/diagnostics/point_run.py`. **Depends on:**
-`shared.md`; P7; records 0011, 0021, 0022, 0034, 0035, 0036, 0044, 0049, 0051, 0052.
+**Status:** accepted. **Updated:** 2026-10-01 (the seed row, 0061); 2026-10-02 (the mean and standard deviation from
+the deviations, 0075; review round 1 of applying 0066–0085); 2026-10-03 (0086 item 6; 0087 item 2: no spec id in
+the Meaning column). **Module:** `ema/diagnostics/point_run.py`. **Depends on:** `shared.md`; P7; records 0011, 0021,
+0022, 0034, 0035, 0036, 0044, 0049, 0051, 0052, 0075, 0086, 0087.
 
 > The model prediction at one point, and its measured variation over repeated runs there (0012, P7, 0011).
 > Written from an interview on 2026-09-30 (TODO step 6). Everything not stated here follows `shared.md`.
@@ -20,10 +22,10 @@
 
 | Name | Type | Default | Meaning | Changes the design? |
 |---|---|---|---|---|
-| `x` | mapping of model parameter names to values | `{}` (the nominal point) | the point; unnamed model parameters at their nominal values; each value inside its limits (G9) | yes |
+| `x` | mapping of model parameter names to values (G9) | `{}` (the nominal point) | the point; unnamed model parameters at their nominal values; each value inside its limits | yes |
 | `repeats` | integer ≥ 0 | 4 | the number of runs after replicate 0: replicates 1 to `repeats` | yes |
-| `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
-| `seed` | integer ≥ 0 | 0 | recorded; the point run makes no random draws (0061) | no |
+| `prediction` | model prediction name | the only one (0022) | the model prediction analyzed | no |
+| `seed` | integer ≥ 0 | 0 | recorded; the point run makes no random draws | no (0061) |
 
 - **The point's model parameter space** (0049): the user gives `x`, not a space (U7), and EMA builds the space
   that holds every model parameter at the point's value, with none varied (`../designs.md`, Point). The
@@ -53,6 +55,12 @@ Let U be the usable runs among replicates 0 to k = `repeats` (`shared.md`, the p
 | Minimum, maximum, (max − min)/max\|y\| | as in `shared.md` | 1 usable run |
 
 An observation whose "Needs" isn't met is shown as "none".
+
+**From the deviations** (0075 item 24): the mean and the standard deviation are computed from the deviations from
+the first usable value, d_r = y_r − y_f: mean = y_f + mean(d), standard deviation = std(d, ddof 1). numpy's
+`mean` and `std` of the values themselves round for a value with no short binary form (R1 at a = 0.3, 11 runs:
+mean 7.900000000000002, standard deviation 1.9·10⁻¹⁵); from the deviations a constant gives its value and 0
+exactly, and the numbers stay bit for bit under a·y with a a power of 2 (C5).
 
 **Varies** (exact, as 0035): the model prediction varies at x when two usable runs differ as doubles
 (distinct values ≥ 2), or when at least one run is usable and at least one isn't (the failures vary). There is
@@ -93,9 +101,11 @@ a property of the model, so there is no interval method.
   and for "varies", 2 usable runs, or 1 usable and 1 not.
 - **All runs failed:** counts by kind, and the note; no observations. The model prediction is not recorded as
   varying, even when the failures are of different kinds.
-- **Replicate 0 failed, others usable:** its row says "failed (<kind>)"; the model prediction varies (the
-  failures vary); the figure's deviations are from the mean of the usable runs, and its y label says so.
-- **Constant:** distinct values 1, standard deviation 0; no note (above).
+- **Replicate 0 failed, others usable:** its row says "failed (<kind>)" (or "missing"); the model prediction
+  varies (the failures vary); the figure's deviations are from the stored mean of the usable runs (P1), and its
+  y label says so.
+- **Constant:** distinct values 1, the mean the value and the standard deviation 0, exactly (From the deviations,
+  above); no note (above). The figure's deviations are all 0, also from the mean.
 - **`repeats = 0`:** one run; the note "No repeats: the variation was not measured."; the model version is not
   recorded as measured noisy.
 - **x outside the limits, or an unknown name:** refused before any run (G9).

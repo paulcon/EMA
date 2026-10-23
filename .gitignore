@@ -19,3 +19,9 @@ ema_workspace/
 
 # Documentation build output
 docs/_build/
+docs/_autosummary/
+
+# Build and tool caches
+dist/
+.mypy_cache/
+.ruff_cache/

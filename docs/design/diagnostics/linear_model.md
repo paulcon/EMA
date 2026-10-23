@@ -1,8 +1,10 @@
 # Linear model
 
-**Status:** accepted. **Updated:** 2026-10-01 (step 11). **Module:** `ema/diagnostics/linear_model.py`. **Depends on:**
-`shared.md`; `../designs.md`; `../uncertainty.md`; records 0012, 0032, 0033, 0034, 0035, 0041, 0042, 0044,
-0048, 0049, 0051, 0052.
+**Status:** accepted. **Updated:** 2026-10-01 (step 11); 2026-10-02 (the per-level table's units, the constant case,
+and the rank and leave-one-out notes, 0078; the in-sample relative residual and R² as observations, 0085; review
+round 1 of applying 0066–0085); 2026-10-03 (0086 item 6). **Module:** `ema/diagnostics/linear_model.py`. **Depends
+on:** `shared.md`; `../designs.md`; `../uncertainty.md`; records 0012, 0032, 0033, 0034, 0035, 0041, 0042, 0044,
+0048, 0049, 0051, 0052, 0078, 0085, 0086.
 
 > A least-squares linear fit of the model prediction in unit coordinates, over a convergent design: its
 > coefficients, how well it fits, and how well it predicts runs it wasn't fitted to (0012, U4). Written from an
@@ -14,9 +16,9 @@
 |---|---|
 | **User provides** | a model parameter space, n_min (2(d + 1)), alpha (0.7072), level (2), seed (0), sampler (`random`), the model prediction |
 | **Design** | convergent (`../designs.md`): levels 0 … L, level l the first n_l points of one uniform design |
-| **Compute** | the least-squares fit y ≈ β₀ + Σ βᵢ uᵢ over the usable runs of level L; its relative residual and R²; its leave-one-out error; bootstrap intervals; the same fit at each level, as observations |
+| **Compute** | the least-squares fit y ≈ β₀ + Σ βᵢ uᵢ over the usable runs of level L; its leave-one-out error; bootstrap intervals for both; its in-sample relative residual and R², and the same fit at each level, as observations (0085) |
 | **Plots** | the 1-D shadow (y against w·u); the slopes with their intervals; a histogram of the residuals |
-| **Report** | two tables of estimates with variability intervals (the coefficients; the fit), the leave-one-out error with its interval, the shared observations, the per-level table, the figures |
+| **Report** | two tables of estimates with variability intervals (the coefficients; the leave-one-out error), the shared observations, the per-level table (with the relative residual and R², no interval), the figures |
 
 ## Parameters
 
@@ -27,8 +29,8 @@
 | `alpha` | decimal in (0, 1) | 0.7072 | the error factor per level (`../designs.md`, Convergent) | yes |
 | `level` | integer ≥ 0 | 2 | L, the last level | yes |
 | `seed` | integer ≥ 0 | 0 | the design's seed, and the bootstrap's (`shared.md`) | yes |
-| `sampler` | name | `random` | the sampler (0032); convergent needs a nested one | yes |
-| `prediction` | model prediction name | the only one | the model prediction analyzed (0022) | no |
+| `sampler` | name | `random` (0032) | the sampler; convergent needs a nested one | yes |
+| `prediction` | model prediction name | the only one (0022) | the model prediction analyzed | no |
 
 - **d** is the number of varied model parameters; the fit has d + 1 coefficients.
 - **The defaults:** n_min = 2(d + 1), twice the coefficients, as U4 assumes; alpha = 0.7072, just above 1/√2, so
@@ -62,6 +64,8 @@ u_k ∈ [−1, 1]^d (`../designs.md`: through the logarithm for a log range).
 - **Relative residual:** ‖r‖ / ‖y − ȳ‖, with r = y − Aβ over the usable runs: units-free (P6), 0 for an exactly
   linear model prediction, 1 when the slopes explain nothing. U4's "residual norm", made relative.
 - **R²:** 1 − ‖r‖² / ‖y − ȳ‖², the square's complement; reported beside it.
+- **Both are observations** (0085): level L's are the last column of the per-level table (The levels, below),
+  with no variability interval; Uncertainty says why.
 
 **How well it predicts runs it wasn't fitted to:**
 
@@ -78,7 +82,13 @@ u_k ∈ [−1, 1]^d (`../designs.md`: through the logarithm for a log range).
 coefficients, relative residual, R², and LOO error. The estimates are level L's; the earlier levels show how
 they move as the runs double. There is no check of the observed rate against the sampler's r (`../designs.md`
 asked): a check would compare with a threshold, which is interpretation (P2). A level with fewer than 2(d + 1)
-usable runs has "none" in its column.
+usable runs, or a value that is undefined, has "none" in its column. The coefficients are printed without
+units, and the table's title names them once ("Coefficients in m³/yr."; no such sentence for a dimensionless
+model prediction); the result keeps the units on each cell (`shared.md`, Units; 0078 items 2, 14). Under the
+table, after "Each level is fitted on the usable runs among its first points." (both in the per-level table's
+title), one line says why the in-sample measures have no interval (0085): "In-sample measures: refitting a
+resample's repeated runs makes the fit look better than it is, so they have no variability interval; the
+leave-one-out error's interval shows how the fit varies."
 
 **Changes of units** (P6): y → a·y + b, with a > 0, gives β₀ → a·β₀ + b and βᵢ → a·βᵢ, and leaves the relative
 residual, R², the LOO error, and the notes unchanged (exactly under a·y; within C5's tolerances under the shift,
@@ -94,20 +104,26 @@ OD-12, for the linear model: **the bootstrap over the usable runs of level L**, 
 bootstrap) states it, from the linear model's stream (`LINEAR_BOOT_TAG`). What differs (0052):
 
 - **On distinct runs:** the LOO error, as scatter's binned index: a left-out run's copy would stay in the fit,
-  and make it optimistic. The coefficients, relative residual, and R² are refitted on each resample as drawn. On
-  R3 at 72 runs (LOO 0.249, standard deviation 0.026 over designs), the median over resamples is 0.232 as drawn
-  and 0.263 on distinct runs; on R7 at 40, 0.725, 0.691, and 0.767.
+  and make it optimistic. The coefficients are refitted on each resample as drawn. On R3 at 72 runs (LOO 0.249,
+  standard deviation 0.026 over designs), the median over resamples is 0.232 as drawn and 0.263 on distinct
+  runs; on R7 at 40, 0.725, 0.691, and 0.767.
 - **Undefined resamples:** a resample whose A has rank below d + 1, or whose distinct runs are fewer than d + 2
   for LOO. The rank is numpy's `matrix_rank` rule: the number of singular values above max(n_u, d + 1)·ε·σ_max,
-  ε the double's machine epsilon (0051). R², the relative residual, and the LOO error are also undefined on a
-  resample whose y is constant (0/0, `../uncertainty.md`'s bootstrap step 3).
-- **Three tables,** each with one line under it (`shared.md`): the coefficients; the fit (relative residual and
-  R²); the LOO error ("… recomputed on the distinct runs of each resample").
+  ε the double's machine epsilon (0051). The LOO error is also undefined on a resample whose y is constant (0/0,
+  `../uncertainty.md`'s bootstrap step 3). They are counted per estimate, keyed by its label ("Undefined
+  resamples, dropped: Intercept 16, a 16."); a rank-deficient resample drops every coefficient (0078 item 6).
+- **Two tables,** each with one line under it (`shared.md`): the coefficients; the LOO error ("… recomputed on
+  the distinct runs of each resample").
+- **No interval for the relative residual and R²** (0085): refitted on a resample as drawn, duplicates
+  included, a fit has fewer distinct points per coefficient than the fit it varies, so its in-sample residual is
+  smaller, and the whole bootstrap distribution sits on the optimistic side of the estimate; with few runs per
+  coefficient and a good fit, the interval can miss its own estimate (R11 at 24 runs: 1 of 4 seeds). They are
+  observations, in the per-level table; the LOO error, on distinct runs, carries the held-out view and how the
+  fit varies with the runs. (The relative residual is also optimistic itself at small n: R3 at 72 runs, 0.213
+  on average, against 0.230 over the space.)
 - **Why not the levels:** nested levels share runs, so their estimates move together. Over 100 designs, the span
   of levels L − 1 and L was about a quarter of the estimates' spread over designs (R3's slope for rw: width 2.8
   against a standard deviation of 2.92; the bootstrap's width was 13.9, about 4.7 standard deviations).
-- **The relative residual's interval** shows variability, not the in-sample residual's bias at small n (R3 at 72
-  runs: 0.213 on average, against 0.230 over the space); the LOO error carries the held-out view.
 
 ### Later: intervals by subsampling the levels
 
@@ -138,9 +154,20 @@ estimates.
   distinct runs, so few are rank-deficient. Below it: counts and a note, no estimates (P6); the shared
   observations and the per-level table stay.
 - **All runs failed:** counts by kind and the note; no estimates or observations (`shared.md`).
-- **Constant:** the note, the observations, no estimates (0035). R4b is not constant: estimates of its wiggle.
-- **Exactly linear** (R1): relative residual and LOO at rounding (about 10⁻¹⁵), R² = 1, and intervals of about
-  that width.
+- **Constant:** the note, the shared observations, no per-level table, no estimates (0035; 0078 item 3): every
+  fit is of one value, so its coefficients are that value and rounding, and its relative residual, R², and LOO
+  error undefined. Below the minimum, the per-level table stays. R4b is not constant: estimates of its wiggle.
+- **A fit of rank below d + 1** on level L's usable runs (0051's rule; random points have full rank with
+  probability 1): no estimates, the observations, and the note "The usable runs' unit coordinates have rank r
+  with the constant, below the fit's d + 1 coefficients: no fit.", r the fit's own rank (0078 items 4, 16).
+- **A LOO error undefined while the fit is defined:** no LOO estimate, and a note, "The leave-one-out error is
+  undefined: a usable run has leverage 1." when a usable run's leverage is exactly 1, else "The leave-one-out
+  error is undefined on these runs." (`../uncertainty.md`, Rules; 0078 items 5, 15).
+- **Exactly linear** (R1): relative residual and LOO at rounding (about 10⁻¹⁵), R² = 1; the relative residual
+  and R² have no interval (0085). At the defaults the intervals of the coefficients and the LOO error are of
+  about that width (the LOO error's 3.8·10⁻¹⁵, seed 0). Near the fewest runs the LOO error's interval widens, as
+  leverages near 1 amplify rounding: at 2(d + 1) = 10 runs, 1.98·10⁻⁹ (the coefficients' intervals at most
+  7.3·10⁻¹⁴).
 - **A slope vector of exact zeros** (only when every usable run's y is the same, which the constant case
   catches first): no shadow.
 - **Runs not usable:** estimates from the usable runs of level L; each level's column in the per-level table
@@ -211,13 +238,6 @@ under its table; it is not a confidence interval, and carries no coverage probab
 y ≈ intercept + Σ slope·u, u the unit coordinates in [-1, 1] (r through its logarithm). Variability intervals:
 bootstrap over the 72 usable runs, 1000 resamples, 0.5th to 99.5th percentiles, seed 3.
 
-| Fit | Estimate | Variability interval |
-|---|---|---|
-| Relative residual ‖y - ŷ‖ / ‖y - mean‖ | 0.2335 | [0.1631, 0.2641] |
-| R² | 0.9455 | [0.9302, 0.9734] |
-
-Variability intervals: bootstrap over the 72 usable runs, 1000 resamples, 0.5th to 99.5th percentiles, seed 3.
-
 | Held out | Estimate | Variability interval |
 |---|---|---|
 | Leave-one-out error, relative | 0.2716 | [0.2168, 0.336] |
@@ -250,6 +270,8 @@ runs of each resample, 0.5th to 99.5th percentiles, seed 3.
 | Leave-one-out error | 0.2934 | 0.2879 | 0.2716 |
 
 Coefficients in m³/yr. Each level is fitted on the usable runs among its first points.
+In-sample measures: refitting a resample's repeated runs makes the fit look better than it is, so they have no
+variability interval; the leave-one-out error's interval shows how the fit varies.
 
 ## Figures
 
@@ -281,6 +303,8 @@ e810 (72 new runs).
 Each at n_min = 5000, alpha = 0.5, level 1 (20,000 runs, `KNOWN_ANSWER_N`, `shared.md`), seed 0, `random`
 sampler. The tolerance is 5 (`KNOWN_ANSWER_SDS`, `shared.md`) × the estimate's standard deviation over 100
 designs (seeds 1–100) at 20,000 runs, recomputed at step 11 by `../../checks/linear_model.py` (its output: `linear_model.out`).
+The relative residual and R² are observations (level L's column of the per-level table, 0085); their known
+answers are checked as the estimates' are.
 
 | Reference model | Quantity | Expected | Tolerance | Source |
 |---|---|---|---|---|
@@ -296,7 +320,7 @@ designs (seeds 1–100) at 20,000 runs, recomputed at step 11 by `../../checks/l
 | each of R2, R3, R7, R10 | LOO error | the relative residual's value | the relative residual's tolerance | its limit as n grows |
 | R4a | notes; estimates | the "constant" note; none | exact | trivial |
 | R4b | estimates | present | exact | 0035 |
-| R5, y and z | every estimate | equal to the linear model computed on the usable runs alone | exact | by construction (U3) |
+| R5, y and z | every estimate and observation | equal to the linear model computed on the usable runs alone | exact | by construction (U3) |
 | R3, defaults, seed 3 | the report | the mock report above | golden report (`shared.md`: structure, and numbers within one unit in the 4th digit) | this spec |
 
 ## Named constants
@@ -315,8 +339,8 @@ designs (seeds 1–100) at 20,000 runs, recomputed at step 11 by `../../checks/l
 |---|---|---|
 | LM1 | The design is convergent with the request's n_min, alpha, level, seed, sampler, and space; a space with no varied model parameter is refused before building. | The design equals `convergent(...)` bit for bit; a space holding every model parameter: refused. |
 | LM2 | The fit is least squares in unit coordinates, over the usable runs of level L, by QR. | R1 at the defaults: 10; 3, −1, 0, 2 within 10⁻¹²; R1 with k given a linear range: not exact. |
-| LM3 | The relative residual, R², and the LOO error by PRESS, each as defined. | A hand-computed fixture of 6 runs in d = 1; LOO equal to explicit refits within 10⁻¹². |
-| LM4 | Intervals: 1000 resamples from the linear model's stream, the same for every estimate; LOO on each resample's distinct runs; the 0.5th and 99.5th percentiles; undefined resamples dropped and counted. | Changing `LINEAR_BOOT_TAG` changes the intervals, not the design (S8); a fixture at 2(d + 1) runs: the count under the table. |
+| LM3 | The relative residual, R², and the LOO error by PRESS, each as defined; the relative residual and R² as observations, with no interval (0085). | A hand-computed fixture of 6 runs in d = 1; LOO equal to explicit refits within 10⁻¹². |
+| LM4 | Intervals for the coefficients and the LOO error: 1000 resamples from the linear model's stream, the same for every estimate; LOO on each resample's distinct runs; the 0.5th and 99.5th percentiles; undefined resamples dropped and counted. | Changing `LINEAR_BOOT_TAG` changes the intervals, not the design (S8); a fixture at 2(d + 1) runs: the count under the table. |
 | LM5 | The per-level table: each level fitted on its usable runs among its first n_l points; "none" below 2(d + 1). | R3 at the defaults (the mock report); R5 where level 0 has too few usable runs. |
 | LM6 | Fewer than 2(d + 1) usable runs: counts and a note, no estimates; the observations stay. | R5 in a space where 2d + 1 runs are usable; 2(d + 1). |
 | LM7 | y → a·y + b (a a power of 2) maps the coefficients as stated, and leaves the relative residual, R², the LOO error, and the notes unchanged: exactly under a·y; within C5's tolerances under the shift (0048). | R2 with a = 2⁻¹⁰, b = 3. |

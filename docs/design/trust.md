@@ -1,7 +1,9 @@
 # Trust boundary
 
-**Status:** accepted (TODO step 10; 0057). **Updated:** 2026-10-01 (0061: `remove_tree`, the root's check, "user"). **Depends on:** P3; AR1–AR4, AR6; records 0010, 0016, 0018,
-0019, 0020, 0022, 0025, 0026, 0028, 0029, 0030, 0049, 0050, 0053, 0054, 0056 (OD-7 and OD-11 are decided);
+**Status:** accepted (TODO step 10; 0057). **Updated:** 2026-10-02 (0061: `remove_tree`, the root's check, "user"; 0069, 0071, 0073, 0074, 0080, 0081: credentials
+files on every spec path, the group killed at a program's exit, T10's reader, Ctrl-C at the question, T6's same spec,
+the function's signature at loading; review round 1 of applying 0066–0085); 2026-10-03 (0086 item 1). **Depends on:** P3; AR1–AR4, AR6; records 0010, 0016, 0018,
+0019, 0020, 0022, 0025, 0026, 0028, 0029, 0030, 0049, 0050, 0053, 0054, 0056, 0086 (OD-7 and OD-11 are decided);
 `model_interface.md` (M2, M9, M13–M15, M17, M20), `contracts.md` (C32, C33, C38, C39), `data_model.md` (W1, W2,
 W3, Q12, the run lock), `architecture.md` (§3, §5–§8), `export.md` (E1, E4, E7), `use_cases.md` (U2, U6, U9),
 `diagnostics/shared.md` (the notes), `scope.md`; C50, I4.
@@ -38,13 +40,14 @@ they don't read a command's arguments.
 |---|---|---|---|
 | **New runs** of a diagnostic evaluation (failed runs retried included, 0010) | the model version and the price (P3; no budgets, 0050). The first approval for a model version also shows what will run: the command and its program's resolved path, or a Python function's `function` (file and name) and the child's interpreter (0029), the input deck templates, the files, and the environment the spec sets (each `env` variable with its value, and each `pass_env` name with "set" or "not set", never its value) | Python: `approve=`. CLI: the question on stderr, then `Approve? [y/N]`; `--yes` answers yes in advance, still shown and recorded. MCP: an elicitation with the same text (0016) | `approvals`, `approval_points` (W3) |
 | **The test run** (0049) | the same | the same | the same, with no design |
-| **Saving a model spec an MCP client drafted** (a confirmation, 0049) | the absolute path it will be written to; what the model's name means now, when it is already loaded ("`heat` now means heat@b204… at /old/dir; saving makes it mean this spec", 0054); and the spec's full text, byte for byte as it will be written | Python: `confirm=`. MCP: an elicitation. Not in the CLI, where the user writes the spec | `confirmations` (W2) |
+| **Saving a model spec an MCP client drafted** (a confirmation, 0049) | the absolute path it will be written to; what the model's name means now, when it is already loaded ("`heat` now means heat@b204… at /old/dir; saving makes it mean this spec", 0054); and the spec's full text, byte for byte as it will be written (or, for a file at the path already holding the same spec, as the file holds it; T6) | Python: `confirm=`. MCP: an elicitation. Not in the CLI, where the user writes the spec | `confirmations` (W2) |
 
 - **Not asked:** loading a model spec (it runs nothing; the first approval shows what will run), prices,
   reads, reports and PDFs, export (it writes data only, into a new or empty directory, E1; through MCP, only
   inside the root and outside any workspace), and a repeated request, which makes no new runs (C50).
 - **No answer is a no:** a declined or unanswered question (end of input; an elicitation unanswered after
   `ELICITATION_TIMEOUT_S`), and an exception raised by the approver. Nothing runs and nothing is saved.
+  Ctrl-C at the question is recorded as a no, and then stops the call (T3: the user saw the question; 0074).
 - **Nobody to ask:** `approve=None` or `confirm=None` (an MCP client without elicitation) refuses at once,
   asks nothing, and records nothing, since nothing was asked (`architecture.md` §7, §8).
 - **The price shown is the price run:** the run lock is held from resolving the design again through the last
@@ -58,8 +61,9 @@ One mechanism for every model, so no path runs a model any other way (AR4: only 
 execute phase):
 
 - **A command-line model** runs without a shell, in its own process group, with the run directory as its
-  working directory, stdin from `/dev/null`, and the environment below; a timeout or Ctrl-C kills the group
-  (M2, M20, C39).
+  working directory, stdin from `/dev/null`, and the environment below; a timeout, Ctrl-C, or the program's
+  exit kills the group, so nothing it left running writes to its run directory after collect (M2, M20, C39;
+  0071).
 - **A Python function** runs in an isolated child, one per model version, in its own process group, started on
   EMA's own interpreter (`sys.executable`) with the environment below and stdin from `/dev/null`. The worker
   is started by its file's path; before it imports anything of `ema`'s or the model's, it replaces its
@@ -87,8 +91,10 @@ execute phase):
 - **Run and batch directories are deleted without following links** (those `keep` doesn't keep, and a stopped
   run's): a link in them is removed, never its target, so a data directory a script linked there survives.
 - **Loading never runs a model:** `load_spec` and `propose_model` read the function's file as text; the check
-  for unlisted local imports (M17) parses it (`ast.parse`) and resolves module names to paths, and never
-  imports it or a package it names, so nothing of the model runs in EMA's process, with EMA's full environment.
+  for unlisted local imports (M17) parses it (`ast.parse`) and resolves module names to paths against the model's
+  directory (0069 item 34), and the check that the function takes the model parameters by name reads its `def`
+  from the same parse (`model_interface.md`, Names; 0081 item 29); neither imports it or a package it names, so
+  nothing of the model runs in EMA's process, with EMA's full environment.
 - **EMA never runs anything from a kept run directory,** and never changes one after its run (0020).
 - **Shared copies** (`<workspace>/files/<sha256>/<name>`) are written read-only (0030, M15). This guards
   against accidents; a model that changes the permissions back can still write to its copy.
@@ -150,7 +156,8 @@ A Python function's child gets its environment when it starts, so a variable a l
   (followed, below), or the spec moved up a directory. Only the command's program may be absolute, or found on `PATH` (`model_interface.md`).
   A file in the model's directory that is a link is followed: the user put it there.
 - **Credentials files are refused** wherever a model spec or an MCP argument names a file: the spec's own
-  path, the function's file, templates, `files`, and the MCP tools' paths, the target of a link included. A
+  path, the function's file, templates, `files`, a deck's `writes`, a parser's `file` (not the streams `stdout`
+  and `stderr`; 0069 item 27), and the MCP tools' paths, the target of a link included. A
   credentials file is, as in v1's `is_secret`: `.env` and `.env.*` (not `.env.example`, `.env.sample`,
   `.env.template`); a name such as `.netrc`, `.pgpass`, `id_rsa`, or a shell start-up or history file; a name
   with `credential`, `credentials`, or `secret` as a word part (split at `.`, `_`, `-`); a suffix such as
@@ -210,9 +217,12 @@ A Python function's child gets its environment when it starts, so a variable a l
 - **Written as shown:** the bytes written are the bytes shown, whose hash is recorded (W2), with an exclusive
   create, so a file that appears between the question and the write is never overwritten. If one does, the
   save is refused, naming the file; the yes stays recorded (T3), and nothing is loaded.
-- **An existing file:** with the same bytes, the question says "already saved, unchanged: load it?"; with
-  other bytes, `save_model` refuses before asking, naming the file (`save_spec`, `architecture.md` §5), and
-  nothing is recorded.
+- **An existing file:** one holding the same spec (its text, read as a spec and written again, is the drafted
+  spec's text: the same bytes, or hand-formatted) is loaded, never rewritten: `propose_model` shows the file's
+  own text, the question says "already saved, unchanged: load it?" with those bytes, whose hash is recorded,
+  nothing is written, and the file is loaded after the yes, refused if it changed after the question (0080 item
+  29, 0081 item 17). A file holding another spec, or text that isn't one, is refused before asking, naming the
+  file (`PathRefused`), and nothing is recorded.
 
 ## Text EMA didn't write, in reports and figures
 
@@ -220,13 +230,17 @@ Text that comes from a model spec (names; the model's description; each model pa
 prediction's description and units) or from a model (a failed run's reason, or a missing model prediction's, which the notes print verbatim:
 `diagnostics/shared.md`) is printed literally. The report backslash-escapes Markdown's special characters in
 it, and pandoc's LaTeX writer then escapes TeX's; figure labels (`name [units]`) escape `$`, so matplotlib's
-mathtext doesn't read it. No such text becomes math, a link, or TeX that pandoc or LaTeX acts on (0018). As a second guard,
-pandoc reads the report with raw TeX, raw HTML, and raw attributes off (`-f markdown-raw_tex-raw_html-raw_attribute`).
-Math (`$…$`) stays on for EMA's own TeX, so for math only the escaping guards. A description
+mathtext doesn't read it. No such text becomes math, a link, or TeX that pandoc or LaTeX acts on (0018).
+Every text field of a result is plain text, escaped the same way, so EMA's own symbols in a result are Unicode
+(ρ, Sᵢ, R²), and the report writes no math (0073). A line of such text that would start a block has its marker
+escaped too (`-`, `+`, `:`, or `=` first, or the `.` or `)` of `1.`, `a)`, `(iv)` before a space), and a line
+ending inside a table cell, a table's title, or a caption becomes a space. As a second guard, pandoc reads the
+report with raw TeX, raw HTML, raw attributes, TeX math in dollars, smart punctuation, and implicit figures off
+(`-f markdown-raw_tex-raw_html-raw_attribute-tex_math_dollars-smart-implicit_figures`), and runs with `--sandbox`,
+so it reads only the report and its figures (0073; implicit figures, 0081 item 30). A description
 `\input{~/.ssh/id_rsa}` renders as that text, and the PDF holds no file. Names are escaped too: an identifier
-such as `_T_` would otherwise render as emphasis. A spec's units print literally in figure labels as well, so
-units are written as plain text or Unicode (`W/m²`), not mathtext (`m$^2$`); EMA's own symbols keep
-mathtext.
+such as `_T_` would otherwise render as emphasis. A spec's units print literally in figure labels as well, so units
+are written as plain text or Unicode (`W/m²`), not mathtext (`m$^2$`); EMA's own figure labels keep mathtext.
 
 **In an export,** `runs.csv`'s text columns are not escaped for Markdown or for spreadsheets: `ema_reason`
 holds the stored reason, and `ema_missing` is as E4 writes it; a spreadsheet may read a cell that starts with `=`, `+`, `-`, or `@` as a
@@ -252,7 +266,7 @@ the code that needs them can import them (AR1):
 | output read inside the run directory | `ema.models.parsers`, `ema.models.collect` |
 | EMA's files in a run or batch directory written without following links | `ema.models.execute` (`predictions.json`), `ema.models.collect` (`run.json`) |
 | run and batch directories deleted without following links | `ema.models.files` (`remove_tree`), used by `prepare` and `ema.runner` (0061) |
-| loading never imports a model (M17 by `ast`) | `ema.models.load_spec` |
+| loading never imports a model (M17 and the function's signature check, by `ast`) | `ema.models.load_spec` |
 | asking, the first approval's and the confirmation's text (hidden characters as codes, code spans and fenced blocks), recording every answer | `ema.approval` |
 | the MCP root, `save_model`'s write | `ema.workspace` (`open_workspace(..., root=)`), from `ema mcp --root`; `ema.models.save_spec` |
 | escaping text EMA didn't write; pandoc's reader options | `ema.report`, `ema.plotting` (`axis_label`) |
@@ -260,10 +274,10 @@ the code that needs them can import them (AR1):
 **Size:** about 145 lines, by package: `ema.types` about 75 (the credentials lists, rewritten from v1's, about 50;
 the name and character checks, about 25); `ema.models` about 35 (the environment, about 15; paths and links, about
 20); `ema.workspace`, `ema.cli`, and `ema.approval` about 25 (the root, `--root`, the confirmation's text and its
-same-bytes branch); `ema.report` and `ema.plotting` about 10. The ported sandbox and worker are about 500 lines
-(v1's 534 less little); without v1's limits (about 50 lines) and its withheld variables (about 15), about 435, as
-`architecture.md` §11 counts them. Net about 80 more: about 7,940 of `scope.md`'s then 8,000; after 0061–0063,
-about 8,200 of 8,300 (0064).
+same-bytes branch); `ema.report` and `ema.plotting` about 10. The ported sandbox and worker are
+about 500 lines (v1's 534 less little); without v1's limits (about 50 lines) and its withheld variables (about
+15), about 435, as `architecture.md` §11 counts them. Net about 80 more: about 7,940 of `scope.md`'s then 8,000;
+after 0061–0063, about 8,200 of 8,300 (0064); the budget is 12,000 since 0086 item 1 (11,000 in 0084).
 
 ## Not in v2.0
 
@@ -283,11 +297,11 @@ about 8,200 of 8,300 (0064).
 | T3 | Every approval and confirmation asked is recorded with its question and answer, yes or no; none is recorded when nobody could be asked (W2, W3, Q12). | Yes, no, an exception in the approver, and `approve=None`: three records and none, in order. |
 | T4 | Nothing runs, and no model spec is saved, without the user's yes; loading or proposing a spec runs nothing of the model's; through MCP the yes is an elicitation, and a client without elicitation is refused before anything is asked (P3, 0016). | U9's scripted client: declined and unanswered elicitations save nothing and run nothing; a client without elicitation gets the refusal, and the store is unchanged. A function file, and a package `__init__.py` it imports, that each write a marker when imported: `load_model` and `propose_model` leave no marker. |
 | T5 | Every MCP path argument lies inside the root named at `ema mcp` start and outside any workspace, checked as files after resolving links, with no hidden character; a drafted spec's files resolve inside the root; `ema mcp` refuses to start without a root, with a relative one, with `/`, or with a root inside a workspace; resources are looked up by name (E7). | `save_model` and `export` with a path outside the root, one with `..` climbing out, a link inside pointing out, a path inside the server's workspace's `runs/` and inside another workspace under the root, and a name with U+202E: each refused, with nothing written or asked. A drafted spec whose `files` entry links outside the root: refused, the target not read. `ema mcp` with no `--root`, a relative one, `/`, and another workspace's `runs/` as root: exit 2. A figure resource named `../../x`: not found. |
-| T6 | `save_model`'s confirmation shows the absolute path, what an already loaded name means now, and the full text; the file written has exactly the bytes shown; a different existing file is refused before asking. | The recorded hash equals the file's; a path through a link shows the resolved parent; a spec named like a loaded model says what the name means now; an existing different file is refused, with no confirmation recorded; a file created between the yes and the write is refused and kept; the same bytes ask "load it?" and write nothing; a path not ending in `.json`, and one whose parent doesn't exist, are refused before asking. |
+| T6 | `save_model`'s confirmation shows the absolute path, what an already loaded name means now, and the full text; the file written has exactly the bytes shown; an existing file holding the same spec is loaded, never rewritten; one holding another spec, or other text, is refused before asking (0080, 0081). | The recorded hash equals the file's; a path through a link shows the resolved parent; a spec named like a loaded model says what the name means now; an existing file with another spec is refused, with no confirmation recorded; a file created between the yes and the write is refused and kept; the same spec, as the same bytes or hand-formatted, asks "load it?" with the file's text, writes nothing, and loads the file after the yes, and a file changed after the question is refused; a path not ending in `.json`, and one whose parent doesn't exist, are refused before asking. |
 | T7 | Paths in a model spec are relative, with no `..` and no absolute path (but the command's program); a file a spec or an MCP argument names that is a credentials file is refused (v1's `is_secret`); a spec string with a hidden character (Cc but tab, Cf but the joiners, Cs, Zl, Zp), a duplicate key, and EMA's own file names as `writes` or `files`, are refused; a question prints such characters as codes (but tab and line feed), and every string EMA didn't write in a code span or a fenced block. | `files: ["../x"]`, `"/etc/hosts"`, `".env"`, `".ssh/id_rsa"`, `"db-credentials.json"`, and `"mesh.dat"` linked to `~/.ssh/id_rsa`: each refused at loading, naming the field; `.env.example`, `secretion.py`, and `deck.key` load. A command with `\u001b[2K`, a description with U+202E, a name with a lone surrogate, a description with a newline, and `"command"` twice: refused, naming the field. A model directory under `~/.docker/` loads. A template with U+202E: the first approval shows `\u202e`, and its lines as lines. A save path holding `<!-- x -->`, and a template holding a line of three backticks: each shown as typed. `files: ["run.json"]`: refused. `files: ["../mesh.h5"]`: the message names the link workaround. |
 | T8 | A variable name that looks like a credential, or isn't a variable name, is refused in `env` and `pass_env`; EMA never shows or stores a `pass_env` value. | `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `SSH_AUTH_SOCK`, `A=B`, and `""` refused; `OMP_NUM_THREADS`, `LM_LICENSE_FILE` load; the first approval's stored question holds `LM_LICENSE_FILE` and "set", not its value. |
 | T9 | Model output is read only from inside the run directory; a parser's file that links out of it is missing, with a reason (0030). EMA's own files in a run or batch directory are written, and those directories deleted, without following links. A model's streams never reach EMA's stdout. | `plate.out` a link to a file outside the run directory: the model prediction is missing, and the file outside is not read. A model that leaves `run.json` as a link to a file outside: that file is unchanged. A run directory not kept, holding a link to a data directory: the directory is deleted, the data kept. Under a scripted MCP client, a function that prints at import and in each call: the protocol stream stays valid. |
-| T10 | Text EMA didn't write (spec text, names included, and failure reasons) prints literally in reports and figure labels. | A description and a failure reason `$\input{/etc/hosts}$ *x* [a](b)`, and a model prediction named `_T_`, render as written in the report; units `$\input{/etc/hosts}$` render as written in a figure's axis label; the PDF (when `to_pdf` doesn't raise `PandocMissing`, 0059) holds no line of `/etc/hosts`. |
+| T10 | Text EMA didn't write (spec text, names included, and failure reasons) prints literally in reports and figure labels; a block marker at a line's start is escaped too; pandoc reads the report as `markdown-raw_tex-raw_html-raw_attribute-tex_math_dollars-smart-implicit_figures`, with `--sandbox` (0073; 0081 item 30). | A description and a failure reason `$\input{/etc/hosts}$ *x* [a](b)`, and a model prediction named `_T_`, render as written in the report; a failure reason whose line starts `1. ` or `- ` renders as written; units `$\input{/etc/hosts}$` render as written in a figure's axis label; the PDF (when `to_pdf` doesn't raise `PandocMissing`, 0059) holds no line of `/etc/hosts`. |
 
 M9 and C38 (no pickle; the child's process group, which the asks below add to M9) and M20 and C39 (no
 shell) are the model interface's own rules, cited above and not repeated here.
@@ -304,10 +318,12 @@ shell) are the model interface's own rules, cited above and not repeated here.
 | spec paths and strings | relative, no `..`, no absolute; credentials files refused; hidden characters and duplicate keys refused; one-line strings | 0057 |
 | the first approval | also shows the environment the spec sets | 0057 |
 | `save_model`'s confirmation | the absolute path, what the name means now, the full text; exclusive create | 0057 |
+| a file at `save_model`'s path holding the same spec | loaded after a yes, never rewritten; T6 reads "the same spec", not "the same bytes" | 0080, 0081 |
 | text EMA didn't write | printed literally, escaped, names included; pandoc reads no raw TeX; not escaped in `runs.csv` | 0057 |
+| T10's reader | text in a result plain and escaped, block markers too; pandoc reads no math in dollars, no smart punctuation, no implicit figures, with `--sandbox` | 0073; 0081 |
 | the Python child | its own process group; started by path, its `sys.path` replaced by EMA's (absolute) over its pipe; its streams kept off EMA's stdout | 0057 |
 | run and batch directories | EMA's files written, and directories deleted, without following links; EMA's file names refused as `writes` or `files` | 0057 |
-| loading | never imports a model file (M17 by `ast`) | 0057 |
+| loading | never imports a model file (M17 by `ast`), and the function's signature check (0081 item 29) | 0057; 0081 |
 | questions | hidden characters printed as codes (but tab and line feed); every string EMA didn't write in a code span or a fenced block | 0057 |
 | no OS sandbox, no limits, no `pass_env` patterns, no hashing of shared copies per call | not in v2.0 | 0026; 0057 |
 

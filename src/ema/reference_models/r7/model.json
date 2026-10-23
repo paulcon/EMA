@@ -1,0 +1,13 @@
+{
+  "name": "r7",
+  "description": "R7: a kink at a + e = 0.6, a jump of 1 at b = 0.2, and the analytic 1 / (1 + 4 c^2)",
+  "interface": "python_function",
+  "function": "r7.py:f",
+  "parameters": [
+    {"name": "a", "units": "", "nominal": 0.0, "description": "a, in [-1, 1]: the kink, with e"},
+    {"name": "b", "units": "", "nominal": 0.0, "description": "b, in [-1, 1]: the jump at 0.2"},
+    {"name": "c", "units": "", "nominal": 0.0, "description": "c, in [-1, 1]: analytic, poles at c = ±i/2"},
+    {"name": "e", "units": "", "nominal": 0.0, "description": "e, in [-1, 1]: the kink, with a"}
+  ],
+  "predictions": [{"name": "y", "units": "", "description": ""}]
+}

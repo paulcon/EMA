@@ -1,0 +1,21 @@
+{
+  "name": "toy_command",
+  "description": "a toy program: y = a + 2 b + scale, read from out.json; w = a - b, from stdout",
+  "interface": "command_line",
+  "command": ["python3", "solver.py", "deck.in"],
+  "input_decks": [{"template": "deck.in.template", "writes": "deck.in"}],
+  "files": ["solver.py", {"path": "mesh.dat", "shared": true}],
+  "env": {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin"},
+  "parameters": [
+    {"name": "a", "units": "m", "nominal": 1.0, "description": "the first model parameter", "limits": {"gt": -10, "lt": 10}},
+    {"name": "b", "units": "", "nominal": 0.5, "description": "the second model parameter"},
+    {"name": "mode", "units": "", "nominal": 0, "description": "how the toy behaves (tests/support/models.py)"}
+  ],
+  "predictions": [
+    {"name": "y", "units": "m", "description": "a + 2 b + scale",
+     "parser": {"kind": "json", "file": "out.json", "key": "y"}},
+    {"name": "w", "units": "m", "description": "a - b",
+     "parser": {"kind": "regex", "file": "stdout", "pattern": "w = (\\S+)"}}
+  ],
+  "timeout_s": 10
+}
