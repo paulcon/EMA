@@ -112,8 +112,10 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   local only, at `../EMA-v1`); `demo`, merged into `main`, deleted.
 - 2026-10-27: record 0088 (the Sphinx site published at `https://paulcon.github.io/EMA/` by
   `.github/workflows/docs.yml`, started by hand from `main`), applied to `docs/conf.py`, `README.md`,
-  `pyproject.toml`'s `[project.urls]`, and 0059's status. Pages not yet turned on: the owner's three staged steps
-  (0088 item 5).
+  `pyproject.toml`'s `[project.urls]`, and 0059's status (5f1c6e9). Its three staged steps run the same day, at the
+  owner's request: `main` pushed, Pages turned on with Actions as its source, and the site first deployed by run
+  40585077681 (55 s; an earlier run's deploy failed with GitHub's 500, and its rerun on the artifact's metadata);
+  `paulcon.github.io` itself unchanged.
 
 ## Next
 
