@@ -9,7 +9,7 @@ A model is a Python function or a command-line simulation code, described by a m
 number EMA reports is computed from stored runs, every result records how it was made, and no run starts without
 your yes to its price.
 
-**Status:** pre-release (`2.0.0.dev1`), on the `demo` branch. Stored formats and interfaces may still change.
+**Status:** pre-release (`2.0.0.dev1`). Stored formats and interfaces may still change.
 
 ## Requirements
 
@@ -23,7 +23,7 @@ The repository is private: installing needs read access (a GitHub login, or a to
 **As a tool**, to use EMA. This puts `ema` on your `PATH`, with the MCP server:
 
 ```bash
-uv tool install "ema[mcp] @ git+https://github.com/paulcon/EMA@demo"
+uv tool install "ema[mcp] @ git+https://github.com/paulcon/EMA"
 ema --help
 ```
 
@@ -34,7 +34,6 @@ A Python model runs in EMA's own interpreter, so its imports must be installed t
 
 ```bash
 git clone https://github.com/paulcon/EMA.git && cd EMA
-git checkout demo
 uv sync --extra mcp
 uv run ema --help
 ```

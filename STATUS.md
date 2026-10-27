@@ -1,11 +1,11 @@
 # EMA v2 status
 
-**Updated:** 2026-10-03. Update this file at the end of every step, in the same commit as the work.
+**Updated:** 2026-10-27. Update this file at the end of every step, in the same commit as the work.
 
 ## Now
 
-- **The `demo` branch (records 0066–0087), not merged into `main`; pushed to GitHub as `origin/demo`
-  (2026-10-03):** every build step of the roadmap (01–16, and T, the rest of `ema.types`), built autonomously and
+- **The demo build (records 0066–0087), merged into `main` (be08260); the `demo` branch deleted
+  (2026-10-27):** every build step of the roadmap (01–16, and T, the rest of `ema.types`), built autonomously and
   reviewed by independent agents; the six diagnostics, the workspace (U1–U8; the get-started guide passes), the CLI
   (`ema`), and the MCP server (`ema mcp --root DIR`), checked end to end through a real MCP client. Records
   0066–0087 are accepted and applied to the specs. EMA `2.0.0.dev1`; 11,040 code lines of a budget of 12,000
@@ -108,11 +108,11 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   `pass_env` sorted before hashing; notes' line breaks; no ids in text users see; one per-level key; the version
   raised when a diagnostic's output changes, `2.0.0.dev1`; `python -m ema.mcp` kept; and smaller items) and 0087
   (three follow-ups from its review) accepted and applied; the demo root rebuilt; `demo` pushed to GitHub.
+- 2026-10-27: the GitHub repository moved to `paulcon/EMA` (the old account and its `EMA-v1` deleted; v1 is
+  local only, at `../EMA-v1`); `demo`, merged into `main`, deleted.
 
 ## Next
 
-- **The owner:** review `demo` (on GitHub: `origin/demo`, 100 commits ahead of `main`) and decide on merging it
-  into `main`.
 - Step 17: the guides' full text and the release.
 - The BLAS question for `ema.numerics` is settled (`docs/notes/blas_determinism_2026-10-01.md`; record 0068 item 1,
   accepted: no 1-D BLAS products or norms).
