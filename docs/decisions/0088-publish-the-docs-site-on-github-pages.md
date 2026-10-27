@@ -1,6 +1,6 @@
 # 0088. Publish the documentation site at paulcon.github.io/EMA, from a workflow started by hand
 
-**Date:** 2026-10-27. **Status:** accepted (2026-10-27, by the owner). **Resolves:** none.
+**Date:** 2026-10-27. **Status:** accepted (2026-10-27, by the owner); item 1's content amended by 0089. **Resolves:** none.
 
 ## Context
 

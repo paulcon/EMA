@@ -31,7 +31,9 @@ GitHub Actions (`.github/workflows/checks.yml`) runs only when started by hand.
 - **Decisions are recorded.** A change to what an accepted spec says needs a decision record in `docs/decisions/`,
   drafted as `proposed` and applied once accepted (`docs/decisions/README.md`;
   `docs/notes/decision_workflow.md`).
-- **Cite ids** in docstrings, tests, and commit messages (below). Text users see cites none (records 0086, 0087).
+- **Cite ids** in docstrings, tests, and commit messages (below); in docstrings, comments, and guides, in parentheses,
+  never as a word of the sentence, so the published site can drop them (record 0089). Text users see, the site
+  included, cites none (records 0086, 0087, 0089).
 - **Tests first,** from the spec's contract checks and known answers.
 - **One build step at a time,** each with a plan in `docs/plans/` and a stop condition.
 - **Size budgets** (`docs/design/scope.md`) are constraints: going over one is a decision to propose.

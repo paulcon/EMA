@@ -66,5 +66,8 @@ A step is done when its files are marked `accepted`, and its OD rows are decided
   budgets 12,000 source lines and a 90 s fast tier, and twelve smaller items), and its review's follow-ups,
   record 0087; both accepted and applied. `demo` pushed to GitHub (`origin/demo`).
 - [ ] **Review `demo` and decide on merging it into `main`.** You.
+- [ ] **18. Citations off the documentation site** (record 0089; `docs/plans/18-site-citations.md`), before step
+  17: the site's build drops the citations, and fails on any left; docstrings reworded so each citation is in
+  parentheses.
 - [ ] **17. Guides and release** (`docs/notes/build_roadmap.md`): the guides' full text, the README, the wheel's
   contents, and the budgets audited; its plan (`docs/plans/17-*.md`) is still to write.

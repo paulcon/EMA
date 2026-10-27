@@ -16,7 +16,8 @@ work is `TODO.md`, and where things stand is `STATUS.md`.
   `docs/decisions/`. If the change needs a new decision, draft a decision record with status `proposed`, and
   don't make the change until I accept it. Only I set a record to `accepted`.
 - **Cite ids.** Docstrings, tests, and commit messages name the ids they implement (P3, M2, C5, W3, I4,
-  record 0007).
+  record 0007). In docstrings, comments, and guides, a citation is in parentheses, never a word of the sentence,
+  so the published site can drop it (record 0089).
 - **Tests first.** For a new module, write its contract checks and known-answer tests from the spec, show
   them to me, then write the code.
 - **One step at a time.** Each build step has a plan in `docs/plans/`, numbered from 01. Stop at the plan's stop

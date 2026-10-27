@@ -119,6 +119,8 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
 
 ## Next
 
+- Step 18: citations off the documentation site (record 0089), its plan `docs/plans/18-site-citations.md`; then
+  step 17.
 - Step 17: the guides' full text and the release.
 - The BLAS question for `ema.numerics` is settled (`docs/notes/blas_determinism_2026-10-01.md`; record 0068 item 1,
   accepted: no 1-D BLAS products or norms).
