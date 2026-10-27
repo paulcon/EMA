@@ -23,7 +23,7 @@ The repository is private: installing needs read access (a GitHub login, or a to
 **As a tool**, to use EMA. This puts `ema` on your `PATH`, with the MCP server:
 
 ```bash
-uv tool install "ema[mcp] @ git+https://github.com/pauls-code-projects/EMA@demo"
+uv tool install "ema[mcp] @ git+https://github.com/paulcon/EMA@demo"
 ema --help
 ```
 
@@ -33,7 +33,7 @@ A Python model runs in EMA's own interpreter, so its imports must be installed t
 **From a clone**, to develop EMA (`CONTRIBUTING.md`):
 
 ```bash
-git clone https://github.com/pauls-code-projects/EMA.git && cd EMA
+git clone https://github.com/paulcon/EMA.git && cd EMA
 git checkout demo
 uv sync --extra mcp
 uv run ema --help

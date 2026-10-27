@@ -14,8 +14,8 @@ Python blocks run as written on R2, from an installed EMA, in the slow tier (C53
 
    ```text
    $ uv init my_study && cd my_study          # a project, if you have none
-   $ uv add "ema @ git+https://github.com/pauls-code-projects/EMA@v2.0"
-   $ uv tool install "ema[mcp] @ git+https://github.com/pauls-code-projects/EMA@v2.0"
+   $ uv add "ema @ git+https://github.com/paulcon/EMA@v2.0"
+   $ uv tool install "ema[mcp] @ git+https://github.com/paulcon/EMA@v2.0"
    $ ema --help                               # the ema command and the MCP server, on PATH
    ```
 

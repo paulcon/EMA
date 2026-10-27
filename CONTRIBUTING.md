@@ -9,7 +9,7 @@ sessions on this repository; they apply to people too.
 ## Development
 
 ```bash
-git clone https://github.com/pauls-code-projects/EMA.git && cd EMA
+git clone https://github.com/paulcon/EMA.git && cd EMA
 uv sync --extra mcp
 ```
 
@@ -118,6 +118,6 @@ docs/notes/
 
 ## v1
 
-v1 is at GitHub `pauls-code-projects/EMA-v1` (tag `v1-final`), for reference only: read it when a plan says to,
+v1 is at `../EMA-v1` (tag `v1-final`), a local repository only, for reference only: read it when a plan says to,
 and copy code from it only when a plan names the file to port. Its working notes, including the lessons learned
 that led to v2, are in `docs/notes/v1/`.
