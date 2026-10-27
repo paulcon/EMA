@@ -84,7 +84,7 @@ Write one when a choice:
 | 0056 | Make the layers architecture rules, use a Workspace object, serve figures as MCP resources, type the use cases against the workspace, add three store reads, and allow a Store per thread | accepted; its layer 5 and AR3 amended by 0061 (`ema.cli` over `ema.mcp`) | 2026-10-01 |
 | 0057 | Give a model an allowlisted environment, confine the MCP server to a root, and check a spec's paths | accepted | 2026-10-01 |
 | 0058 | Drop the kink-line known answer, and set two tolerances from step 11's checks | accepted; its "maps unchanged" amended by 0061 | 2026-10-01 |
-| 0059 | Support Python 3.13 and newer; build with uv and a lockfile, document with Sphinx, run the checks on GitHub Actions by hand, and make PDFs with lualatex | accepted | 2026-10-01 |
+| 0059 | Support Python 3.13 and newer; build with uv and a lockfile, document with Sphinx, run the checks on GitHub Actions by hand, and make PDFs with lualatex | accepted; item 5's "not published" amended by 0088 | 2026-10-01 |
 | 0060 | Install from GitHub with uv, test the get-started guide, license EMA under MIT, and accept C53–C55 | accepted | 2026-10-01 |
 | 0061 | Settle the specs' cross-check before code: a seed for every diagnostic, "user", golden points across machines, and the rules build step 01 needs | accepted; items 3 and 5 amended by 0062 | 2026-10-01 |
 | 0062 | Compare golden points across machines in unit coordinates, replay from the stored points, and settle five details for step 01 | accepted; item 2 amended, and item 5's rounding refined, by 0063 | 2026-10-01 |
@@ -112,3 +112,4 @@ Write one when a choice:
 | 0085 | Report a fit's in-sample relative residual and R² as observations, without intervals | accepted | 2026-10-02 |
 | 0086 | Settle the questions left after applying records 0066–0085 | accepted | 2026-10-03 |
 | 0087 | Settle three follow-ups from applying record 0086 | accepted | 2026-10-03 |
+| 0088 | Publish the documentation site at paulcon.github.io/EMA, from a workflow started by hand | accepted | 2026-10-27 |

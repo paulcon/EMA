@@ -151,7 +151,8 @@ The answers quote EMA's own text: the same lines as the CLI, and the report as s
 - `docs/guides/`: get started (in Python), add a model, run a diagnostic, add a diagnostic. Outlines for now.
 - `docs/design/`: the specs. Start with `purpose.md` and `glossary.md`; `model_interface.md` says how to write
   a model spec, and `diagnostics/` describes each diagnostic and its report.
-- The API reference: `uv run sphinx-build docs docs/_build/html`, then open `docs/_build/html/index.html`.
+- The guides and the API reference, as a site: https://paulcon.github.io/EMA/. To build it locally:
+  `uv run sphinx-build docs docs/_build/html`, then open `docs/_build/html/index.html`.
 - `STATUS.md`: where the project stands.
 
 ## Contributing

@@ -1,6 +1,6 @@
 # 0059. Support Python 3.13 and newer; build with uv and a lockfile, document with Sphinx, run the checks on GitHub Actions by hand, and make PDFs with lualatex
 
-**Date:** 2026-10-01. **Status:** accepted. **Resolves:** OD-17, OD-18; 0018's step-12 plan.
+**Date:** 2026-10-01. **Status:** accepted; item 5's "not published" amended by 0088. **Resolves:** OD-17, OD-18; 0018's step-12 plan.
 
 ## Context
 

@@ -1,6 +1,7 @@
 """Sphinx configuration: the guides and the API reference (record 0059, item 5).
 
-Built locally with ``uv run sphinx-build -W --keep-going docs docs/_build/html``; not published. The design
+Built locally with ``uv run sphinx-build -W --keep-going docs docs/_build/html``; published at
+https://paulcon.github.io/EMA/ by ``.github/workflows/docs.yml``, started by hand (record 0088). The design
 documents, decision records, notes, plans, and step 11's checks are excluded: they are read in the repository.
 """
 

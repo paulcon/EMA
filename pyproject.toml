@@ -14,6 +14,11 @@ dependencies = [
     "matplotlib>=3.9.2",
 ]
 
+# The documentation site (record 0088).
+[project.urls]
+Documentation = "https://paulcon.github.io/EMA/"
+Repository = "https://github.com/paulcon/EMA"
+
 # The command line (architecture.md §8; build step 16).
 [project.scripts]
 ema = "ema.cli:main"

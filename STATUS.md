@@ -110,6 +110,10 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   (three follow-ups from its review) accepted and applied; the demo root rebuilt; `demo` pushed to GitHub.
 - 2026-10-27: the GitHub repository moved to `paulcon/EMA` (the old account and its `EMA-v1` deleted; v1 is
   local only, at `../EMA-v1`); `demo`, merged into `main`, deleted.
+- 2026-10-27: record 0088 (the Sphinx site published at `https://paulcon.github.io/EMA/` by
+  `.github/workflows/docs.yml`, started by hand from `main`), applied to `docs/conf.py`, `README.md`,
+  `pyproject.toml`'s `[project.urls]`, and 0059's status. Pages not yet turned on: the owner's three staged steps
+  (0088 item 5).
 
 ## Next
 
