@@ -1,6 +1,7 @@
 """R2 (reference_models.md): the Ishigami function (Ishigami and Homma, 1990).
 
-Ported from EMA v1 at v1-final: src/ema/testfunctions/library.py (ishigami), reviewed against reference_models.md.
+Ported from EMA v1 at v1-final: src/ema/testfunctions/library.py (ishigami), reviewed against the reference models'
+spec (reference_models.md).
 """
 
 import numpy as np

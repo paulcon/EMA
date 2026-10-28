@@ -1,12 +1,13 @@
 """The per-line computation and figure that coordinate lines and lines share.
 
-coordinate_lines.md, Computation and Figures; lines.md, Computation; architecture.md §6, ``_lines.py``; records 0034,
-0035, 0038, 0048, 0051, 0077. Each line of a lines design (its rows in ``Design.lines``, n evenly spaced points end to
-end) is analyzed alone: its usable runs, its range, and, when every run on it is usable and it isn't constant, its Gram
-spectrum (``ema.numerics.gram``), the degrees k* of its tail above the floor (``LINE_RATE_FLOOR`` of the line's range,
-P6) within the window K = floor((n - 1)/2), and the decay rate over them (CL2, CL3, LN2). ``LinesDiagnostic`` is the two
+Each line of a lines design (its rows in ``Design.lines``, n evenly spaced points end to end) is analyzed alone: its
+usable runs, its range, and, when every run on it is usable and it isn't constant, its Gram spectrum
+(``ema.numerics.gram``), the degrees k* of its tail above the floor (``LINE_RATE_FLOOR`` of the line's range; P6)
+within the window K = floor((n - 1)/2), and the decay rate over them (coordinate_lines.md, Computation and Figures;
+lines.md, Computation; CL2, CL3, LN2; records 0034, 0035, 0038, 0048, 0051, 0077). ``LinesDiagnostic`` is the two
 diagnostics' common base: one observations row per line, a note per constant line, one two-panel figure per line; each
-subclass says what a line is called, where its points sit on the figure's x axis, and its design.
+subclass says what a line is called, where its points sit on the figure's x axis, and its design (architecture.md §6,
+``_lines.py``).
 """
 
 import math
@@ -28,7 +29,7 @@ from ema.types.text import fmt
 
 #: The tail T(k) is fitted while above this fraction of the line's range (coordinate_lines.md; P6).
 LINE_RATE_FLOOR = 1e-10
-#: The fit uses degrees 1 ... floor((n - 1)·½): the top degrees see only the middle of the line.
+#: The fit uses degrees 1 … floor((n - 1)·½): the top degrees see only the middle of the line.
 LINE_RATE_WINDOW = 0.5
 #: The fewest degrees a rate is fitted to.
 LINE_RATE_MIN_DEGREES = 3
@@ -44,7 +45,8 @@ SPECTRUM_YMIN = 1e-17
 RATE_SHIFT_TOL = 1e-5
 
 #: Each observation's change under y -> a·y + b (C5). The flag marks the rate's fit, decided at the floor through
-#: log10 T(k): the rate, and k*, its degrees (C5's rate tolerances; C6 leaves both out, contracts.md; record 0077).
+#: log10 T(k): the rate, and k*, its degrees, which the units check holds to its rate tolerances and the large-offset
+#: check leaves out (C5; C6, contracts.md; record 0077).
 LINE_TRANSFORMS = MappingProxyType(
     {
         ("line_rates", "usable"): (Transform.UNCHANGED, False),
@@ -67,8 +69,10 @@ class LineAnalysis:
 
     Attributes
     ----------
-    n, K : int
-        The line's points, and its window.
+    n : int
+        The line's points.
+    K : int
+        Its window.
     usable : int
         Its usable runs (rows).
     y_range : float or None

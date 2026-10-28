@@ -1,7 +1,7 @@
 """Figures: one PNG per figure with a JSON data card beside it (diagnostics/shared.md, Figures; S9, S10; 0018).
 
-architecture.md §6 (3a): ``new_figure``, ``axis_label``, ``strip``, ``save``; and the drawing helpers the six
-diagnostics' figures need (record 0073; docs/plans/08-figures-and-reports.md, The API the diagnostics call).
+It holds ``new_figure``, ``axis_label``, ``strip``, and ``save`` (architecture.md §6, 3a), and the drawing helpers
+the six diagnostics' figures need (record 0073; docs/plans/08-figures-and-reports.md, The API the diagnostics call).
 
 Figures are drawn on ``matplotlib.figure.Figure`` with the Agg canvas, never through ``pyplot``, and every function
 here runs under matplotlib's default rcParams, then EMA's fixed style (``style.context``; record 0073 item 8), so the
@@ -331,9 +331,9 @@ def strip(
 ) -> list[dict[str, Any]]:
     """Draw each run that isn't usable as one × below the axes, at its x, with the count in the strip's label.
 
-    shared.md, Runs not usable; C12. ``log`` sets the x axis's scale. Returns the data card's entries, one per run,
-    in the order given: ``{"x", "kind", "run_id"}`` (``run_id`` when ``run_ids`` is given; a kind is a failure's,
-    or ``FailureKind``'s value).
+    ``log`` sets the x axis's scale. Returns the data card's entries, one per run, in the order given:
+    ``{"x", "kind", "run_id"}`` (``run_id`` when ``run_ids`` is given; a kind is a failure's, or ``FailureKind``'s
+    value; shared.md, Runs not usable; C12).
     """
     x = np.asarray(x, dtype=float)
     if len(x) != len(kinds) or (run_ids is not None and len(run_ids) != len(x)):
@@ -419,8 +419,8 @@ def save(fig: MplFigure, card: Mapping[str, Any], out_dir: str, name: str, capti
     """Write ``<name>.png`` and its data card ``<name>.json`` into ``out_dir``, and return the ``Figure``.
 
     The card gets the figure's name (shared.md: "the figure's name; for each panel, each axis ... and every plotted
-    value"), and is checked as strict JSON before anything is written. The PNG has no ``Software`` or time chunk,
-    so a rerun on one machine writes the same bytes; S10 holds the card to it.
+    value"), and is checked as strict JSON before anything is written. The PNG has no ``Software`` or time
+    chunk, so a rerun on one machine writes the same bytes; the card must too (S10).
 
     Raises
     ------

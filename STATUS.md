@@ -1,6 +1,6 @@
 # EMA v2 status
 
-**Updated:** 2026-10-27. Update this file at the end of every step, in the same commit as the work.
+**Updated:** 2026-10-28. Update this file at the end of every step, in the same commit as the work.
 
 ## Now
 
@@ -116,11 +116,20 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   owner's request: `main` pushed, Pages turned on with Actions as its source, and the site first deployed by run
   40585077681 (55 s; an earlier run's deploy failed with GitHub's 500, and its rerun on the artifact's metadata);
   `paulcon.github.io` itself unchanged.
+- 2026-10-27–28: step 18, citations off the documentation site (records 0089, 0090, accepted;
+  `docs/plans/18-site-citations.md`), on `build-18-site-citations`: `docs/_ext/ema_citations.py` drops each
+  parenthesized citation (ids, records, spec files, §, build steps, review rounds, layers) when the site is built,
+  cuts a guide's metadata paragraph to its status, publishes no page source, and fails the build on a citation
+  left; `docs/_ext/ema_inline_types.py` stops napoleon reading an attribute's first line as a type. 469 citations
+  in 52 files of `src/ema/` reworded into parentheses (docstrings and comments only; code unchanged, 11,040 code
+  lines), with the guides and `index.md`; a fast test checks every docstring and comment. Eight rendering defects
+  already on `main` fixed on the way. Three independent reviews (2 major; 2 major; none major), all fixed but what
+  is left to the owner (the plan's Notes). Both tiers pass (2,221 passed, 1 skipped).
 
 ## Next
 
-- Step 18: citations off the documentation site (record 0089), its plan `docs/plans/18-site-citations.md`; then
-  step 17.
+- Step 18 (on `build-18-site-citations`): the owner's review and merge, then `docs.yml` started to redeploy the
+  site; then step 17.
 - Step 17: the guides' full text and the release.
 - The BLAS question for `ema.numerics` is settled (`docs/notes/blas_determinism_2026-10-01.md`; record 0068 item 1,
   accepted: no 1-D BLAS products or norms).

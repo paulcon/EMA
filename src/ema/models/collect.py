@@ -1,12 +1,11 @@
-"""Collect a call's runs: model predictions from files only, status and kind, and each run's ``run.json``.
-
-model_interface.md, A run and Failures; M1, M4, M12, M13, M19; 0028, 0043; trust.md, T9.
+"""Collect a call's runs: model predictions from files only, status and kind, and each run's ``run.json`` (M19).
 
 A command-line model's model predictions come from its output parsers, a Python function's from the
-``predictions.json`` its call wrote; each is read only from inside the run directory. A run is ``ok`` when its call
-finished cleanly and read at least one model prediction; else ``failed``, kind ``error`` (it raised, crashed,
-exited nonzero or by a signal, couldn't start, or EMA couldn't write its own file), ``timeout``, or ``unread``.
-Nothing here raises for a point (M1). ``keep_or_remove`` applies the spec's ``keep`` setting after the runs are
+``predictions.json`` its call wrote (model_interface.md, A run; M13; 0028); each is read only from inside the run
+directory (trust.md, T9). A run is ``ok`` when its call finished cleanly and read at least one model prediction;
+else ``failed``, kind ``error`` (it raised, crashed, exited nonzero or by a signal, couldn't start, or EMA couldn't
+write its own file), ``timeout``, or ``unread`` (model_interface.md, Failures; M4, M12; 0043). Nothing here raises
+for a point (M1). ``keep_or_remove`` applies the spec's ``keep`` setting after the runs are
 stored, and ``discard`` deletes a stopped call's directories (0020, 0028; M14).
 """
 

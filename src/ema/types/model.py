@@ -2,9 +2,10 @@
 
 Values in model parameter units are doubles wherever they are built (0061 item 6): an ``int`` becomes a
 ``float``, and a bool or anything that isn't a finite number is refused (0065), so a spec built in Python agrees
-with one parsed from JSON. ``ModelSpec.from_json`` makes every check that needs no file (names, M18, M21, unknown
-keys; trust.md's T7, T8, and T2's spec checks, whose lists live here); the checks that need files (M10's template
-names, M17, a link to a credentials file) are ``ema.models``'s (trust.md, Where the rules live).
+with one parsed from JSON. ``ModelSpec.from_json`` makes every check that needs no file (names, ``noisy: true``, the
+``ema_`` prefix, unknown keys, and the trust boundary's checks of a spec, whose lists live here; M18, M21; trust.md
+T7, T8, and T2's spec checks); the checks that need files (an input deck's template names, a function file's
+imports, a link to a credentials file; M10, M17) are ``ema.models``'s (trust.md, Where the rules live).
 """
 
 import json
@@ -55,7 +56,7 @@ _ENV_TEMPLATES = frozenset({".env.example", ".env.sample", ".env.template"})
 _HIDDEN_CATEGORIES = frozenset({"Cc", "Cf", "Cs", "Zl", "Zp"})
 _HIDDEN_ALLOWED = frozenset({"\t", "\u200c", "\u200d"})
 _VARIABLE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-_MODEL_NAME = re.compile(r"[a-z0-9][a-z0-9_-]*")  # 0086 item 3
+_MODEL_NAME = re.compile(r"[a-z0-9][a-z0-9_-]*")  # a lowercase model name (0086 item 3)
 
 
 def hidden_character(text: str) -> str | None:
@@ -382,12 +383,12 @@ class ModelSpec:
         The checks (model_interface.md, The model spec; architecture.md §3's field table): required fields, and
         every unknown key, or a key of the other interface, refused; names (a lowercase model name; model
         parameter and model prediction names ASCII Python identifiers, unique across both lists, none starting
-        with ``ema_``, M21); ``noisy: true`` refused (M18); nominal values inside their limits; each parser's
-        settings. trust.md's: duplicate keys, and strings (keys included) with a hidden character (T7); paths
-        relative, with no ``..``, normalized to "/"-separated parts; credentials files (every path, a parser's
-        ``file`` and a deck's ``writes`` included), EMA's own file names as a deck's ``writes`` or a listed file,
-        and two run-directory paths that collide, case-folded (T7); ``env`` and ``pass_env`` names, credential-like ones refused, and
-        no name in both (T8); an ``env`` ``PATH``'s entries absolute (T2).
+        with ``ema_``; M21); ``noisy: true`` refused (M18); nominal values inside their limits; each parser's
+        settings. The trust boundary's checks (trust.md): duplicate keys, and strings (keys included) with a hidden
+        character (T7); paths relative, with no ``..``, normalized to "/"-separated parts; credentials files (every
+        path, a parser's ``file`` and a deck's ``writes`` included), EMA's own file names as a deck's ``writes`` or
+        a listed file, and two run-directory paths that collide, case-folded (T7); ``env`` and ``pass_env`` names,
+        credential-like ones refused, and no name in both (T8); an ``env`` ``PATH``'s entries absolute (T2).
 
         Parameters
         ----------

@@ -218,7 +218,7 @@ def names() -> tuple[str, ...]:
 
 
 def unregister(kind: str) -> None:
-    """Remove a kind (tests only, 0065).
+    """Remove a kind (tests only; 0065).
 
     Raises
     ------

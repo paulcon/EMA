@@ -113,4 +113,5 @@ Write one when a choice:
 | 0086 | Settle the questions left after applying records 0066–0085 | accepted | 2026-10-03 |
 | 0087 | Settle three follow-ups from applying record 0086 | accepted | 2026-10-03 |
 | 0088 | Publish the documentation site at paulcon.github.io/EMA, from a workflow started by hand | accepted; item 1's content amended by 0089 | 2026-10-27 |
-| 0089 | Keep citations off the documentation site: cite ids in parentheses, and drop them when the site is built | accepted | 2026-10-27 |
+| 0089 | Keep citations off the documentation site: cite ids in parentheses, and drop them when the site is built | accepted; item 1's list amended by 0090 | 2026-10-27 |
+| 0090 | Treat build steps, review rounds, and layer numbers as citations, kept off the site like ids | accepted | 2026-10-28 |

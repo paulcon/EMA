@@ -1,10 +1,9 @@
-"""P6's one tolerance function, and its one test of "constant" (0035), which has no tolerance.
-
-principles.md, P6; diagnostics/shared.md, The precheck; 0035.
+"""The one tolerance function (P6), and the one test of "constant", which has no tolerance (0035).
 
 Every tolerance on a model prediction is relative to its range, so changing a model prediction's units
-(y -> a·y + b, a > 0) scales every tolerance by a, and changes no note. Diagnostics use no absolute tolerance on
-model predictions. A model prediction is constant only when every value is the same double.
+(y -> a·y + b, a > 0) scales every tolerance by a, and changes no note (principles.md, P6). Diagnostics use no
+absolute tolerance on model predictions. A model prediction is constant only when every value is the same double
+(diagnostics/shared.md, The precheck; 0035).
 """
 
 import math

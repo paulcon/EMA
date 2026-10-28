@@ -1,9 +1,9 @@
 """Lines: the model prediction along m random lines, or along given lines, and each line's Gram spectrum.
 
-lines.md: LN1-LN9; U2's finer line; records 0012, 0038, 0048, 0049, 0058, 0077. Two modes, one request: ``lines`` given,
-the design is those lines; otherwise m random lines from the request's seed (the design's streams; the diagnostic draws
-nothing). Each line is analyzed as a coordinate line is (``_lines.py``), in its own parameter s; its length in unit
-coordinates is an observation, and a table says where each line runs. No summary across lines.
+Two modes, one request (lines.md; LN1-LN9; U2's finer line; records 0012, 0038, 0048, 0049, 0058, 0077): ``lines``
+given, the design is those lines; otherwise m random lines from the request's seed (the design's streams; the
+diagnostic draws nothing). Each line is analyzed as a coordinate line is (``_lines.py``), in its own parameter s; its
+length in unit coordinates is an observation, and a table says where each line runs. No summary across lines.
 """
 
 from collections.abc import Mapping
@@ -116,8 +116,9 @@ class Lines(LinesDiagnostic):
         Raises
         ------
         RequestError
-            For both ``m`` and ``lines``, or neither, a space with no varied model parameter, or G14's cases (an
-            anchor outside the space, a zero direction, a direction naming a held model parameter or an unknown name).
+            For both ``m`` and ``lines``, or neither, a space with no varied model parameter, or a line the generator
+            refuses (an anchor outside the space, a zero direction, a direction naming a held model parameter or an
+            unknown name; G14).
         """
         if space is None:
             raise ValueError("lines need a model parameter space")

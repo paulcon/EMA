@@ -1,8 +1,9 @@
-"""Layer 5: EMA's MCP server, 10 tools and three resources, each one workspace call (architecture.md §8).
+"""EMA's MCP server, 10 tools and three resources, each one workspace call (layer 5; architecture.md §8).
 
-Implements U9; records 0016, 0019, 0053, 0056, 0057, 0061, 0081; trust.md T4 (every run and save is asked of the
-user, by elicitation), T5 (path arguments confined to the root; resources looked up by name), T9 (the protocol
-stream carries nothing else); contracts.md C55 (the envelope, a description for every schema field, ``retryable``).
+It offers what the workspace does to an MCP client, such as an AI agent (U9; records 0016, 0019, 0053, 0056, 0057, 0061, 0081). Every run and
+save is asked of the user, by elicitation (trust.md, T4); path arguments are confined to the root, and resources looked
+up by name (T5); the protocol stream carries nothing else (T9). Every tool returns the envelope, has a description for
+every schema field, and marks an error ``retryable`` or not (contracts.md, C55).
 
 Presentation only (AR3): it imports ``ema.workspace`` and ``ema.types``, the standard library, and the mcp SDK. Every
 number it shows is EMA's: ``text`` is the text the workspace rendered, and ``data`` the returned type as strict JSON
@@ -345,7 +346,7 @@ class _Call:
 
     @property
     def approver(self) -> Approver | None:
-        """The approver: an elicitation; None for a client without elicitation (refused before any question, §8)."""
+        """The approver: an elicitation; None for a client without elicitation (refused before any question; §8)."""
         return self._ask if self.can_ask else None
 
     def _ask(self, question: ApprovalRequest | ConfirmationRequest) -> bool:
@@ -637,7 +638,7 @@ class EmaServer:
     async def _list_templates(self, ctx: Any, params: Any) -> types.ListResourceTemplatesResult:
         templates = [
             types.ResourceTemplate(uri_template="ema://results/{id}/report", name="report",
-                                   description="A diagnostic result's report, byte for byte.",  # U9
+                                   description="A diagnostic result's report, byte for byte.",  # (U9)
                                    mime_type="text/markdown"),
             types.ResourceTemplate(uri_template="ema://results/{id}/figures/{name}.png", name="figure",
                                    description="One of a result's figures.", mime_type="image/png"),
@@ -645,7 +646,7 @@ class EmaServer:
                                    description="A figure's data card: the numbers it draws.",
                                    mime_type="application/json"),
             types.ResourceTemplate(uri_template="ema://diagnostics/{name}", name="diagnostic",
-                                   description="A diagnostic and its parameters' JSON schemas.",  # C55
+                                   description="A diagnostic and its parameters' JSON schemas.",  # (C55)
                                    mime_type="application/json"),
         ]  # fmt: skip
         return types.ListResourceTemplatesResult(resource_templates=templates)

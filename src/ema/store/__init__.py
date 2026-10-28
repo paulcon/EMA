@@ -1,7 +1,7 @@
-"""Layer 2: the store: the workspace's database, its files' paths, the run lock, and result directories.
+"""The store: the workspace's database, its files' paths, the run lock, and result directories (layer 2).
 
-data_model.md (all of it) and architecture.md §5. Only this package opens the database (AR5); it never imports
-``ema.models``, its sibling (AR1).
+It implements the data model, all of it (data_model.md; architecture.md §5). Only this package opens the database
+(AR5); it never imports ``ema.models``, its sibling (AR1).
 """
 
 from ema.store.layout import Layout

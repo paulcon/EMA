@@ -1,6 +1,6 @@
 """Runs: one stored run, a new run's key, a resolved design, stored runs as columns, a run batch, and the price.
 
-architecture.md §3 (runs.py); data_model.md §4.3, §5.6, §5.8, Q1, Q2, Q7, Q15; P3; C47, C56; record 0070.
+(architecture.md §3, runs.py; data_model.md §4.3, §5.6, §5.8, Q1, Q2, Q7, Q15; P3; C47, C56; record 0070)
 """
 
 import math
@@ -118,8 +118,9 @@ def _ids(array: np.ndarray | Sequence[str], n: int | None, what: str) -> np.ndar
 class Run:
     """One stored run (data_model.md §5.6, §5.8), with its model predictions folded in.
 
-    Built with §5.6's and §5.8's checks: ``kind`` and ``reason`` are None exactly when ``ok``; a failed run has no
-    model predictions; an ok run reads at least one (0043), and each missing one (None) has its reason, never NaN.
+    Built with the ``runs`` and ``predictions`` tables' checks (§5.6, §5.8): ``kind`` and ``reason`` are None exactly
+    when ``ok``; a failed run has no model predictions; an ok run reads at least one (0043), and each missing one
+    (None) has its reason, never NaN.
 
     Attributes
     ----------
@@ -298,7 +299,8 @@ class RunColumns:
     run_ids : numpy.ndarray
         ``(n,)`` ids.
     points : numpy.ndarray or None
-        ``(n, d)``: Q7 fills it, and Q15 for a replay (0062).
+        ``(n, d)``: filled when reading a diagnostic result's runs (Q7), and when reading runs by id for a replay
+        (Q15; 0062).
     replicates : numpy.ndarray
         ``(n,)`` integers.
     status : numpy.ndarray
@@ -310,7 +312,8 @@ class RunColumns:
     reasons : Mapping[str, str]
         Failed run id (hex) to its one-line reason.
     stderr_tails : Mapping[str, str]
-        Failed run id (hex) to its stderr tail; Q7 fills it, Q15 leaves it empty (0061).
+        Failed run id (hex) to its stderr tail: filled when reading a diagnostic result's runs (Q7), empty when
+        reading runs by id (Q15; 0061).
     missing : Mapping[str, Mapping[str, str]]
         Model prediction to ok run id (hex) to why it is missing.
     time_s : numpy.ndarray

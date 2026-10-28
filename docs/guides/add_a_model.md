@@ -24,10 +24,10 @@ beam and U2's heat solver, which the use cases run on reference models.
    - **Stateless:** each call stands alone. A module-level cache or counter makes model predictions depend on
      the order of runs (0026); the point run's repeats would show it. <…>
    - Code in an installed package: a short wrapper file that imports it. <…>
-   - Many points per call (`"batch": true`, 0025): `f(X)` with an (n, d) array. <…>
+   - Many points per call (`"batch": true`; 0025): `f(X)` with an (n, d) array. <…>
 
 2. **Describe it in a model spec:** name, description, `"interface": "python_function"`, `"function":
-   "beam.py:deflection"`, and each model parameter and model prediction (`model_interface.md`'s beam).
+   "beam.py:deflection"`, and each model parameter and model prediction (the beam in [the model interface spec](https://github.com/paulcon/EMA/blob/main/docs/design/model_interface.md)).
 
    - Each model parameter: name, units, description, nominal value, limits (`gt`, `ge`, `lt`, `le`). Ranges
      and log scales belong to the model parameter space, given per diagnostic, not to the model (0024). <…>
@@ -147,7 +147,7 @@ beam and U2's heat solver, which the use cases run on reference models.
    program's resolved path, the input deck templates, the files, and the environment the spec sets (U2,
    `trust.md`, What needs the user's yes; 0029, 0057); later ones show only the model version and the
    price. Every question and answer is recorded (T3). Here the spec also sets `"env": {"OMP_NUM_THREADS": "4"}`,
-   so its model version, `heat@5e1a…`, is not U2's. <…>
+   so its model version, `heat@5e1a…`, differs from that of the same spec without it (U2). <…>
 
    ````text
    $ ema model add heat/model.json
@@ -193,7 +193,7 @@ beam and U2's heat solver, which the use cases run on reference models.
 - **What makes a new model version:** a changed tracked file (the function's file, the templates, and the
   listed files, helper modules and a program included when listed), or a changed field that decides a run
   (M3, 0029). What doesn't: `keep`, `batch_size`, `timeout_s`, a program on `PATH`. <…>
-- **A changed file before loading again:** a run is refused, naming the file (`ModelChanged`, M16).
+- **A changed file before loading again:** a run is refused, naming the file (`ModelChanged`; M16).
 
   ```text
   $ ema model add heat/model.json

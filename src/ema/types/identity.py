@@ -1,4 +1,4 @@
-"""Canonical encodings, hashes, and ids: every rule of data_model.md §3.4 in one place (architecture.md §3).
+"""Canonical encodings, hashes, and ids: every rule for them in one place (data_model.md §3.4; architecture.md §3).
 
 The model version's hash came with model loading (step 03), and the approval id and the reuse key with the shared
 types (step T); the runner and the workspace are the first to use the last two.

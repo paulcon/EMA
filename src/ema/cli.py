@@ -1,4 +1,4 @@
-"""Layer 5: the command line, ``ema`` (architecture.md §8; scope.md's 13 commands of 15).
+"""The command line, ``ema`` (layer 5; architecture.md §8; scope.md's 13 commands of 15).
 
 Presentation only (AR3): each command parses its arguments, calls one workspace function, and writes the text EMA
 rendered, so it formats no number (C54; P1). It imports only ``ema.workspace`` and ``ema.types``; the ``mcp`` command
@@ -272,9 +272,9 @@ def _mcp(args: argparse.Namespace) -> int:
     """
     root = args.root
     if not os.path.isabs(root):
-        raise UsageError(f"ema mcp: --root {root} is relative; name the directory by its absolute path")  # T5
+        raise UsageError(f"ema mcp: --root {root} is relative; name the directory by its absolute path")  # (T5)
     if os.path.realpath(root) == os.path.realpath(os.sep):
-        raise UsageError("ema mcp: --root / would let a client name any path; name your project's directory")  # T5
+        raise UsageError("ema mcp: --root / would let a client name any path; name your project's directory")  # (T5)
     try:
         # Lazy (AR3, 0061); the ignore is for a branch or an install without ema.mcp.
         from ema.mcp.server import serve  # type: ignore[import-not-found,import-untyped,unused-ignore]
@@ -308,7 +308,7 @@ COMMANDS: dict[str, Callable[[Workspace, argparse.Namespace], None]] = {
 
 
 def parser() -> argparse.ArgumentParser:
-    """Build ``ema``'s argument parser: architecture.md §8's 13 commands and the global ``--workspace``."""
+    """Build ``ema``'s argument parser: its 13 commands and the global ``--workspace`` (architecture.md §8)."""
     workspace = _Parser(add_help=False)
     workspace.add_argument("--workspace", metavar="DIR", default=argparse.SUPPRESS,
                            help="the workspace's directory (default: ema_workspace)")  # fmt: skip
@@ -322,7 +322,7 @@ def parser() -> argparse.ArgumentParser:
 
     model = command("model", "add a model spec, or test a model at its nominal point")
     actions = model.add_subparsers(dest="action", metavar="ACTION", required=True, parser_class=_Parser)
-    add = actions.add_parser("add", help="load a model spec", parents=[workspace])  # W1
+    add = actions.add_parser("add", help="load a model spec", parents=[workspace])  # (W1)
     add.add_argument("path", metavar="PATH", help="the model spec's file, model.json")
     test = actions.add_parser("test", help="run the model once at its nominal point, after your yes",
                               parents=[workspace])  # fmt: skip

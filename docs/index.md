@@ -18,6 +18,8 @@ guides/add_a_diagnostic
 
 The public names of the modules that exist so far (`architecture.md`), one page per module.
 
+The types, the numerics, the designs, and the models:
+
 ```{eval-rst}
 .. autosummary::
    :toctree: _autosummary
@@ -68,32 +70,28 @@ The store (step 06):
    ema.store.layout
    ema.store.lock
    ema.store.migrations
-.. Step 08: figures and reports (a block of its own, to ease merging).
+```
 
+Figures and reports (step 08):
+
+```{eval-rst}
 .. autosummary::
    :toctree: _autosummary
 
    ema.plotting.figures
    ema.report.render
    ema.report.pdf
+```
 
-.. Step 09: the diagnostics' base, the point run, and the reference models (a block of its own, to ease merging).
+The diagnostics and the reference models (steps 09–13):
 
+```{eval-rst}
 .. autosummary::
    :toctree: _autosummary
 
    ema.diagnostics.base
    ema.diagnostics.point_run
    ema.reference_models
-
-.. Step 10: scatter (a block of its own, to ease merging).
-.. Step 11: coordinate lines and lines (a block of its own, to ease merging).
-.. Step 12: the linear model (a block of its own, to ease merging).
-.. Step 13: the polynomial model (a block of its own, to ease merging).
-
-.. autosummary::
-   :toctree: _autosummary
-
    ema.diagnostics.scatter
    ema.diagnostics._lines
    ema.diagnostics.coordinate_lines

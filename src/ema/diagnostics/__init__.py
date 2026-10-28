@@ -1,4 +1,4 @@
-"""Layer 3b: the diagnostics and their shared precheck (architecture.md §6; diagnostics/shared.md).
+"""The diagnostics and their shared precheck (layer 3b; architecture.md §6; diagnostics/shared.md).
 
 ``base`` holds the interface, the diagnostic parameters, the registry, and ``evaluate``. Every other public module
 in this package is one diagnostic, which registers itself when imported; importing the package imports each of them

@@ -1,13 +1,12 @@
 """The diagnostic interface, its parameters, the registry, and ``evaluate`` with the shared precheck.
 
-architecture.md §6 (``ema.diagnostics``) and §7 (steps 2 and 8); diagnostics/shared.md (the precheck, the shared
-observations and notes, random draws; S5-S9); contracts.md (C1-C19, the declarations each diagnostic makes);
-uncertainty.md (the interval-method seam); P4-P7; records 0035, 0036, 0041, 0051, 0065, 0067 (one identity per
-design), 0073 (plain Unicode text in results), 0075.
-
-A diagnostic is one module that subclasses ``DiagnosticBase`` and ends with ``register(...)``; ``evaluate`` is the
-only entry point (the workspace's step 8): the precheck, ``compute``, the result built and round-tripped through
-its JSON (C17), then the figures from that copy (P1).
+A diagnostic is one module that subclasses ``DiagnosticBase`` and ends with ``register(...)`` (architecture.md §6,
+``ema.diagnostics``; contracts.md, C1-C19, the declarations each diagnostic makes; uncertainty.md, the
+interval-method seam; P4-P7; records 0035, 0036, 0041, 0051, 0065, 0067 (one identity per design), 0073 (plain
+Unicode text in results), 0075). ``evaluate`` is the only entry point (architecture.md §7,
+steps 2 and 8, the workspace's step 8): the precheck, ``compute``, the result built and round-tripped through its JSON (C17), then the
+figures from that copy (P1). The shared precheck, observations, notes, and random draws are here too
+(diagnostics/shared.md; S5-S9).
 """
 
 import dataclasses
@@ -160,7 +159,7 @@ class Point:
         return {"type": "object", "additionalProperties": {"type": "number"}}
 
 
-#: A registry's name (a sampler, a basis), as designs.md writes them: a letter, then letters, digits, "_", "-".
+#: A registry's name (a sampler, a basis): a letter, then letters, digits, "_", "-" (designs.md).
 _NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")  # anchored: a JSON schema's pattern matches anywhere
 
 
@@ -169,8 +168,9 @@ class Name:
     """A name of one of a registry's implementations (a sampler, a basis), read as text.
 
     Any well-formed name is read; one the registry doesn't hold is refused when the design is built, before any
-    run, by the registry's own "sampler X comes in a later version" (designs.md, Samplers; G17; PM1). So C14 can
-    read a parameter's other value, "sobol", before it prepares the request. The JSON schema is a string of the
+    run, by the registry's own "sampler X comes in a later version" (designs.md, Samplers; G17; PM1). So the check
+    of what each diagnostic parameter does to the design can read a parameter's other value, "sobol", before it
+    prepares the request (C14). The JSON schema is a string of the
     name's pattern, with the registered names as ``examples``, not an ``enum``: an enum would refuse the next
     version's names in other words than the registry's (records 0076 item 4, 0078 item 1, 0079 Review round 1).
     """
@@ -235,7 +235,7 @@ class DiagnosticParameter:
     changes_design : str
         The spec's "Changes the design?": "yes", "no", or its wording (C14).
     other_value : Any
-        A second valid value, for C14's check.
+        A second valid value, for the check of what the parameter does to the design (C14).
     reader : Reader
         How a value is read and described.
     """
@@ -322,7 +322,8 @@ class AnalysisContext:
     interval_method : IntervalMethod or None
         From the registry by the diagnostic's ``interval_method``, so a fake replaces it (C19).
     measured_noisy : tuple of MeasuredNoisy
-        Q10's records, newest first, or a provenance's on a replay (C16, 0055).
+        The records of the point runs that measured this model version noisy in this model prediction, newest
+        first (Q10), or a provenance's on a replay (C16, 0055).
     on_progress : callable or None
         Called with the analysis's ``Progress``; an exception from it stops the evaluation (C49).
     """
@@ -404,7 +405,7 @@ class Diagnostic(Protocol):
 
     @property
     def title(self) -> str:
-        """Its title, for the report's (S1): "Scatter"."""
+        """Its title, which the report shows, such as "Scatter" (S1)."""
         ...
 
     @property
@@ -634,7 +635,7 @@ def make_request(
     spec
         The model version's spec.
     space
-        ``designs.md``'s JSON or Python form, or a space; None for the point run (U7).
+        A space's JSON or Python form (``designs.md``), or a space; None for the point run (U7).
     prediction
         The model prediction; None for the only one.
     params
@@ -1002,7 +1003,7 @@ def evaluate(
 ) -> DiagnosticResult:
     """Run one diagnostic evaluation's analysis: the precheck, ``compute``, the result, then its figures.
 
-    The only entry point (architecture.md §6). The shared precheck counts the runs (S2, over distinct runs),
+    The only entry point (architecture.md §6). The shared precheck counts the runs (over distinct runs; S2),
     decides the minimum and "constant" (P6, 0035), and writes the shared notes (S7) and observations (C10);
     ``compute`` gets ``estimates_allowed`` False below the minimum or with a constant model prediction (C3, C4),
     and is refused estimates then, and any estimate or observation with no usable run (C1). The result is
@@ -1026,7 +1027,8 @@ def evaluate(
     Raises
     ------
     ValueError
-        For a provenance of another request or other spawn tags, or a computation that breaks P6.
+        For a provenance of another request or other spawn tags, or a computation that makes estimates without
+        enough usable runs or of a constant model prediction, or observations of no usable run (P6).
     """
     if diagnostic.name != ctx.request.diagnostic:
         raise ValueError(f"the request is for {ctx.request.diagnostic}, not {diagnostic.name}")

@@ -1,10 +1,10 @@
-"""Layer 4: the workspace, EMA's front door, which the guides, the CLI, and the MCP server call (AR3).
+"""The workspace, EMA's front door, which the guides, the CLI, and the MCP server call (layer 4; AR3).
 
-architecture.md §7: ``open_workspace`` and ``Workspace``'s 18 methods, with ``open_workspace`` the 19 public names of
-scope.md's 20; use_cases.md U1-U9; export.md E1-E7; data_model.md Q11, §6, §9, §10; trust.md T5 (the root), T6;
-records 0054, 0055, 0056, 0057, 0061 item 12, 0062, 0063, 0080. It computes nothing itself: it calls the lower layers
-in the order the rules require (``_evaluate``), and every method returns a type that prints as EMA's text, so an
-interface formats no number (P1; C54, C55).
+Its public names are ``open_workspace`` and ``Workspace``'s 18 methods (scope.md: 19 of its 20; architecture.md §7;
+use_cases.md U1-U9; export.md E1-E7; data_model.md Q11, §6, §9, §10; trust.md T5 for
+the root, T6; records 0054, 0055, 0056, 0057, 0061 item 12, 0062, 0063, 0080). It computes nothing itself: it calls
+the lower layers in the order the rules require (``_evaluate``), and every method returns a type that prints as EMA's
+text, so an interface formats no number (P1; C54, C55).
 """
 
 import functools
@@ -17,7 +17,7 @@ from typing import Any, Concatenate, Self
 
 import numpy as np
 
-import ema.diagnostics  # noqa: F401  (registers every diagnostic: record 0075 item 1)
+import ema.diagnostics  # noqa: F401  (registers every diagnostic; record 0075 item 1)
 from ema.approval import ask, ask_confirmation, fenced
 from ema.diagnostics import base
 from ema.models.files import check_files, is_within, open_regular
@@ -157,7 +157,7 @@ def _on_its_thread[**P, R](
     """Refuse a call from a thread other than the one that opened the workspace, as EMA's error (§5, Connections).
 
     The store's SQLite connection stays on its thread; without this check, such a call fails deep inside it with
-    ``sqlite3.ProgrammingError``. Record 0080, Review round 1.
+    ``sqlite3.ProgrammingError`` (record 0080, Review round 1).
     """
 
     @functools.wraps(method)
@@ -184,7 +184,7 @@ def open_workspace(path: str | os.PathLike[str] = "ema_workspace", *, root: str 
         The workspace's directory. With ``root``, a relative path is resolved against the root (trust.md, The MCP
         server's root).
     root
-        The one directory path arguments may name (T5; the MCP server's ``--root``, 0057): every method that takes a
+        The one directory path arguments may name (the MCP server's ``--root``; T5, 0057): every method that takes a
         path then refuses one outside the root, inside a workspace, with a hidden character, or naming a credentials
         file, and a drafted spec's file resolving outside the root.
 
@@ -539,7 +539,7 @@ class Workspace:
         on_progress: Callable[[Progress], None] | None = None,
         **params: Any,
     ) -> DiagnosticResult:
-        """Run one diagnostic evaluation, in architecture.md §7's order, and return its result (U1-U7).
+        """Run one diagnostic evaluation, step by step, and return its result (architecture.md §7; U1-U7).
 
         A repeated request returns the stored result, asking nothing (C50). New runs are priced and asked for
         first (P3); Ctrl-C passes through as ``KeyboardInterrupt``, with every finished run stored (C49).
@@ -551,7 +551,7 @@ class Workspace:
         diagnostic
             The diagnostic's name: "scatter", "point_run", ...
         space
-            The model parameter space (designs.md's JSON or Python form); none for the point run (U7).
+            The model parameter space, in its JSON or Python form (designs.md); none for the point run (U7).
         prediction
             The model prediction; None for the only one.
         retry_failed

@@ -242,7 +242,7 @@ class CoordinateLines:
         return segments, records, n, len(names)
 
     def size(self, identity: DesignIdentity, spec: ModelSpec) -> int:
-        """Return d·n (G3), after the checks ``build`` makes (0051's included: a few points per line)."""
+        """Return d·n, after the checks ``build`` makes (G3; 0051's among them, a few points per line)."""
         segments, _, n, _ = self._read(identity, spec)
         return len(segments) * n
 
@@ -320,7 +320,7 @@ class RandomLines:
         return m * n
 
     def build(self, identity: DesignIdentity, spec: ModelSpec, start: int = 0, stop: int | None = None) -> Design:
-        """Rows [start, stop): each line's n points in turn, lines j = 0 ... m - 1."""
+        """Rows [start, stop): each line's n points in turn, lines j = 0 … m - 1."""
         space, m, n, seed = self._read(identity, spec)
         rows(m * n, start, stop)
         d = len(space.varied(spec))

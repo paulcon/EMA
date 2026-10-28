@@ -1,12 +1,12 @@
-"""Layer 3b: approval, P3's one module: asking for the user's yes, and recording every answer (T3).
+"""Approval, the one module that asks for the user's yes and records every answer (layer 3b; P3; T3).
 
 The questions are asked before new runs, and before saving a model spec an MCP client drafted.
 
-architecture.md §6 (``ema.approval``); trust.md (What needs a yes; Paths: hidden characters as codes, strings EMA
+(architecture.md §6, ``ema.approval``; trust.md (What needs a yes; Paths: hidden characters as codes, strings EMA
 didn't write in code spans and fenced blocks; T3, T4, T6, T7, T8); data_model.md W2, W3, Q3, Q4; use_cases.md U1,
-U2, U9; records 0016, 0029, 0049, 0054, 0057, 0074.
+U2, U9; records 0016, 0029, 0049, 0054, 0057, 0074)
 
-v1's approval rules that ``scope.md`` keeps are placed by layer (0057): the checks a spec needs are in
+v1's approval rules that this version keeps are placed by layer (``scope.md``; 0057): the checks a spec needs are in
 ``ema.types.model`` and ``ema.models.files``, the environment in ``ema.models.sandbox``; asking and recording,
 and the questions' text, are here.
 """
@@ -69,7 +69,7 @@ def fenced(text: str) -> str:
     """Show a text EMA didn't write, of several lines: a fenced block, longer than any run of backticks in it (T7).
 
     Public for the workspace, which fences a drafted spec's text and a failed run's stderr tail with it (record
-    0080, Review round 1), so the T7 rule has one home.
+    0080, Review round 1), so the rule for showing text EMA didn't write has one home (T7).
     """
     shown = _visible(text, lines=True)
     fence = "`" * max(3, _longest_ticks(shown) + 1)
@@ -160,7 +160,7 @@ def _answer(approve: Approver, question: ApprovalRequest | ConfirmationRequest) 
     """Ask: only ``True`` is a yes (record 0074, item 11); an exception is a no, with its reason."""
     try:
         return approve(question) is True, ""
-    except Exception as e:  # noqa: BLE001  (an approver that fails says no: trust.md, No answer is a no)
+    except Exception as e:  # noqa: BLE001  (an approver that fails says no; trust.md, No answer is a no)
         return False, f" (the question failed: {_span(f'{type(e).__name__}: {e}')})"
 
 
@@ -222,7 +222,7 @@ def ask_approval(
         On a first approval, when a tracked file changed since loading; nothing is asked or recorded.
     """
     if approve is None:
-        raise CannotAsk("nobody can be asked to approve new runs: use the CLI or Python; nothing was asked")  # P3
+        raise CannotAsk("nobody can be asked to approve new runs: use the CLI or Python; nothing was asked")  # (P3)
     if not resolution.new_keys:
         raise ValueError("no approval is asked for no new runs (C50)")
     if resolution.model_version_id != model.model_version_id:
@@ -311,7 +311,7 @@ def ask_confirmation(*, store: Store, spec_path: str, spec_text: str, confirm: A
         For a relative path.
     """
     if confirm is None:
-        raise CannotAsk("nobody can be asked to confirm saving a model spec: nothing was asked or saved")  # P3
+        raise CannotAsk("nobody can be asked to confirm saving a model spec: nothing was asked or saved")  # (P3)
     if not os.path.isabs(spec_path):
         raise ValueError(f"a model spec is saved at an absolute path, not {spec_path!r}")
     data = spec_text.encode("utf-8")

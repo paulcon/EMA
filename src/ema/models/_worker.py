@@ -4,14 +4,15 @@ Started by ``ema.models.sandbox.Child`` by its file's path. Before it imports an
 reads EMA's ``sys.path`` from its requests pipe (its length, a newline, then the entries, absolute, separated by NUL
 bytes, the model's directory first) and replaces its own with it, so a ``PYTHONPATH`` in the model's environment,
 or this file's own directory, changes nothing it imports. Then it reads one JSON message per line: the first names
-the function, which it imports as a module of the model's directory (``sub/model.py`` is ``sub.model``, 0069 item
-34), compiled from source, never from a cached ``.pyc`` (P3: a stale cache would run old code under a new model
-version); each later one is a call, run with the call's directory as the working directory and the call's streams
+the function, which it imports as a module of the model's directory (``sub/model.py`` is ``sub.model``; 0069 item
+34), compiled from source, never from a cached ``.pyc`` (a stale cache would run old code under a new model version;
+P3); each later one is a call, run with the call's directory as the working directory and the call's streams
 in its ``stdout.txt`` and ``stderr.txt``. Each reply is one line of JSON, echoing the request's ``seq``; nothing is
 pickled. Outside a call, the worker's stdout and stderr are EMA's stderr.
 
 Ported from EMA v1 at v1-final: ``src/ema/core/models/_worker.py`` (the protocol loop and its replies), re-reviewed
-against trust.md: v1's memory and CPU limits, its watchdog, its output-parser kind, and its profiling are dropped.
+against the trust boundary (trust.md): v1's memory and CPU limits, its watchdog, its output-parser kind, and its
+profiling are dropped.
 """
 
 import os

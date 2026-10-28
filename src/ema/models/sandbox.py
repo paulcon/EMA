@@ -21,9 +21,9 @@ the process is killed (M20, C39). A process's exit is seen without reaping it (`
 group can't be another's when it is killed.
 
 Ported from EMA v1 at v1-final: ``src/ema/core/models/_sandbox.py`` (``IsolatedFunction``'s pipes, sequence numbers,
-``select`` loop, and process-group kill), re-reviewed against trust.md: v1's memory and CPU limits, its withheld
-variables, its output-parser kind, and its profiling are dropped; the environment is the allowlist above; the
-child's ``sys.path`` comes over its pipe; a call's streams go to the call's directory.
+``select`` loop, and process-group kill), re-reviewed against the trust boundary (trust.md): v1's memory and CPU
+limits, its withheld variables, its output-parser kind, and its profiling are dropped; the environment is the
+allowlist above; the child's ``sys.path`` comes over its pipe; a call's streams go to the call's directory.
 """
 
 import json
@@ -47,6 +47,8 @@ BASE_ENV = (
     "PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "TZ", "LANG", "LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH",
 )  # fmt: skip
 #: The worker the child runs, started by its path (trust.md, Running a model).
+#:
+#: :meta hide-value:
 WORKER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_worker.py")
 #: Seconds a new child may take to start and import the function, beside the call's own timeout (as v1's): a
 #: library's import is not the call, and a short ``timeout_s`` mustn't fail every call of a model that imports slowly.
@@ -230,7 +232,7 @@ class Outcome:
         ``stderr.txt``.
     time_s : float
         The call's time, from the request's send to its reply; a new child's start and import are not in it (the
-        start's own time when the call failed there, record 0071).
+        start's own time when the call failed there; record 0071).
     """
 
     runs: tuple[dict[str, Any], ...] | None

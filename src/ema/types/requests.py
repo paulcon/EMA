@@ -1,7 +1,7 @@
 """Requests and questions: what a diagnostic evaluation or the test run asks for, what EMA asks the user, progress.
 
-architecture.md §3 (requests.py); data_model.md §3.4 (the canonical request); P3; trust.md (the questions'
-fields); record 0070.
+(architecture.md §3, requests.py; data_model.md §3.4, the canonical request; P3; trust.md, the questions' fields;
+record 0070)
 """
 
 from collections.abc import Callable, Mapping
@@ -29,7 +29,7 @@ class Request:
     """What one diagnostic evaluation is asked for (glossary), canonical, with defaults filled in (§3.4).
 
     The space is parsed and written in its canonical form (every range ``{"range": [lo, hi], "scale": ...}``,
-    every value a double, 0061), so a space given in any of its forms makes the same request. The diagnostic
+    every value a double; 0061), so a space given in any of its forms makes the same request. The diagnostic
     parameters are as the diagnostic parsed them. A request whose canonical form isn't strict JSON is refused
     with ``ValueError``. Two requests are equal when their canonical JSON is, as their ids are (so a seed 1.0 is
     not 1, nor -0.0 0.0).
