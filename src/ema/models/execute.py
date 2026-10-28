@@ -11,7 +11,7 @@ Only ``ema.runner`` imports this module (AR4): it is the one code that starts a 
   (0028; T9), for ``collect`` to read.
 
 Ctrl-C (``KeyboardInterrupt``) kills the call and is raised again, also when it comes while the program starts
-(``sandbox.InterruptHeld``); deleting the stopped call's directories is the runner's (``discard``, 0028).
+(``sandbox.InterruptHeld``); deleting the stopped call's directories is the runner's (``discard``; 0028).
 """
 
 import json
@@ -64,7 +64,7 @@ class ExecutedCall:
     program : str
         The program's resolved path; the child's interpreter for a Python function (0029).
     run_errors : tuple of str or None
-        For each run, why EMA couldn't write its ``predictions.json`` (kind ``error``, 0057), or None.
+        For each run, why EMA couldn't write its ``predictions.json`` (kind ``error``; 0057), or None.
     """
 
     prepared: PreparedCall

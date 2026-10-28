@@ -126,10 +126,10 @@ def _shown(n: int) -> str:
 
 
 class Convergent:
-    """Levels 0 ... L, nested: level l is the first n_l points of one uniform design of n_L points.
+    """Levels 0 … L, nested: level l is the first n_l points of one uniform design of n_L points.
 
     The levels share the seed, space, and sampler. Its parameters are ``n_min`` (an integer >= 1), ``alpha`` (the
-    error factor, in (0, 1), read as the decimal it is written as: its decimal string, 0047), and ``level``
+    error factor, in (0, 1), read as the decimal it is written as: its decimal string; 0047), and ``level``
     (L >= 0).
 
     The sizes are n_l = ceil(n_min alpha^(-l/r)), each from n_min, rounded up with no tolerance; r is the
@@ -143,7 +143,7 @@ class Convergent:
     version: str = "1"
 
     def levels(self, identity: DesignIdentity, spec: ModelSpec) -> tuple[tuple[int, ...], int]:
-        """Return the level sizes n_0 ... n_L, and n_L; the sizes stop at the first one over the cap."""
+        """Return the level sizes n_0 … n_L, and n_L; the sizes stop at the first one over the cap."""
         check_identity(self.name, self.version, identity, uses_sampler=True)
         sampler = sampler_of(self.name, identity)
         space_of(self.name, identity, spec)

@@ -1,14 +1,13 @@
 """Scatter: the model prediction against each varied model parameter, over a uniform design (U1).
 
-diagnostics/scatter.md (SC1-SC10); shared.md (S8, S9; the precheck, the shared observations and notes are the
-base's); uncertainty.md (the bootstrap; V3: the binned index on each resample's distinct runs); records 0032, 0035,
-0048, 0051, 0068 items 11 and 18 (``rank_correlation``, ``binned_index``), 0073 items 1, 3, 4 (Unicode symbols, a
-table's title under it, ``seed`` and ``distinct`` in the interval settings), 0075, 0076.
-
 The estimates: the mean and the standard deviation (ddof 1) of the usable runs, and for each varied model
 parameter, Spearman's rank correlation with the model prediction and the binned first-order index with ⌊√n_u⌋
-equal-count bins, adjusted for its bias and not clipped. Their variability intervals: the bootstrap over the usable
-runs from scatter's stream (``SCATTER_BOOT_TAG``), the binned index recomputed on each resample's distinct runs.
+equal-count bins, adjusted for its bias and not clipped (diagnostics/scatter.md, SC1-SC10; records 0032, 0035, 0048,
+0051, 0068 items 11 and 18 (``rank_correlation``, ``binned_index``), 0073 items 1, 3, 4 (Unicode symbols, a table's
+title under it, ``seed`` and ``distinct`` in the interval settings), 0075, 0076). Their variability intervals: the
+bootstrap over the usable runs from scatter's stream (``SCATTER_BOOT_TAG``; uncertainty.md, the bootstrap), the
+binned index recomputed on each resample's distinct runs (V3). Its random draws and data cards follow the shared rules
+(shared.md; S8, S9); the precheck and the shared observations and notes are the base's.
 """
 
 import math

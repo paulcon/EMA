@@ -1,9 +1,7 @@
 """Scatter's estimates for one varied model parameter: Spearman's rank correlation and the binned index.
 
-scatter.md, Computation.
-
-Both depend on x only through its order, so they are the same in model parameter units and in unit coordinates,
-log scale or not. Each is NaN where it is undefined (uncertainty.md, Per diagnostic).
+Both depend on x only through its order (scatter.md, Computation), so they are the same in model parameter units and
+in unit coordinates, log scale or not. Each is NaN where it is undefined (uncertainty.md, Per diagnostic).
 """
 
 import math
@@ -145,7 +143,7 @@ def binned_indices(X: np.ndarray, y: np.ndarray, bins: int) -> np.ndarray:
     y
         ``(n,)``.
     bins
-        B.
+        The number of bins, B.
 
     Returns
     -------

@@ -2,7 +2,7 @@
 
 Paths are compared as files, never as strings (trust.md T1; P3, C33): ``same_file`` and ``is_within``. The
 tracked files are hashed at loading (``hash_files``, which also refuses a named file whose link leads to a
-credentials file, T7) and before every call (``check_files``, M16). Run and batch directories are deleted without
+credentials file; T7) and before every call (``check_files``; M16). Run and batch directories are deleted without
 following links (``remove_tree``), and EMA's own files in them written without following links (``write_own``)
 (trust.md, T9; 0061).
 """

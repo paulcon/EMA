@@ -5,8 +5,8 @@ The basis is one of the four seams (architecture.md §4): a registry (``register
 name is refused, "basis X comes in a later version" (PM1).
 
 Ported from EMA v1 at v1-final: src/ema/core/legendre.py (``total_degree_indices``, ``n_terms``,
-``legendre_basis``), re-reviewed against polynomial_model.md: the terms and their order are v1's; the gradient,
-the hold-out split, and the term cap are not in v2.0.
+``legendre_basis``), re-reviewed against the polynomial model's spec (polynomial_model.md): the terms and their
+order are v1's; the gradient, the hold-out split, and the term cap are not in v2.0.
 """
 
 import itertools
@@ -93,11 +93,9 @@ def names() -> tuple[str, ...]:
 class TotalDegree:
     """The ``total_degree`` basis: psi_alpha(u) = prod_i psi_(alpha_i)(u_i), for every alpha of total degree <= p.
 
-    PM2.
-
     psi_k is the orthonormal Legendre polynomial of degree k on [-1, 1] under the uniform measure,
-    sqrt(2k + 1) P_k (reference_models.md: psi_1(u) = sqrt(3) u, psi_2(u) = sqrt(5)(3u^2 - 1)/2). The terms are
-    ordered by total degree, then by the exponents in the model spec's order, largest first (v1's order).
+    sqrt(2k + 1) P_k (psi_1(u) = sqrt(3) u, psi_2(u) = sqrt(5)(3u^2 - 1)/2; reference_models.md). The terms are
+    ordered by total degree, then by the exponents in the model spec's order, largest first (v1's order; PM2).
 
     Examples
     --------

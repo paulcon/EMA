@@ -1,10 +1,10 @@
-"""The store: one function per write (W1–W6) and read (Q1–Q15) of data_model.md §7 and §8, each citing its id.
+"""The store: one function per write and per read of the data model (W1–W6, Q1–Q15, each cited; data_model.md §7, §8).
 
 Only this package opens the database (AR5), and only the main process writes it (0015). Every write is one
-``BEGIN IMMEDIATE`` transaction, committed before it returns (§3.3); no row is ever updated, and only W6 deletes,
-a diagnostic result's own rows (I1). Reads run in autocommit, so each statement holds SQLite's shared lock only
-while it runs; Q7 and Q15 read in chunks of ``chunk_rows`` rows, one statement each, so a writer in another
-connection waits at most one chunk (0056).
+``BEGIN IMMEDIATE`` transaction, committed before it returns (§3.3); no row is ever updated, and only deleting a
+diagnostic result removes rows, and only its own (W6; I1). Reads run in autocommit, so each statement holds SQLite's
+shared lock only while it runs; reading a result's runs, and runs by id, goes in chunks of ``chunk_rows`` rows, one
+statement each, so a writer in another connection waits at most one chunk (Q7, Q15; 0056).
 """
 
 import errno
@@ -64,7 +64,7 @@ CHUNK_ROWS = 30_000
 #: The point run's diagnostic name: the only result with a measured-noisy record (I10; point_run.md).
 POINT_RUN = "point_run"
 
-#: The id kinds Q11 resolves: each one's table, its id column, and its name in messages.
+#: The kinds of id a prefix is resolved to (Q11): each one's table, its id column, and its name in messages.
 ID_KINDS: Mapping[str, tuple[str, str, str]] = {
     "model_version": ("model_versions", "model_version_id", "model version"),
     "approval": ("approvals", "approval_id", "approval"),
@@ -240,7 +240,7 @@ class Store:
         self.layout = layout
         self._prediction_names: dict[bytes, tuple[str, ...]] = {}
         # Rows per chunk: chunk_rows, but never more bound variables than this SQLite allows (one is the model
-        # version's, in Q1).
+        # version's, in the read of current runs; Q1).
         self._chunk = max(1, min(self.chunk_rows, conn.getlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER) - 1))
 
     # -- opening and closing ------------------------------------------------------------------------------------
@@ -325,19 +325,20 @@ class Store:
         """Yield a temporary directory for a result's files, renamed into ``results/<result id>/`` on exit (§6).
 
         If the result's directory exists already: with a stored result (Q5), the temporary directory is discarded,
-        and the stored result is the answer (W5 then writes nothing, 0056); with no stored result, it is a
-        leftover (or another process's identical directory, S10) and is replaced. On an exception, the temporary
+        and the stored result is the answer (storing it then writes nothing; W5, 0056); with no stored result, it
+        is a leftover (or another process's identical directory; S10) and is replaced. On an exception, the temporary
         directory is removed and nothing is put in place.
 
-        With ``complete`` (a stored result's directory rebuilt, §6), a directory in place that ``complete`` says is
+        With ``complete`` (a stored result's directory rebuilt; §6), a directory in place that ``complete`` says is
         incomplete is replaced too, moved aside under the write lock as a leftover is; a complete one is kept, and
         ours discarded. So rebuilds at once, in threads or processes, all succeed, and a directory found complete is
         never moved from under its reader (record 0080, Review round 1).
 
-        Safe for several processes at once (review round 1, M1): the directory in place is never deleted where it
-        is. A first rename that finds it there is retried under the database's write lock, which W5 also holds
-        while it looks for the directory: the one in place is moved aside atomically, ours renamed in, and the
-        moved copy deleted afterwards, so W5 never sees the directory missing.
+        Safe for several processes at once (record 0072, review round 1, M1): the directory in place is never
+        deleted where it is. A first rename that finds it there is retried under the database's write lock, which
+        storing a result also holds while it looks for the directory (W5): the one in place is moved aside
+        atomically, ours renamed in, and the moved copy deleted afterwards, so storing a result never sees the
+        directory missing.
 
         Raises
         ------
@@ -425,17 +426,17 @@ class Store:
         self._step("BEGIN IMMEDIATE", persist)
         try:
             yield self._conn
-            if self._conn.in_transaction:  # W5 rolls back itself when it finds its result stored
+            if self._conn.in_transaction:  # storing a result rolls back itself when it finds the result stored (W5)
                 self._step("COMMIT", persist)
         except BaseException:
             if self._conn.in_transaction:
                 self._conn.execute("ROLLBACK")
             raise
 
-    # -- W1, Q3, Q14: model versions and loadings ---------------------------------------------------------------
+    # -- model versions and loadings (W1, Q3, Q14) ------------------------------------------------------------------
 
     def record_loading(self, spec: ModelSpec, spec_path: str, files: Sequence[TrackedFile]) -> str:
-        """W1: record a ``load_model``: the model version if new, and a loading (§5.1, §5.2; 0029, 0054).
+        """Record a ``load_model``: the model version if new, and a loading (W1; §5.1, §5.2; 0029, 0054).
 
         Parameters
         ----------
@@ -476,7 +477,10 @@ class Store:
         return mv
 
     def current_loading(self, name: str) -> Loading | None:
-        """Q3: what a model name means now: its latest loading's model version, spec file, and settings (0054)."""
+        """Return what a model name means now (Q3; 0054).
+
+        Its latest loading's model version, spec file, and settings.
+        """
         rows = self._execute(
             "SELECT loading, name, model_version_id, spec_path, keep, batch_size, timeout_s, loaded_at FROM loadings "
             "WHERE name = ? ORDER BY loading DESC LIMIT 1",
@@ -488,11 +492,11 @@ class Store:
         return Loading(n, name, mv.hex(), path, Keep(keep), batch, timeout, parse_timestamp(at))
 
     def model_names(self) -> tuple[str, ...]:
-        """Q3, every name: the model names loaded, sorted, for ``list_models`` (record 0080 item 3)."""
+        """Return the model names loaded, sorted, for ``list_models`` (Q3, every name; record 0080 item 3)."""
         return tuple(row[0] for row in self._execute("SELECT DISTINCT name FROM loadings ORDER BY name"))
 
     def model_version(self, model_version_id: str) -> ModelVersion:
-        """Q14: a model version's spec and tracked files, by its id (0056).
+        """Return a model version's spec and tracked files, by its id (Q14; 0056).
 
         Raises
         ------
@@ -518,10 +522,10 @@ class Store:
             self._prediction_names[mv] = tuple(p["name"] for p in json.loads(rows[0][0])["predictions"])
         return self._prediction_names[mv]
 
-    # -- W2, W3, Q4, Q12, Q13: confirmations and approvals ------------------------------------------------------
+    # -- confirmations and approvals (W2, W3, Q4, Q12, Q13) ---------------------------------------------------------
 
     def record_confirmation(self, spec_path: str, spec_sha256: str, question: str, answer: bool) -> None:
-        """W2: record a confirmation to save a drafted model spec, and its answer (§5.3; 0049, T3)."""
+        """Record a confirmation to save a drafted model spec, and its answer (W2; §5.3; 0049, T3)."""
         with self._write() as c:
             c.execute(
                 "INSERT INTO confirmations (spec_path, spec_sha256, question, answer, asked_at) VALUES (?, ?, ?, ?, ?)",
@@ -540,7 +544,7 @@ class Store:
         answer: bool,
         points: Sequence[RunKey],
     ) -> str:
-        """W3: record a price shown and its answer, and on a yes the points and replicates it covers (§5.4, §5.5).
+        """Record a price shown and its answer, and on a yes the points and replicates it covers (W3; §5.4, §5.5).
 
         Every answer is stored, yes or no (T3). The id hashes the number of approvals stored before it (§3.4).
 
@@ -615,7 +619,7 @@ class Store:
         return aid
 
     def has_approval(self, model_version_id: str) -> bool:
-        """Q4: whether this model version has had an approval answered yes (U2's first approval shows more)."""
+        """Tell whether this model version has had an approval answered yes: the first approval shows more (Q4; U2)."""
         return bool(
             self._execute(
                 "SELECT 1 FROM approvals WHERE model_version_id = ? AND answer = 1 LIMIT 1",
@@ -624,7 +628,7 @@ class Store:
         )
 
     def approvals(self) -> tuple[Approval, ...]:
-        """Q12: every approval, with its question and answer, in order (T3)."""
+        """Return every approval, with its question and answer, in order (Q12; T3)."""
         rows = self._execute(
             "SELECT approval_id, model_version_id, asked_for, request, design, new, reused, reused_failed, time_s, "
             "question, answer, asked_at FROM approvals ORDER BY asked_at, rowid"
@@ -648,7 +652,7 @@ class Store:
         )
 
     def approval_points(self, approval_id: str) -> tuple[ApprovedPoint, ...]:
-        """Q12 (an audit's detail): the points and replicates an approval covers, by point hash (P3)."""
+        """Return the points and replicates an approval covers, by point hash: an audit's detail (Q12; P3)."""
         aid = _blob(approval_id, "approval")
         rows = self._execute(
             "SELECT point_hash, replicate FROM approval_points WHERE approval_id = ? ORDER BY point_hash, replicate",
@@ -657,7 +661,7 @@ class Store:
         return tuple(ApprovedPoint(aid.hex(), h.hex(), r) for h, r in rows)
 
     def confirmations(self) -> tuple[Confirmation, ...]:
-        """Q12: every confirmation, with its question and answer, in order (T3)."""
+        """Return every confirmation, with its question and answer, in order (Q12; T3)."""
         rows = self._execute(
             "SELECT confirmation, spec_path, spec_sha256, question, answer, asked_at FROM confirmations "
             "ORDER BY asked_at, confirmation"
@@ -665,7 +669,7 @@ class Store:
         return tuple(Confirmation(n, p, h.hex(), q, bool(a), parse_timestamp(t)) for n, p, h, q, a, t in rows)
 
     def approval_coverage(self, approval_id: str, keys: Sequence[RunKey]) -> Coverage:
-        """Q13: which of one call's keys an approval covers and has no run for yet, and its model version (0056).
+        """Tell which of one call's keys an approval covers and has no run for yet, and its model version (Q13; 0056).
 
         The runner asks before each call and refuses a key not covered, or another model version (P3).
 
@@ -693,10 +697,10 @@ class Store:
             covered.append(bool(approved) and not made)
         return Coverage(aid.hex(), mv.hex(), bool(answer), tuple(covered))
 
-    # -- W4, Q1, Q2, Q9: runs ------------------------------------------------------------------------------------
+    # -- runs (W4, Q1, Q2, Q9) --------------------------------------------------------------------------------------
 
     def record_call(self, runs: Sequence[Run], batch_call: BatchCall | None = None) -> None:
-        """W4: store one finished call's runs and their model predictions, together or not at all (§5.6–§5.8; C49).
+        """Store one finished call's runs and their model predictions, together or not at all (W4; §5.6–§5.8; C49).
 
         Checked first, in the same transaction: each run's id is its key's hash (I3); its approval said yes for its
         model version, covers its point and replicate, and has no run there yet (I4, P3); its attempt is one more
@@ -730,7 +734,7 @@ class Store:
                     raise
 
     def _insert_call(self, runs: Sequence[Run], hashes: Sequence[str], batch_call: BatchCall | None) -> None:
-        """W4's transaction: its checks, then the call's rows."""
+        """Run the transaction that stores a call: its checks, then the call's rows (W4)."""
         with self._write(persist=True) as c:
             self._check_approvals(c, runs, hashes)
             self._check_attempts(c, runs, hashes)
@@ -774,7 +778,7 @@ class Store:
             )
 
     def _check_keys(self, runs: Sequence[Run], batch_call: BatchCall | None) -> list[str]:
-        """Check the call's shape and I3: each run's point hash is its point's, and its id its key's hash."""
+        """Check the call's shape, and that each run's point hash is its point's, and its id its key's hash (I3)."""
         if not runs:
             raise ValueError("a call stores at least one run")
         if batch_call is None:
@@ -796,7 +800,10 @@ class Store:
         return hashes
 
     def _check_approvals(self, c: sqlite3.Connection, runs: Sequence[Run], hashes: Sequence[str]) -> None:
-        """I4 (P3, C48): an approval answered yes for the run's model version, covering its key, with no run there."""
+        """Check each run's approval (I4; P3, C48).
+
+        It said yes for the run's model version, covers the run's key, and has no run there.
+        """
         seen: dict[str, tuple[bytes, int] | None] = {}
         for r, h in zip(runs, hashes, strict=True):
             aid = bytes.fromhex(r.approval_id)
@@ -824,7 +831,10 @@ class Store:
                 raise ValueError(f"run {r.run_id}: its approval already has a run at its key (I4)")
 
     def _check_attempts(self, c: sqlite3.Connection, runs: Sequence[Run], hashes: Sequence[str]) -> None:
-        """I2 (C47): the attempt is one more than the key's current run, which failed, or 0 when there is none."""
+        """Check each run's attempt (I2; C47).
+
+        It is one more than the key's current run, which failed, or 0 when there is none.
+        """
         for r, h in zip(runs, hashes, strict=True):
             row = c.execute(
                 "SELECT attempt, status FROM runs WHERE model_version_id = ? AND point_hash = ? AND replicate = ? "
@@ -838,7 +848,7 @@ class Store:
                 raise ValueError(f"run {r.run_id}: attempt {r.attempt}, but the key's next is {expected} (I2)")
 
     def _check_predictions(self, c: sqlite3.Connection, runs: Sequence[Run]) -> None:
-        """I6 (0022, 0043): an ok run has exactly its spec's model predictions, each a value or a reason."""
+        """Check that an ok run has exactly its spec's model predictions, each a value or a reason (I6; 0022, 0043)."""
         for r in runs:
             if r.status is RunStatus.OK:
                 names = self._predictions_of(bytes.fromhex(r.model_version_id))
@@ -846,7 +856,7 @@ class Store:
                     raise ValueError(f"run {r.run_id}: an ok run has every model prediction of its spec: {names}")
 
     def current_runs(self, model_version_id: str, point_hashes: Sequence[str]) -> dict[tuple[str, int], Run]:
-        """Q1: the current run (the highest attempt) at each stored key of these points, for pricing and running.
+        """Return the current run (highest attempt) at each stored key of these points, for pricing and running (Q1).
 
         Parameters
         ----------
@@ -880,7 +890,7 @@ class Store:
         return out
 
     def current_keys(self, model_version_id: str, point_hashes: Sequence[str]) -> dict[tuple[str, int], CurrentKey]:
-        """Q1, keys only: the current run's id, attempt, and status at each stored key of these points.
+        """Return the current run's id, attempt, and status at each stored key of these points (Q1, keys only).
 
         What the runner's ``resolve`` and ``price`` need (C46, C47), without points, model predictions, or other
         columns, so it is several times faster than ``current_runs`` (record 0072, review round 1).
@@ -927,8 +937,9 @@ class Store:
     ) -> list[Run]:
         """Build stored runs from ``runs`` rows and their model predictions, in their spec's order.
 
-        W4 checked each run as ``Run`` does, and no row changes (I1), so a stored run is built without checking it
-        again: Q1 builds one per design point (record 0072). Points are parsed one chunk at a time.
+        Storing a call checked each run as ``Run`` does (W4), and no row changes (I1), so a stored run is built
+        without checking it again: reading the current runs builds one per design point (Q1; record 0072). Points
+        are parsed one chunk at a time.
         """
         points = json.loads("[" + ",".join(row[2] for row in rows) + "]")
         out = []
@@ -961,7 +972,7 @@ class Store:
         return out
 
     def run_times(self, model_version_id: str) -> tuple[int, float | None]:
-        """Q2: the number of stored runs of this model version, any status, and their mean time; None with none.
+        """Return the number of stored runs of this model version, any status, and their mean time; None with none (Q2).
 
         The price's "about 1 h 52 min (from 41 stored runs)" (P3, U2), from the ``(model_version_id, time_s)`` index.
         """
@@ -972,7 +983,7 @@ class Store:
         return int(n), (None if n == 0 else float(mean))
 
     def get_run(self, run_id: str) -> Run:
-        """Q9: a run, by its id, with its model predictions.
+        """Return a run, by its id, with its model predictions (Q9).
 
         Raises
         ------
@@ -986,7 +997,7 @@ class Store:
         return self._runs(rows, self._read_predictions([raw]))[0]
 
     def runs_at(self, result_id: str, point_hash: str) -> tuple[Run, ...]:
-        """Q9: a diagnostic result's runs at a point, one per replicate, in replicate order (0020).
+        """Return a diagnostic result's runs at a point, one per replicate, in replicate order (Q9; 0020).
 
         Raises
         ------
@@ -1002,7 +1013,7 @@ class Store:
         return tuple(self._runs(rows, self._read_predictions([row[0] for row in rows])))
 
     def batch_call(self, batch_call_id: str) -> BatchCall:
-        """Q9: a batch call, by its id (its directory is ``layout.run_dir(batch_call_id)``; 0025).
+        """Return a batch call, by its id (its directory is ``layout.run_dir(batch_call_id)``; Q9; 0025).
 
         Raises
         ------
@@ -1015,7 +1026,7 @@ class Store:
             raise NotFound(f"no batch call {batch_call_id}")
         return BatchCall(raw.hex(), rows[0][0], rows[0][1])
 
-    # -- Q7, Q15: runs as columns ------------------------------------------------------------------------------
+    # -- runs as columns (Q7, Q15) ----------------------------------------------------------------------------------
 
     def _names(self, mvs: Iterable[bytes]) -> list[str]:
         names: dict[str, None] = {}
@@ -1024,7 +1035,7 @@ class Store:
         return list(names)
 
     def result_runs(self, result_id: str) -> RunColumns:
-        """Q7: each design row's run, in design order, with its point, model predictions, and stderr tail (0061).
+        """Return each design row's run, in design order, with its point, model predictions, and stderr tail (Q7; 0061).
 
         For export (E2) and ``failed_runs`` (U3); read in chunks of ``chunk_rows`` rows.
 
@@ -1051,14 +1062,14 @@ class Store:
         return columns.build()
 
     def runs_by_id(self, run_ids: np.ndarray | Sequence[str], *, points: bool = False) -> RunColumns:
-        """Q15: these runs, in the order given, a repeated id repeated (rows share runs; C56, 0056).
+        """Return these runs, in the order given, a repeated id repeated (rows share runs; Q15; C56, 0056).
 
         Parameters
         ----------
         run_ids
             Ids in any form ``ema.types.id_array`` reads.
         points
-            Also read each run's point (a replay, 0062).
+            Also read each run's point (a replay; 0062).
 
         Returns
         -------
@@ -1085,7 +1096,7 @@ class Store:
         columns.add(rows, self._read_predictions(raws))
         return columns.build(order=inverse.reshape(-1))
 
-    # -- W5, W6, Q5, Q6, Q8, Q10: diagnostic results ------------------------------------------------------------
+    # -- diagnostic results (W5, W6, Q5, Q6, Q8, Q10) ---------------------------------------------------------------
 
     def _has_result(self, result_id: str) -> bool:
         return bool(
@@ -1099,11 +1110,11 @@ class Store:
         return rid
 
     def record_result(self, result: DiagnosticResult) -> DiagnosticResult:
-        """W5: store a diagnostic result, its provenance, its runs, and a point run's record, in one transaction.
+        """Store a diagnostic result, its provenance, its runs, and a point run's record, in one transaction (W5).
 
-        The result carries what W5 writes (record 0072): its provenance (``Provenance.column()``, the request, the
-        design's identity, and its approval, §5.9), its run ids (one ``result_runs`` row per design row, §5.10),
-        and a point run's measured-noisy record (§5.11), whose ``made_at`` W5 sets.
+        The result carries what is written (record 0072): its provenance (``Provenance.column()``, the request, the
+        design's identity, and its approval; §5.9), its run ids (one ``result_runs`` row per design row; §5.10),
+        and a point run's measured-noisy record (§5.11), whose ``made_at`` is set here.
 
         Checked first: the result id is its reuse key's hash (§3.4, C50); its directory is in place (§6); every run
         exists and is of its model version; its approval said yes to a diagnostic evaluation of its model version,
@@ -1172,7 +1183,10 @@ class Store:
         return result
 
     def _check_noisy(self, result: DiagnosticResult) -> None:
-        """I10: a measured-noisy record comes only with a point run's result, as its own, with no ``made_at`` yet."""
+        """Check a result's measured-noisy record (I10).
+
+        It comes only with a point run's result, as its own, with no ``made_at`` yet.
+        """
         noisy = result.measured_noisy
         if noisy is None:
             return
@@ -1194,7 +1208,10 @@ class Store:
             yield row, raw[32 * row : 32 * row + 32]
 
     def _check_result_runs(self, c: sqlite3.Connection, result: DiagnosticResult) -> None:
-        """W5's preconditions on runs and approval: every run exists, of the model version; its approval; I12."""
+        """Check what storing a result requires of its runs and approval (W5).
+
+        Every run exists, of the model version; its approval is checked; its new runs are exactly its approval's (I12).
+        """
         p = result.provenance
         mv = bytes.fromhex(result.model_version_id)
         own = None if p.approval_id is None else bytes.fromhex(p.approval_id)
@@ -1237,7 +1254,7 @@ class Store:
     def _check_new_runs(
         self, c: sqlite3.Connection, result: DiagnosticResult, own: bytes | None, priced: int | None, new: int
     ) -> None:
-        """I12 (E6): the result's new runs (its runs made under its approval) are exactly the approval's runs.
+        """Check that a result's new runs (its runs made under its approval) are exactly the approval's runs (I12; E6).
 
         ``new`` counts the result's distinct runs whose approval is its own; ``priced`` is its approval's ``new``
         (None without one). Every run the approval priced was made and is the result's: an evaluation interrupted
@@ -1262,14 +1279,14 @@ class Store:
             )
 
     def find_result(self, reuse_key_hash: str) -> DiagnosticResult | None:
-        """Q5: the diagnostic result stored for this reuse key (its hash, the result id), if any (C50, 0054)."""
+        """Return the diagnostic result stored for this reuse key (its hash, the result id), if any (Q5; C50, 0054)."""
         return self.get_result(reuse_key_hash) if self._has_result(reuse_key_hash) else None
 
     def get_result(self, result_id: str) -> DiagnosticResult:
-        """Q6: a diagnostic result with its full provenance, the run ids in design order included (§5.9).
+        """Return a diagnostic result with its full provenance, the run ids in design order included (Q6; §5.9).
 
         Its own measured-noisy record has ``made_at`` None, as the diagnostic made it; the table's ``made_at`` is
-        Q10's (record 0072).
+        what ``measured_noisy`` returns (Q10; record 0072).
 
         Raises
         ------
@@ -1333,9 +1350,10 @@ class Store:
         )
 
     def measured_noisy(self, model_version_id: str, prediction: str) -> tuple[MeasuredNoisy, ...]:
-        """Q10: the point runs that measured this model version noisy in this model prediction, newest first (PT4).
+        """Return the point runs that measured this model version noisy in this model prediction (Q10; PT4).
 
-        Each with its ``made_at``; a later result copies the records it reads into its provenance (I10, C52).
+        Newest first, each with its ``made_at``; a later result copies the records it reads into its provenance
+        (I10, C52).
         """
         return self._noisy(
             self._execute(
@@ -1352,10 +1370,10 @@ class Store:
         diagnostic: str | None = None,
         prediction: str | None = None,
     ) -> tuple[ResultSummary, ...]:
-        """Q8: the diagnostic results, by model name, model version, diagnostic, or model prediction, newest first.
+        """Return the diagnostic results, by model name, model version, diagnostic, or model prediction (Q8).
 
-        Each as its summary (``ResultSummary``): its shortest unique id prefix (Q11), its model version's label, its
-        counts, and when it was stored.
+        Newest first, each as its summary (``ResultSummary``): its shortest unique id prefix (Q11), its model
+        version's label, its counts, and when it was stored.
         """
         where, params = [], []
         for column, value in (
@@ -1391,14 +1409,14 @@ class Store:
         return tuple(out)
 
     def delete_result(self, result_id: str) -> None:
-        """W6: delete a diagnostic result's measured-noisy, ``result_runs``, and ``results`` rows, then its directory.
+        """Delete a diagnostic result's measured-noisy, ``result_runs``, and ``results`` rows, then its directory (W6).
 
         Runs and approvals are kept, so the result replays from its provenance (C51, U8). Tests only: no public
         name in v2.0 (0056).
 
         The directory is moved aside inside the transaction that deletes the rows, as ``_put_in_place`` moves one
-        under the same lock, and the moved copy deleted after the commit: a W5 of the same result that follows
-        never has its new directory deleted (record 0072, review round 2). A commit that fails puts it back.
+        under the same lock, and the moved copy deleted after the commit: storing the same result again afterwards
+        never has its new directory deleted (W5; record 0072, review round 2). A commit that fails puts it back.
 
         Raises
         ------
@@ -1428,10 +1446,10 @@ class Store:
                 if committed or not os.path.lexists(old):
                     shutil.rmtree(aside, ignore_errors=True)
 
-    # -- Q11: ids ------------------------------------------------------------------------------------------------
+    # -- ids (Q11) --------------------------------------------------------------------------------------------------
 
     def resolve(self, kind: str, prefix: str) -> str:
-        """Q11: the id of this kind that a prefix of at least 4 hex digits names (§3.4, Shown).
+        """Return the id of this kind that a prefix of at least 4 hex digits names (Q11; §3.4, Shown).
 
         Parameters
         ----------
@@ -1466,7 +1484,9 @@ class Store:
         raise AmbiguousId(f"{text} names several {word}s: {shown}{more}")
 
     def short(self, kind: str, id: str) -> str:
-        """Q11: an id's shortest prefix, of at least 4 hex digits, unique among ids of its kind (as git shows commits).
+        """Return an id's shortest prefix that is unique among ids of its kind, as git shows commits (Q11).
+
+        The prefix has at least 4 hex digits.
 
         Raises
         ------

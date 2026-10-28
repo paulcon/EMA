@@ -3,7 +3,8 @@
 Writes ``runs.csv`` (one row per design row, in design order, every number as ``%.17g``, a missing value an empty
 cell), ``result.json`` (strict JSON: the format, the design, the model version's spec, the column dictionary, and
 the result with its provenance, which ``DiagnosticResult.from_json`` reads back equal), and ``report/``, a copy of
-the result's directory. A directory that isn't empty is refused before anything is written (E1). Records 0053, 0061.
+the result's directory. A directory that isn't empty is refused before anything is written (E1;
+records 0053, 0061).
 """
 
 import csv
@@ -34,7 +35,7 @@ EMA_COLUMNS = (
     ("ema_status", "ok or failed"),
     ("ema_kind", "error, timeout, or unread; empty when ok"),
     ("ema_reason", "the one-line reason a run failed; empty when ok"),
-    ("ema_new", "true when this result's own diagnostic evaluation made the run"),  # E6
+    ("ema_new", "true when this result's own diagnostic evaluation made the run"),  # (E6)
     ("ema_time_s", "the run's time in seconds (a batch call's share)"),
     ("ema_run_dir", "the kept run directory; empty when not kept"),
     ("ema_host", "the host the run ran on"),
@@ -82,7 +83,7 @@ def export(store: Store, result: DiagnosticResult, directory: str, *, pdf: bool 
     """
     target = os.path.abspath(directory)
     if os.path.lexists(target) and (not os.path.isdir(target) or os.listdir(target)):
-        raise PathRefused(f"{target} isn't an empty directory: an export never overwrites a file")  # E1
+        raise PathRefused(f"{target} isn't an empty directory: an export never overwrites a file")  # (E1)
     source = _evaluate.result_directory(store, result)
     if pdf:
         to_pdf(os.path.join(source, "report.md"))

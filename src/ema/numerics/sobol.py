@@ -1,10 +1,8 @@
 """Sobol indices and the root energy per degree of a fitted polynomial in an orthonormal basis.
 
-Sudret 2008; polynomial_model.md, Computation; PM4; 0049.
-
 Under the uniform distribution in unit coordinates the terms are orthonormal, so each coefficient squared is the
 variance its term carries, and V = sum_(alpha != 0) c_alpha^2 is the polynomial's variance. These are the indices of
-the fitted polynomial, not of the model.
+the fitted polynomial, not of the model (Sudret 2008; polynomial_model.md, Computation; PM4; 0049).
 """
 
 import math
@@ -26,8 +24,8 @@ def sobol_indices(coef: np.ndarray, terms: np.ndarray, *, y: np.ndarray) -> tupl
     """Return the first-order and total Sobol indices of the fitted polynomial, each ``(d,)``, in the terms' order.
 
     First-order S_i: the share of V in the terms in u_i alone; total T_i: the share in the terms that involve u_i.
-    Both are NaN, undefined, when the y fitted is constant (``is_constant``, 0035) or the fitted polynomial is
-    (V = 0, 0049): 0/0 (polynomial_model.md, Uncertainty; uncertainty.md, the bootstrap's step 3). A fit to a
+    Both are NaN, undefined, when the y fitted is constant (``is_constant``; 0035) or the fitted polynomial is
+    (V = 0; 0049): 0/0 (polynomial_model.md, Uncertainty; uncertainty.md, the bootstrap's step 3). A fit to a
     constant y has coefficients at rounding level, not exact zeros (on 40 runs of 0.1, V is about 3e-34), so V
     alone can't tell (record 0068 item 10).
 
@@ -62,7 +60,7 @@ def sobol_indices(coef: np.ndarray, terms: np.ndarray, *, y: np.ndarray) -> tupl
 
 
 def degree_energy(coef: np.ndarray, terms: np.ndarray) -> np.ndarray:
-    """Return sqrt(E_k) for k = 1 ... p: E_k is the sum of c_alpha^2 over the terms of total degree k.
+    """Return sqrt(E_k) for k = 1 … p: E_k is the sum of c_alpha^2 over the terms of total degree k.
 
     p is the terms' largest total degree.
 

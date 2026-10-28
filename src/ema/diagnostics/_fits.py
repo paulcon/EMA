@@ -1,7 +1,8 @@
 """What the fits over a convergent design share: the linear model's now, the polynomial model's when it adopts them.
 
-linear_model.md and polynomial_model.md (Computation, Uncertainty, the per-level table); uncertainty.md (the
-bootstrap; 0040, 0041, 0051); designs.md (Samplers); record 0078. Private: a diagnostic imports it; the package
+It holds the two fits' shared computation, their bootstrap, their per-level table, and each design row's level
+(linear_model.md and polynomial_model.md, Computation, Uncertainty, the per-level table; uncertainty.md, the
+bootstrap; 0040, 0041, 0051; designs.md, Samplers; record 0078). Private: a diagnostic imports it; the package
 doesn't register it.
 
 A fit's values are one array, ``[coefficients..., relative residual, R², LOO error]``, NaN where undefined (record
@@ -33,7 +34,8 @@ IN_SAMPLE_SENTENCE = (
 def fit_values(A: np.ndarray, y: np.ndarray) -> np.ndarray:
     """Return ``[coefficients..., relative residual, R², LOO error]`` of y's least-squares fit on A's columns.
 
-    linear_model.md, Computation: the fit by QR, ‖r‖ / ‖y - ȳ‖, 1 - ‖r‖² / ‖y - ȳ‖², and the LOO error by PRESS.
+    The fit is by QR, the relative residual is ‖r‖ / ‖y - ȳ‖, R² is 1 - ‖r‖² / ‖y - ȳ‖², and the LOO error is by
+    PRESS (linear_model.md, Computation).
     NaN where undefined: every value when A's rank is below its columns (0051), the last three for a constant y,
     the LOO error with fewer runs than columns plus one or a run of leverage 1 (``ema.numerics.fitting``).
     """
@@ -50,10 +52,10 @@ def loo_error(A: np.ndarray, y: np.ndarray) -> np.ndarray:
 def estimators(A: np.ndarray, y: np.ndarray, labels: Sequence[str]) -> tuple[Estimator, Estimator]:
     """Return the bootstrap's two estimators over design rows: the coefficients as drawn, and LOO on distinct runs.
 
-    uncertainty.md, The bootstrap, step 2: the coefficients are refitted on each resample as drawn ("coefficients",
-    one per label); the LOO error on its distinct runs ("loo"), since a left-out run's copy would stay in the fit.
-    The relative residual and R² have no interval (record 0085: a refit on a resample's repeated runs looks better
-    than the fit). ``A`` and ``y`` are the whole design's rows; each resample indexes them.
+    The coefficients are refitted on each resample as drawn ("coefficients", one per label); the LOO error on its
+    distinct runs ("loo"), since a left-out run's copy would stay in the fit (uncertainty.md, The bootstrap, step 2).
+    The relative residual and R² have no interval (a refit on a resample's repeated runs looks better than the fit;
+    record 0085). ``A`` and ``y`` are the whole design's rows; each resample indexes them.
     """
     as_drawn = Estimator(
         "coefficients", tuple(labels), lambda rows: fitting.least_squares(A[rows], y[rows]).coefficients, False
@@ -79,8 +81,8 @@ def per_level(
 ) -> ObservationTable:
     """Return the table of the fit at each level: its usable runs among its first n_l points, then its values.
 
-    linear_model.md (The levels, as observations; LM5): a level with fewer than ``minimum`` usable runs, or a value
-    that is undefined, has "none". ``rows`` are each value's (key, label), the coefficients' then ``FIT_KEYS``'.
+    A level with fewer than ``minimum`` usable runs, or a value that is undefined, has "none" (linear_model.md, The
+    levels, as observations; LM5). ``rows`` are each value's (key, label), the coefficients' then ``FIT_KEYS``'.
     ``units`` gives a key's units (the coefficients' are the model prediction's), stored in each of its cells with a
     number; the report leaves them out when ``title`` names them (record 0078 item 2, Review round 1).
     """

@@ -1,11 +1,11 @@
 """The linear model: a least-squares fit of the model prediction in unit coordinates, over a convergent design.
 
-diagnostics/linear_model.md (LM1-LM10); uncertainty.md (the bootstrap over level L; 0040, 0041, 0052); records
-0012, 0051, 0068 (``ema.numerics.fitting``), 0073 (plain Unicode text; a table's title under it), 0075 (the base),
-0078 (this step's choices), and 0085 (the in-sample measures as observations). The fit y ≈ β₀ + Σ βᵢ uᵢ on level
-L's usable runs gives the coefficients and how well it predicts runs it wasn't fitted to (the LOO error by PRESS),
-each with a variability interval; how well it fits (the relative residual and R²), and the same fit at each level,
-are observations.
+The fit y ≈ β₀ + Σ βᵢ uᵢ on level L's usable runs gives the coefficients and how well it predicts runs it wasn't
+fitted to (the LOO error by PRESS), each with a variability interval (diagnostics/linear_model.md, LM1-LM10;
+uncertainty.md, the bootstrap over level L; 0040, 0041, 0052; records 0012, 0051, 0068 (``ema.numerics.fitting``),
+0073 (plain Unicode text; a table's title under it), 0075 (the base), 0078 (this step's choices)); how well it fits
+(the relative residual and R²), and the same fit at each level, are observations (record 0085, the in-sample
+measures as observations).
 """
 
 import math
@@ -63,7 +63,7 @@ LINEAR_BOOT_TAG = 2**32 + 2
 
 
 def linear_nmin(d: int) -> int:
-    """Return ``LINEAR_NMIN``, the default size of level 0: 2(d + 1), twice the coefficients, as U4 assumes."""
+    """Return ``LINEAR_NMIN``, level 0's default size: 2(d + 1), twice the coefficients, as its use case assumes (U4)."""
     return 2 * (d + 1)
 
 
@@ -181,7 +181,7 @@ class LinearModel(DiagnosticBase):
             level_rows = [*zip(keys, labels, strict=True), *_LEVEL_LABELS.items()]
             minimum = linear_min_runs(d)
             in_units = f"Coefficients in {units}. " if units else ""
-            title = f"{in_units}{_fits.LEVELS_SENTENCE} {_fits.IN_SAMPLE_SENTENCE}"  # record 0085's line
+            title = f"{in_units}{_fits.LEVELS_SENTENCE} {_fits.IN_SAMPLE_SENTENCE}"  # the in-sample line (record 0085)
             per_key = {key: units for key in _COEFFICIENT_KEYS}  # in the cells; the title names them (0078 item 2)
             observations = (_fits.per_level(A, y, usable, sizes, minimum, level_rows, title, per_key),)
         if not estimates_allowed:
@@ -214,7 +214,7 @@ class LinearModel(DiagnosticBase):
             (loo_iv,) = found["loo"]
             loo = [(estimate("loo", _LOO_LABEL, float(values[-1]), loo_iv), loo_iv.undefined)]
             tables.append(_table("loo", "Held out", "Held out", loo, "", ctx, n_u, distinct="the error"))
-        else:  # uncertainty.md, Rules: where a value can't be computed, no estimate, and a note (record 0078 item 5)
+        else:  # where a value can't be computed, no estimate, and a note (uncertainty.md, Rules; record 0078 item 5)
             notes = (_loo_note(A[rows], y[rows]),)
         return Computation(estimates=tuple(tables), observations=observations, notes=notes)
 

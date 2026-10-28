@@ -1,7 +1,7 @@
 """Coordinate lines: the model prediction along a line per varied model parameter, and each line's spectrum.
 
-coordinate_lines.md: CL1-CL10; U2; records 0038, 0048, 0051, 0058, 0077. Observations only, no interval method and no
-random draws: the seed is recorded and changes nothing (0061). The per-line computation and figure are ``_lines.py``'s,
+Observations only, no interval method and no random draws (coordinate_lines.md; CL1-CL10; U2; records 0038, 0048,
+0051, 0058, 0077): the seed is recorded and changes nothing (0061). The per-line computation and figure are ``_lines.py``'s,
 shared with lines.
 """
 
@@ -26,7 +26,8 @@ from ema.types.model import ModelSpec
 from ema.types.runs import RunBatch
 from ema.types.space import ModelParameterSpace, Scale
 
-#: The default number of points per line: U2's; 2⁴ + 1, so reruns at 33 and 65 reuse every run (G11).
+#: The default number of points per line, as in the slow simulator's use case (U2): 2⁴ + 1, so reruns at 33 and 65
+#: reuse every run (G11).
 COORD_N = 17
 
 

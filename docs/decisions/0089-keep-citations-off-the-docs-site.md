@@ -1,6 +1,6 @@
 # 0089. Keep citations off the documentation site: cite ids in parentheses, and drop them when the site is built
 
-**Date:** 2026-10-27. **Status:** accepted (2026-10-27, by the owner). **Resolves:** none.
+**Date:** 2026-10-27. **Status:** accepted (2026-10-27, by the owner); item 1's list amended by 0090. **Resolves:** none.
 
 ## Context
 

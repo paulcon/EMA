@@ -1,7 +1,7 @@
 """The model parameter space: a hyperrectangle of ranges, and held values (designs.md; 0005, 0023, 0024, 0033).
 
 Generators reach a space only through its membership test, its unit maps, sampling the unit cube, and line
-clipping, so a later shape (the hyperellipsoid, 0005) is one new class with the same methods.
+clipping, so a later shape (the hyperellipsoid; 0005) is one new class with the same methods.
 
 The maps (designs.md, Unit coordinates; 0047, 0061, 0062): z in [-1, 1] and u in [0, 1] are related by
 z = 2u - 1; a linear range is x = lo + (hi - lo) u, a log range x = exp(ln lo + (ln hi - ln lo) u) clamped to
@@ -130,7 +130,7 @@ class ModelParameterSpace:
 
     @classmethod
     def parse(cls, form: Mapping[str, Any]) -> "ModelParameterSpace":
-        """Read designs.md's JSON form, or its Python form.
+        """Read the space's JSON form, or its Python form (designs.md, JSON form).
 
         A two-element list (or tuple) is a linear range; ``{"range": [lo, hi], "scale": "linear" | "log"}`` a
         range with a scale; a number a held value. Integers are read as doubles (0061). A ``Range`` is accepted

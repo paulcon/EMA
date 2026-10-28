@@ -19,10 +19,10 @@ import matplotlib
 from ema.types.errors import PandocMissing, PdfFailed
 
 #: pandoc's reader: Markdown with raw TeX, raw HTML, raw attributes, and TeX math off (T10), and no smart
-#: punctuation, so "--" and quotes print as written (the report writes no math: record 0073 item 11).
+#: punctuation, so "--" and quotes print as written (the report writes no math; record 0073 item 11).
 READER = "markdown-raw_tex-raw_html-raw_attribute-tex_math_dollars-smart-implicit_figures"
 
-#: A line of the report holding only figures, as ``render`` writes them (their names checked plain, record 0073).
+#: A line of the report holding only figures, as ``render`` writes them (their names checked plain; record 0073).
 _FIGURE_LINE = re.compile(r"^(?:!\[[^\]\n]*\]\([A-Za-z0-9][A-Za-z0-9_.-]*\.png\) *)+$", re.MULTILINE)
 _FIGURE = re.compile(r"(!\[[^\]\n]*\]\([A-Za-z0-9][A-Za-z0-9_.-]*\.png\))")
 

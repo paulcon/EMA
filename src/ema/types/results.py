@@ -1,8 +1,8 @@
 """A diagnostic result and its parts: estimates, observations, notes, figures, counts, and provenance.
 
-architecture.md §3 (results.py); diagnostics/shared.md (S1–S4); uncertainty.md (an interval or "none" with its
-reason, 0041); data_model.md §5.9, §5.11, §5.12; C17 and I11 (strict canonical JSON, every double exact); 0036,
-0054, 0055, 0063; record 0070.
+An estimate's interval is a variability interval, or "none" with its reason (uncertainty.md; 0041), and a result's
+JSON is strict and canonical, every double exact (C17, I11; architecture.md §3, results.py; diagnostics/shared.md,
+S1–S4; data_model.md §5.9, §5.11, §5.12; 0036, 0054, 0055, 0063; record 0070).
 
 Numbers only (P2): a result holds full doubles and EMA's notes; ``ema.report`` writes them with ``fmt``.
 """
@@ -131,7 +131,7 @@ class IntervalInfo:
 
     def __post_init__(self) -> None:
         _texts(self, "method")
-        _json_text(_plain(self.settings), f"{self.method}'s settings")  # refused now, not at W5
+        _json_text(_plain(self.settings), f"{self.method}'s settings")  # refused now, not on recording (W5)
         object.__setattr__(self, "settings", _freeze(self.settings))
         undefined = {k: _count(v, f"undefined resamples of {k}") for k, v in self.undefined.items()}
         object.__setattr__(self, "undefined", MappingProxyType(undefined))
@@ -341,13 +341,14 @@ class MeasuredNoisy:
     prediction : str
         The model prediction.
     point : tuple of float
-        x.
+        The point, x.
     runs : int
         The runs at the point.
     std : float or None
         The standard deviation, ddof 1; None with one usable run.
     made_at : datetime or None
-        Set by W5, read by Q10; UTC, to the millisecond.
+        Set when the store records the point run's result (W5), read with the measured-noisy records (Q10); UTC,
+        to the millisecond.
     """
 
     result_id: str
@@ -432,13 +433,20 @@ class Provenance:
     """What a diagnostic result was computed from (P5; data_model.md §5.9): enough to replay it (0055, 0063).
 
     Equal when its canonical JSON is (it holds an array); compared part by part, the run ids as bytes. The store
-    keeps it as §5.9's columns (``column`` and ``from_columns``: the run ids go in ``result_runs``); an export and
-    a bare replay hold it whole (``canonical`` and ``from_canonical``; export.md's ``result.json``).
+    keeps it as a ``results`` row's columns (``column`` and ``from_columns``: the run ids go in ``result_runs``;
+    §5.9); an export and a bare replay hold it whole (``canonical`` and ``from_canonical``; export.md's
+    ``result.json``).
 
     Attributes
     ----------
-    ema, numpy, scipy, matplotlib : str
-        The versions.
+    ema : str
+        EMA's version.
+    numpy : str
+        numpy's version.
+    scipy : str
+        scipy's version.
+    matplotlib : str
+        matplotlib's version.
     model_version_id : str
         The model version.
     request : Request
@@ -479,7 +487,7 @@ class Provenance:
         _id(self.approval_id, "a provenance's approval id", optional=True)
         if self.design.model_version_id != self.model_version_id:
             raise ValueError("a provenance's design is of its own model version (0046)")
-        for read in self.measured_noisy_read:  # Q10's rows: this model version, this model prediction
+        for read in self.measured_noisy_read:  # the measured-noisy rows: this model version and model prediction (Q10)
             if (read.model_version_id, read.prediction) != (self.model_version_id, self.request.prediction):
                 raise ValueError(f"a measured-noisy record read is of this model version and prediction: {read!r}")
         made = [read.made_at for read in self.measured_noisy_read if read.made_at is not None]
@@ -541,8 +549,8 @@ class Provenance:
     def canonical(self) -> Mapping[str, Any]:
         """Return every field as plain JSON data, ids as hex text: the whole provenance, as an export holds it.
 
-        For export.md's ``result.json`` and C17; the store writes ``column()`` (a 10^7-row design's run ids are
-        about 670 MB as hex text).
+        For an export's ``result.json`` and its round trip (export.md; C17); the store writes ``column()`` (a
+        10^7-row design's run ids are about 670 MB as hex text).
         """
         return {
             **self._column_data(),
@@ -662,9 +670,10 @@ class DiagnosticResult:
 
     Refuses to be built with no estimate, observation, or note (0036), or with a provenance of another model
     version, diagnostic, model prediction, or number of rows, or naming another number of distinct runs than
-    its counts, or an approval without new runs (or new runs without one, §5.9). Equal when its ``to_json`` is
+    its counts, or an approval without new runs (or new runs without one; §5.9). Equal when its ``to_json`` is
     (C17; I11), compared part by part. Prints as its ``shown`` text when the workspace set it. The store keeps
-    it as §5.9's columns (``column`` and ``from_columns``); an export holds it whole (``to_json``).
+    it as a ``results`` row's columns (``column`` and ``from_columns``; §5.9); an export holds it whole
+    (``to_json``).
 
     Attributes
     ----------
@@ -673,7 +682,7 @@ class DiagnosticResult:
     diagnostic : str
         The diagnostic's name.
     title : str
-        The diagnostic's title, for the report's (S1).
+        The diagnostic's title, which the report shows (S1).
     model_version_id : str
         The model version.
     prediction : str
@@ -737,7 +746,7 @@ class DiagnosticResult:
             raise ValueError("a result's provenance is of its own model version, diagnostic, and model prediction")
         if p.run_ids.shape[0] != c.rows or np.unique(p.run_ids).shape[0] != c.runs:
             raise ValueError(f"the provenance names {p.run_ids.shape[0]} rows' runs, for counts {c!r}")
-        if (c.new > 0) != (p.approval_id is not None):  # §5.9: an approval exactly when it made new runs
+        if (c.new > 0) != (p.approval_id is not None):  # an approval exactly when it made new runs (§5.9)
             raise ValueError(f"a result has an approval exactly when it made new runs: {c.new} new")
         m = self.measured_noisy
         if m is not None and (m.result_id, m.model_version_id, m.prediction) != (
@@ -811,7 +820,7 @@ class DiagnosticResult:
 
     @classmethod
     def from_json(cls, text: str) -> "DiagnosticResult":
-        """Load a result written by ``to_json`` (or the ``result`` object of an export's ``result.json``, E5).
+        """Load a result written by ``to_json`` (or the ``result`` object of an export's ``result.json``; E5).
 
         Raises
         ------
@@ -899,7 +908,7 @@ def _observation_table(d: Mapping[str, Any]) -> ObservationTable:
 class Reproduction:
     """What replaying a stored diagnostic result found (U8; 0055, 0062, 0063): prints as its text.
 
-    Refuses a replayed result whose id isn't the original's (the replay keeps it, architecture.md §7,
+    Refuses a replayed result whose id isn't the original's (the replay keeps it; architecture.md §7,
     ``reproduce``), and differences that disagree with ``identical``: some exactly when it is False.
 
     Attributes
@@ -915,7 +924,7 @@ class Reproduction:
     provenance_differences : tuple of str
         "numpy: 2.3.1 here, 2.4.0 there", and the rebuilt design's checks ("design points differ at rows 3, 17").
     text : str
-        U8's message; build it with ``make``.
+        The message ``reproduce`` prints (U8); build it with ``make``.
     """
 
     result_id: str
@@ -948,7 +957,7 @@ class Reproduction:
         versions: tuple[tuple[str, str, str], ...] = (),
         design_differences: tuple[str, ...] = (),
     ) -> "Reproduction":
-        """Build the reproduction with U8's text.
+        """Build the reproduction, with the message ``reproduce`` prints (U8).
 
         "Diagnostic result 3f2a: identical (estimates, intervals, notes, figures' data cards)."; or "Differs: 2
         estimates."; or, with no original, "Diagnostic result 3f2a: replayed from its provenance, with no original

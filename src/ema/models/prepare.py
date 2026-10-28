@@ -1,11 +1,11 @@
 """Prepare a call: its run directories, written with everything the run needs (model_interface.md, A run; 0015).
 
 Each run's directory is ``<runs_dir>/<run id>/``, made afresh (a leftover from a call that never finished is
-deleted without following links, 0061), and holds ``point.json``. The call's directory (the run directory, or for
-a batch model the batch directory ``<runs_dir>/<batch call id>/`` beside its runs', 0025) holds what the model
-reads: the input decks, written from their templates with M10's number rule, and the listed files, copied keeping
-their relative paths, or, when shared, linked to a stored copy at ``<shared_dir>/<sha256>/<name>``, written once
-and read-only (0030, M15). Only plain data passes on: ``PreparedCall``.
+deleted without following links; 0061), and holds ``point.json``. The call's directory (the run directory, or for
+a batch model the batch directory ``<runs_dir>/<batch call id>/`` beside its runs'; 0025) holds what the model
+reads: the input decks, written from their templates with the one rule for numbers (M10), and the listed files,
+copied keeping their relative paths, or, when shared, linked to a stored copy at ``<shared_dir>/<sha256>/<name>``,
+written once and read-only (0030, M15). Only plain data passes on: ``PreparedCall``.
 """
 
 import hashlib
@@ -58,7 +58,7 @@ class PreparedCall:
 
 
 def number_text(x: float) -> str:
-    """Write a value for an input deck by M10's one rule.
+    """Write a value for an input deck by the one rule for numbers (M10).
 
     The shortest decimal that reads back as the same double, and a whole number with no decimal point.
 
@@ -118,7 +118,7 @@ def prepare(
     Parameters
     ----------
     model
-        The loaded model; the runner has checked its files (``check_files``, M16).
+        The loaded model; the runner has checked its files (``check_files``; M16).
     keys
         One key, or a batch call's keys (a batch model only); each point complete, in the spec's order (M5).
     runs_dir

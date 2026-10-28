@@ -1,8 +1,8 @@
 """The point run: the model prediction at one point, and its measured variation over repeated runs there.
 
-diagnostics/point_run.md (PT1-PT9); P7, U7; records 0011, 0034, 0035, 0036, 0049, 0051, 0061. Observations only, no
-interval method, no random draws; when the model prediction varies, the result records the model version as
-measured noisy in it (``MeasuredNoisy``, C52), and every later result for it carries the note (``evaluate``).
+Observations only, no interval method, no random draws (diagnostics/point_run.md, PT1-PT9; P7, U7; records 0011,
+0034, 0035, 0036, 0049, 0051, 0061); when the model prediction varies, the result records the model version as
+measured noisy in it (``MeasuredNoisy``; C52), and every later result for it carries the note (``evaluate``).
 """
 
 from collections.abc import Mapping
@@ -53,7 +53,7 @@ class PointRun(DiagnosticBase):
             "mapping of model parameter names to values",
             {},
             "{} (the nominal point)",
-            "the point; unnamed model parameters at their nominal values; each value inside its limits.",  # G9
+            "the point; unnamed model parameters at their nominal values; each value inside its limits.",  # (G9)
             "yes",
             {"a": 1.5},
             Point(),

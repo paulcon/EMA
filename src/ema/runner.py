@@ -1,8 +1,8 @@
-"""Layer 3b: the runner, the serial loop of 0015 and the only code that runs a model (AR4, P3).
+"""The runner, a serial loop, and the only code that runs a model (layer 3b; 0015; AR4, P3).
 
-architecture.md §6 (``ema.runner``) and §7 (steps 4–7 of one diagnostic evaluation, and ``test_model``'s);
-data_model.md Q1, Q2, Q13, Q15, W4, and §10's run lock; contracts.md C34, C37, C41, C46–C49, C56; records 0010,
-0015, 0056, 0063, 0071, 0072, 0074.
+It resolves a diagnostic evaluation's runs, makes the new ones under the run lock, and reads its batch, and does
+the same for ``test_model`` (architecture.md §6, §7, steps 4–7; data_model.md Q1, Q2, Q13, Q15, W4, §10; contracts.md C34, C37, C41, C46–C49, C56;
+records 0010, 0015, 0056, 0063, 0071, 0072, 0074).
 
 ``resolve`` finds each design row's stored run, or a new key; ``price`` counts and times the new runs; ``run_new``
 makes them one call at a time, each call checked against its approval (Q13) and the model's files (M16) before it
@@ -34,7 +34,10 @@ _NO_RUN = "00" * 32
 
 
 def _runnable(key: RunKey, current: CurrentKey | None) -> bool:
-    """W4's attempt precondition (I2, I4; 0010): no run at the key and attempt 0, or the next attempt after a failure."""
+    """Whether a key passes the store's attempt precondition (W4; I2, I4; 0010).
+
+    No run at the key and attempt 0, or the next attempt after a failure.
+    """
     if current is None:
         return key.attempt == 0
     return current.status is RunStatus.FAILED and key.attempt == current.attempt + 1
@@ -82,7 +85,7 @@ def resolve(design: Design, model: LoadedModel, store: Store, *, retry_failed: b
     for row in range(len(design)):
         row_distinct[row] = distinct.setdefault((points[row].tobytes(), replicates[row]), len(distinct))
     hashes = {raw: point_hash(np.frombuffer(raw, dtype="<f8")) for raw, _ in distinct}
-    current = store.current_keys(mv, list(hashes.values()))  # Q1, keys only: the one store read
+    current = store.current_keys(mv, list(hashes.values()))  # keys only: the one store read (Q1)
     run_ids: list[str] = []
     key_rows: list[int] = []
     new_keys: list[RunKey] = []
@@ -137,11 +140,12 @@ class _Loop:
     """``run_new``'s serial loop, one call at a time (0015).
 
     A class only so that the contract's broken toys change one step each (tests/contracts/runner.py; no
-    monkeypatching, 0065; record 0074, item 6).
+    monkeypatching; 0065; record 0074, item 6).
 
-    The steps: ``next_call`` (Q13, W4's attempt precondition, and the call's size), ``check`` (the files, M16),
-    ``call`` (prepare, execute, collect, then ``record``, W4, and ``keep``; on any exception, ``stored`` tells
-    whether W4 committed: if not, ``stopped``, else ``keep``).
+    The steps: ``next_call`` (the approval's coverage, the store's attempt precondition, and the call's size; Q13,
+    W4), ``check`` (the files; M16), ``call`` (prepare, execute, collect, then ``record``, which stores the runs, and
+    ``keep``; on any exception, ``stored`` tells whether the store committed them: if not, ``stopped``, else
+    ``keep``; W4).
     """
 
     def __init__(
@@ -183,11 +187,11 @@ class _Loop:
             self.on_progress(Progress.of_runs(done, total))
 
     def next_call(self, pending: tuple[RunKey, ...]) -> tuple[RunKey, ...]:
-        """Cut the next ``size`` keys to the leading ones Q13 covers and W4 would store (C37, C46, C48; P3, I4).
+        """Cut the next ``size`` keys to the leading ones the approval covers and the store can still record.
 
-        Q13 counts only this approval's runs; a key run since the resolution, under another approval, fails W4's
-        attempt precondition and is cut here, before its call could run it again and ``prepare`` wipe the stored
-        run's directory (M14; record 0074, item 21).
+        Coverage counts only this approval's runs (Q13); a key run since the resolution, under another approval, fails
+        the store's attempt precondition (W4) and is cut here, before its call could run it again and ``prepare`` wipe
+        the stored run's directory (M14; C37, C46, C48; P3, I4; record 0074, item 21).
         """
         mv = self.model.model_version_id
         candidate = pending[: self.size]
@@ -202,13 +206,13 @@ class _Loop:
         runnable = next((i for i, k in enumerate(candidate[:covered])
                          if not _runnable(k, current.get((k.point_hash, k.replicate)))), covered)  # fmt: skip
         if runnable == 0:
-            why = "its run is already made, or its attempt isn't the next" if covered else (  # I2, I4; C48
+            why = "its run is already made, or its attempt isn't the next" if covered else (  # (I2, I4; C48)
                 "its point isn't approved, or its run is made")  # fmt: skip
             raise ValueError(f"approval {self.approval_id} can't make run {candidate[0].run_id} of {label}: {why}")
         return candidate[:runnable]
 
     def check(self) -> None:
-        """M16, C34: the tracked files hashed again; ``ModelChanged`` names the file."""
+        """Hash the tracked files again; ``ModelChanged`` names the file that changed (M16, C34)."""
         check_files(self.model)
 
     def call(self, keys: tuple[RunKey, ...]) -> tuple[Run, ...]:
@@ -224,8 +228,8 @@ class _Loop:
             if not self.stored(keys):
                 self.stopped(keys, prepared)
             elif prepared is not None and runs is not None:
-                # Ctrl-C just after W4's COMMIT: the runs are stored, so ``keep`` applies (I5, M14); the exception
-                # that stopped the call matters more than one from ``keep``
+                # Ctrl-C just after the store's COMMIT (W4): the runs are stored, so ``keep`` applies (I5, M14); the
+                # exception that stopped the call matters more than one from ``keep``
                 with contextlib.suppress(Exception):
                     self.keep(prepared, runs)
             raise
@@ -233,10 +237,11 @@ class _Loop:
         return runs
 
     def stored(self, keys: tuple[RunKey, ...]) -> bool:
-        """Whether W4 stored the call (I5): an exception can arrive after its COMMIT, before ``record`` returns.
+        """Whether the store recorded the call (W4; I5).
 
-        ``next_call`` lets no key with a run at its id start, so a stored first key is this call's. A check that is
-        itself interrupted counts as stored: keeping a stopped call's directory is safer than deleting a stored one's.
+        An exception can arrive after the store's COMMIT, before ``record`` returns. ``next_call`` lets no key with a
+        run at its id start, so a stored first key is this call's. A check that is itself interrupted counts as
+        stored: keeping a stopped call's directory is safer than deleting a stored one's.
         """
         try:
             self.store.get_run(keys[0].run_id)
@@ -247,12 +252,15 @@ class _Loop:
         return True
 
     def record(self, runs: tuple[Run, ...], executed: ExecutedCall) -> None:
-        """W4: the call's runs together, with its batch call (I5, C49)."""
+        """Store the call's runs together, with its batch call (W4; I5, C49)."""
         call = runs[0].batch_call_id
         self.store.record_call(runs, None if call is None else BatchCall(call, len(runs), executed.time_s))
 
     def stopped(self, keys: tuple[RunKey, ...], prepared: PreparedCall | None) -> None:
-        """Delete a call's directories, found from its keys, when it ended before W4 (0028, M14, C41)."""
+        """Delete the directories of a call that ended before its runs were stored (W4; 0028, M14, C41).
+
+        They are found from its keys.
+        """
         layout = self.store.layout
         directories = [layout.run_dir(k.run_id) for k in keys]
         if self.batch:
@@ -264,7 +272,7 @@ class _Loop:
                 pass
 
     def keep(self, prepared: PreparedCall, runs: tuple[Run, ...]) -> None:
-        """M14: delete the run directories ``keep`` doesn't keep, after W4 (I5)."""
+        """Delete the run directories ``keep`` doesn't keep, after the runs are stored (M14, W4; I5)."""
         keep_or_remove(self.model, prepared, runs)
 
 
@@ -279,15 +287,15 @@ def run_new(
 ) -> int:
     """Make a resolution's new runs under an approval, one call at a time (0015; P3).
 
-    The caller holds ``store.run_lock()`` (architecture.md §7; data_model.md §10). Before each call: Q13 for its
-    keys, refusing a key the approval doesn't cover, an approval answered no, or another model version, and
-    ``check_files`` (M16, C34). A call holds at most ``batch_size`` keys, and never more than remain approved,
-    counted when it starts (C37, C48); a model that isn't a batch function has calls of one run. Each call is
-    prepared, executed, collected, stored (W4), and then ``keep`` applied (I5, M14). Ctrl-C, or any exception, during
-    a call kills it, deletes its directories, and passes through, with every finished call's runs stored (C49); one
-    that arrives after W4's COMMIT leaves the call stored, and ``keep`` applied. An exception from ``on_progress``
-    passes through the same way. A key whose run was made since the resolution, under another approval, is refused
-    before its call starts (I4).
+    The caller holds ``store.run_lock()`` (architecture.md §7; data_model.md §10). Before each call: the approval's
+    coverage of its keys (Q13), refusing a key the approval doesn't cover, an approval answered no, or another model
+    version, and ``check_files`` (M16, C34). A call holds at most ``batch_size`` keys, and never more than remain
+    approved, counted when it starts (C37, C48); a model that isn't a batch function has calls of one run. Each call
+    is prepared, executed, collected, stored (W4), and then ``keep`` applied (I5, M14). Ctrl-C, or any exception,
+    during a call kills it, deletes its directories, and passes through, with every finished call's runs stored
+    (C49); one that arrives after the store's COMMIT (W4) leaves the call stored, and ``keep`` applied. An exception
+    from ``on_progress`` passes through the same way. A key whose run was made since the resolution, under another
+    approval, is refused before its call starts (I4).
 
     Parameters
     ----------

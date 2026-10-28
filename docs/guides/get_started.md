@@ -6,7 +6,7 @@ Python blocks run as written on R2, from an installed EMA, in the slow tier (C53
 
 > Outline now, full text once the code exists. Each step shows what the user types and what they see; `<…>`
 > marks text to write then, and the numbers shown are placeholders until the test computes them. The guide is
-> in Python: the CLI can't name a reference model (`ema.cli` doesn't import `ema.reference_models`,
+> in Python: the CLI can't name a reference model (`ema.cli` doesn't import `ema.reference_models`;
 > `architecture.md` §10), and the other guides show the CLI with the user's own files.
 
 1. **Install EMA** with uv, on Python 3.13 or newer (0059). Read access to the repository is needed (a
@@ -24,9 +24,9 @@ Python blocks run as written on R2, from an installed EMA, in the slow tier (C53
      its check. Without them everything works but a PDF (`pdf=True`, or `ema report --pdf`), which raises
      `PandocMissing` naming what to install.
      - macOS: `brew install pandoc`, then `pandoc --version`; `brew install --cask basictex`, then
-       `lualatex --version`; the packages pandoc's template needs, `sudo tlmgr install …` (the list is the
-       PDF build step's). <…>
-     - Linux: `apt install pandoc texlive-luatex …` (the list is the PDF build step's). <…>
+       `lualatex --version`; the packages pandoc's template needs, `sudo tlmgr install …` (build step 08's
+       list). <…>
+     - Linux: `apt install pandoc texlive-luatex …` (build step 08's list). <…>
      - Check: `print(ws.report(result, pdf=True).pdf)` on step 6's result gives the PDF's path. <…>
 
 2. **Open a workspace,** and see where it lives.
@@ -60,7 +60,7 @@ Python blocks run as written on R2, from an installed EMA, in the slow tier (C53
    #   New runs of the model version `ishigami@<12 hex>`: the test run at the nominal point.
    #   Price: 1 new run, 0 reused, time unknown
    #   (the first approval for a model version also shows the function, the child's interpreter, the files,
-   #   and the environment: trust.md, What needs the user's yes)
+   #   and the environment; trust.md, What needs the user's yes)
    #   Approve? [y/N] y
    #   Run <short id>: ok; y = 0; at x1 = 0, x2 = 0, x3 = 0; run directory: /…/first_study/runs/<run id>
    ```
@@ -141,5 +141,5 @@ Python blocks run as written on R2, from an installed EMA, in the slow tier (C53
      opens as a resource, `ema://results/{id}/report`. <…>
    - The agent quotes EMA's numbers and doesn't make its own (P1). <…>
 
-10. **Where to go next:** `add_a_model.md` (your own model), `run_a_diagnostic.md` (the diagnostics,
-    failures, reuse, reproducing), `add_a_diagnostic.md` (contributing one). <…>
+10. **Where to go next:** [Add a model](add_a_model.md) (your own model), [Run a diagnostic](run_a_diagnostic.md)
+    (the diagnostics, failures, reuse, reproducing), [Add a diagnostic](add_a_diagnostic.md) (contributing one). <…>

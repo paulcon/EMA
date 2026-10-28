@@ -2,8 +2,8 @@
 
 ``render(result, spec)`` is a pure function of the stored result and its model version's spec, so a report rebuilt
 from the store is byte-identical (P1, S10). It reads no diagnostic: what a table, a note, or a figure says is in
-the result, and the report lays it out (architecture.md §1). The conventions a diagnostic follows so its report
-reads as its mock are record 0073's (docs/plans/08-figures-and-reports.md, The API the diagnostics call).
+the result, and the report lays it out (architecture.md §1). A diagnostic follows fixed conventions so its report
+reads as its mock (record 0073; docs/plans/08-figures-and-reports.md, The API the diagnostics call).
 
 Every text field of the result and the spec is plain text, which the report escapes for Markdown (T10): EMA's own
 symbols in a result are Unicode, and the report's own sentences are the only Markdown it writes unescaped.
@@ -37,7 +37,7 @@ _SPECIAL = frozenset("\\`*_[]<>$|~^@#&")
 #: A block marker at a line's start, after ``_escape`` (which escapes "*", "#", ">", "|", "~", "`"): a list item ("-",
 #: "+", "1.", "a)", "(iv)"), a rule or setext underline ("---", "==="), or a definition (":") (record 0073 item 2).
 _BLOCK = re.compile(r"^(\s*)(?:([-+:=])|(\(?[0-9A-Za-z]+)([.)])(?=\s|$))")
-_ID_DIGITS = 12  # 0055
+_ID_DIGITS = 12  # (0055)
 #: Request parameters that name one of a family, printed "level 2", as the mocks do; others "n = 200" (0073 item 6).
 _NAMED = frozenset({"anchor", "basis", "degree", "level"})
 #: A figure's file name: letters, digits, "_", "-", "." (not first, no ".."), so the image link can't break (T10).
@@ -83,7 +83,7 @@ def _file(name: str) -> str:
 
 
 def _number(x: float, units: str = "") -> str:
-    """Write a number as S3 does: an integer in full, any other ``fmt``'s four digits; then its units."""
+    """Write a number as the report does: an integer in full, any other ``fmt``'s four digits (S3); then its units."""
     text = str(x) if isinstance(x, int) and not isinstance(x, bool) else fmt(float(x))
     return f"{text} {_cell(units)}" if units else text
 
@@ -98,7 +98,10 @@ def _plain(x: Any) -> Any:
 
 
 def _value(x: Any) -> str:
-    """Write a request's or a design's parameter value: numbers by S3, text escaped, mappings and lists as JSON."""
+    """Write a request's or a design's parameter value.
+
+    Numbers as the report writes them (S3), text escaped, mappings and lists as JSON.
+    """
     if isinstance(x, bool) or x is None:
         return canonical_json(x)
     if isinstance(x, (int, float)):

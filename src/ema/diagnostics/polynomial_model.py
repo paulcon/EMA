@@ -1,12 +1,12 @@
 """The polynomial model: a least-squares polynomial fit of the model prediction in unit coordinates.
 
-diagnostics/polynomial_model.md (PM1-PM12): on a convergent design, the fit over level L's usable runs in the
-orthonormal Legendre terms of total degree <= p; its relative residual, R², and leave-one-out error (PRESS); the
-first-order and total Sobol indices of the fitted polynomial; the root energy √E_k per total degree; bootstrap
-intervals from the polynomial model's stream (``POLY_BOOT_TAG``), the P coefficients in ``extra`` (0041); the fit at
-each level as observations, the relative residual and R² among them, without intervals (0085); four figures. Records
-0012, 0039, 0041, 0049, 0051, 0052, 0068 (the numerics), 0073 (plain Unicode text, tab-separated label cells, titles
-under tables), 0075 (the base), 0079 (this step's choices), and 0085.
+What it gives, on a convergent design: the fit over level L's usable runs in the orthonormal Legendre terms of total
+degree <= p; its relative residual, R², and leave-one-out error (PRESS); the first-order and total Sobol indices of
+the fitted polynomial; the root energy √E_k per total degree; bootstrap intervals from the polynomial model's stream
+(``POLY_BOOT_TAG``), the P coefficients in ``extra`` (0041); the fit at each level as observations, the relative
+residual and R² among them, without intervals (0085); four figures (diagnostics/polynomial_model.md, PM1-PM12;
+records 0012, 0039, 0041, 0049, 0051, 0052, 0068 (the numerics), 0073 (plain Unicode text, tab-separated label
+cells, titles under tables), 0075 (the base), 0079 (this step's choices), and 0085).
 """
 
 import math
@@ -58,7 +58,7 @@ from ema.types.space import ModelParameterSpace, Scale
 
 #: The default degree p: the smallest step past the linear model (polynomial_model.md, Named constants).
 POLY_DEGREE = 2
-#: n_min's default is ``POLY_NMIN``·P: twice the coefficients, as U4 assumes.
+#: n_min's default is ``POLY_NMIN``·P: twice the coefficients, as its use case assumes (U4).
 POLY_NMIN = 2
 #: The default error factor per level, as the linear model's: the points about double per level.
 POLY_ALPHA = "0.7072"
@@ -197,8 +197,8 @@ class PolynomialModel(DiagnosticBase):
     def example_request(self, d: int) -> Mapping[str, Any]:
         """Return degree 1, level 2: 8, 16, 32 points at d = 3.
 
-        Enough for the contract's failure masks, and quick; C18 at d = 20 with the defaults is the slow tier's
-        (record 0079).
+        Enough for the contract's failure masks, and quick; the check at d = 20 with the defaults is the slow
+        tier's (C18; record 0079).
         """
         return {"degree": 1, "level": 2, "seed": 3}
 
@@ -286,7 +286,7 @@ class PolynomialModel(DiagnosticBase):
                 values = [fit.relative_residual, fit.r2, fit.loo, *map(float, fit.total)]
             columns[0].append(Observation("usable", "Usable runs", f"{len(rows)} of {n_l}", ""))
             labels = ["Relative residual", "R²", "Leave-one-out error", f"Total index of {names[0]}", *names[1:]]
-            keys = ["relative_residual", "r2", "loo", *(f"total:{n}" for n in names)]  # 0086 item 8
+            keys = ["relative_residual", "r2", "loo", *(f"total:{n}" for n in names)]  # (0086 item 8)
             for k, (key, label, value) in enumerate(zip(keys, labels, values, strict=True)):
                 columns[k + 1].append(Observation(key, label, _finite_or_none(value), ""))
         heading = ("The fit at each level", *(f"Level {lvl}" for lvl in range(len(sizes))))

@@ -1,4 +1,4 @@
-"""Layer 0: the domain's data classes and errors, the canonical encoder, hashes and ids, and number formatting.
+"""The domain's data classes and errors, the canonical encoder, hashes and ids, and number formatting (layer 0).
 
 Pure: it imports only the standard library's pure modules and numpy (architecture.md §3; AR2). Each module's
 public names are re-exported here.

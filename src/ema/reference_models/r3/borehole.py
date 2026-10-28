@@ -1,6 +1,7 @@
 """R3 (reference_models.md): the water flow through a borehole, in m³/yr (Harper and Gupta, 1983).
 
-Ported from EMA v1 at v1-final: src/ema/testfunctions/library.py (borehole), reviewed against reference_models.md.
+Ported from EMA v1 at v1-final: src/ema/testfunctions/library.py (borehole), reviewed against the reference models'
+spec (reference_models.md).
 """
 
 import numpy as np

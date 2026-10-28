@@ -2,7 +2,7 @@
 
 A value in model parameter units, or a direction, is refused unless it is a finite number, a bool included,
 before it becomes a double; an integer parameter is refused unless it is an integer (an integral float is read
-as one), never a bool. Private to layers 0 and 1.
+as one), never a bool. Private to the types and the numerics (layers 0 and 1).
 """
 
 import math

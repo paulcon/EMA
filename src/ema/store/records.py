@@ -188,9 +188,9 @@ class BatchCall:
 
 
 class CurrentKey(NamedTuple):
-    """A stored key's current run, as Q1's key-only read returns it (``Store.current_keys``; C46, C47).
+    """A stored key's current run, as the key-only read of runs returns it (``Store.current_keys``; Q1; C46, C47).
 
-    A named tuple, not a frozen dataclass: Q1 builds one per design point, up to 10⁶ (§6).
+    A named tuple, not a frozen dataclass: that read builds one per design point, up to 10⁶ (Q1; §6).
 
     Attributes
     ----------
@@ -199,7 +199,7 @@ class CurrentKey(NamedTuple):
     attempt : int
         Its attempt, the highest at its key (I2).
     status : RunStatus
-        Whether it was ok or failed (a failed run is new only with ``retry_failed``, C47).
+        Whether it was ok or failed (a failed run is new only with ``retry_failed``; C47).
     """
 
     run_id: str

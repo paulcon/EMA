@@ -1,6 +1,7 @@
 """Least-squares fits by QR, the rank rule, and how well a fit fits and predicts.
 
-linear_model.md and polynomial_model.md, Computation; uncertainty.md, Rules: Rank; 0051; PM2, PM3.
+The linear model and the polynomial model both fit this way (linear_model.md and polynomial_model.md, Computation;
+PM2, PM3), and share the rank rule (uncertainty.md, Rules: Rank; 0051).
 
 The relative residual, R², and the leave-one-out (LOO) error are undefined (NaN) on 0/0: a constant y, a fit of
 rank below its terms, or, for LOO, fewer runs than terms plus one (uncertainty.md, the bootstrap's step 3). There

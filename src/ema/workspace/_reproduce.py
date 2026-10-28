@@ -1,10 +1,11 @@
 """``reproduce``: replay a diagnostic result from its provenance and the stored runs, and compare (U8).
 
-architecture.md §7 (``reproduce``); data_model.md §9, Replay; records 0054, 0055, 0062, 0063, 0080. Writes nothing:
-the replay runs into a temporary directory, with no W5. Its design is built from the stored runs' points and the
-provenance's design structure (``replay_batch``), so it recomputes what was computed, across generator versions
-too; when the identity's generator and sampler versions are today's, the design is also rebuilt and compared, per
-range, and rows beyond the tolerance are named among the provenance's differences. It never raises for either.
+Writes nothing: the replay runs into a temporary directory, and stores no result (W5). Its design is built from the
+stored runs' points and the provenance's design structure (``replay_batch``), so it recomputes what was computed,
+across generator versions too; when the identity's generator and sampler versions are today's, the design is also
+rebuilt and compared, per range, and rows beyond the tolerance are named among the provenance's differences. It never
+raises for either (architecture.md §7, ``reproduce``; data_model.md §9, Replay; records 0054, 0055, 0062, 0063,
+0080).
 """
 
 import dataclasses
@@ -134,7 +135,7 @@ def design_check(
     """
     try:
         return _design_check(provenance, spec, stored)
-    except Exception as error:  # noqa: BLE001  (a registered generator or sampler may raise anything: §7)
+    except Exception as error:  # noqa: BLE001  (a registered generator or sampler may raise anything; §7)
         why = str(error) if isinstance(error, EMAError) else f"{type(error).__name__}: {error}"
         return [], [f"the design could not be rebuilt: {why}"]
 

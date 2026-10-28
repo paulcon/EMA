@@ -16,7 +16,7 @@ EXTRA_MISSING = "ema mcp needs the ema[mcp] extra: uv sync --extra mcp (or pip i
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Parse the arguments and serve until the client disconnects; return 0, or 2 (a root refused; no extra, 0086)."""
+    """Parse the arguments and serve until the client disconnects; return 0, or 2 (a root refused; no extra; 0086)."""
     parser = argparse.ArgumentParser(prog="python -m ema.mcp", description="EMA's MCP server, over stdio.")
     parser.add_argument("--root", required=True, help="the one directory path arguments may name; absolute")
     parser.add_argument("--workspace", default="ema_workspace", help="the workspace; relative to the root")

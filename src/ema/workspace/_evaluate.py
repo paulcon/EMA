@@ -2,9 +2,9 @@
 
 Steps 1-9 of "One diagnostic evaluation, in order": the model's current loading and files (U6, M16), the request
 (G15, M6), the design (G5), resolving it (Q1), a repeated request (C50, I7), the run lock, the price, the approval,
-and the new runs (P3, W3, C48, C49), the batch in design order (C56), the analysis, the report, and W5 (C51). The
-test run follows steps 1, 4, and 6 for one point (0049). A result's directory missing from the store is rebuilt from
-it (data_model.md §6). Records 0054, 0055, 0063, 0072, 0074, 0075, 0080.
+and the new runs (P3, W3, C48, C49), the batch in design order (C56), the analysis, the report, and storing the
+result (W5, C51). The test run follows steps 1, 4, and 6 for one point (0049). A result's directory missing from the
+store is rebuilt from it (data_model.md §6; records 0054, 0055, 0063, 0072, 0074, 0075, 0080).
 """
 
 import dataclasses
@@ -38,7 +38,7 @@ from ema.types.space import ModelParameterSpace
 from ema.types.summaries import RunInfo
 from ema.types.text import fmt
 
-_CANNOT_ASK = "nobody can be asked to approve new runs: nothing was asked, and no run made"  # P3
+_CANNOT_ASK = "nobody can be asked to approve new runs: nothing was asked, and no run made"  # (P3)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -104,7 +104,7 @@ def prepare(
     generator = generators.get(identity.kind)
     size = generator.size(identity, spec)
     if size > MAX_DESIGN_POINTS:
-        raise DesignTooLarge(f"the design has {size:,} points, over the cap of {MAX_DESIGN_POINTS:,}")  # G5
+        raise DesignTooLarge(f"the design has {size:,} points, over the cap of {MAX_DESIGN_POINTS:,}")  # (G5)
     return Prepared(loaded_model, spec, d, request, parsed, generator.build(identity, spec))
 
 

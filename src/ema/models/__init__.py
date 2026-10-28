@@ -1,4 +1,4 @@
-"""Layer 2: what a model is to EMA, and running it (model_interface.md; architecture.md §5).
+"""What a model is to EMA, and running it (layer 2; model_interface.md; architecture.md §5).
 
 Loading (``spec.py``), the model's files (``files.py``), and the children the workspace owns (``processes.py``) are
 re-exported here. The execute phase is never imported or re-exported here: only ``ema.runner`` imports

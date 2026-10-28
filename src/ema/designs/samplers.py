@@ -1,10 +1,8 @@
 """Samplers: points in the unit cube [0, 1)^d for the uniform and convergent designs.
 
-designs.md, Samplers; OD-13, 0032, 0033; C28.
-
-v2.0 plans for several and builds one, ``random``. Generators reach a sampler only through this interface and
-its registry; a fake is registered in the tests through the same ``register``, and removed with
-``unregister`` (0065).
+v2.0 plans for several and builds one, ``random`` (designs.md, Samplers; OD-13, 0032, 0033; C28). Generators reach
+a sampler only through this interface and its registry; a fake is registered in the tests through the same
+``register``, and removed with ``unregister`` (0065).
 """
 
 from fractions import Fraction

@@ -2,7 +2,7 @@
 
 Data beside the layers: no module in ``ema`` imports this package (architecture.md §1, §10). Each model is a
 directory holding ``model.json`` (its model spec), its Python function file or program, and ``space.json``, the
-model parameter space its expected answers are for, in designs.md's JSON form. R9, a real simulator, comes later.
+model parameter space its expected answers are for, in its JSON form (designs.md). R9, a real simulator, comes later.
 """
 
 import json
@@ -11,7 +11,7 @@ from typing import Any
 
 _HERE = Path(__file__).resolve().parent
 
-#: The reference models' ids, as reference_models.md names them.
+#: The reference models' ids, as the reference models' spec names them (reference_models.md).
 IDS = ("R1", "R2", "R3", "R4a", "R4b", "R5", "R6a", "R6b", "R7", "R8", "R10", "R11")
 
 
@@ -40,5 +40,5 @@ def path(id: str) -> str:
 
 
 def space(id: str) -> dict[str, Any]:
-    """Return the model parameter space of a reference model's expected answers, in designs.md's JSON form."""
+    """Return the model parameter space of a reference model's expected answers, in its JSON form (designs.md)."""
     return json.loads((_directory(id) / "space.json").read_text(encoding="utf-8"))

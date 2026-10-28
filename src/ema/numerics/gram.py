@@ -21,10 +21,11 @@ def _lanczos(n: int) -> np.ndarray:
     """Build the Gram polynomials' values ``G[j, k] = G_k(s_j)`` ``(n, n)``, with (1/n) G^T G = I.
 
     The Lanczos process on diag(s) from the vector of ones, with full reorthogonalization (two passes), as
-    coordinate_lines.md specifies; not the three-term recurrence, which loses orthonormality in doubles. Each
-    new vector is divided by its norm, a positive number, so each G_k keeps a positive leading coefficient.
-    The norm is ``_vector.norm``, not BLAS's, and the products go through ``_vector.matvec``: at k = 1 the
-    projection is a one-row product, which numpy sends to ``ddot`` (record 0068 item 1).
+    the coordinate lines diagnostic specifies (coordinate_lines.md); not the three-term recurrence, which loses
+    orthonormality in doubles. Each new vector is divided by its norm, a positive number, so each G_k keeps a
+    positive leading coefficient. The norm is ``_vector.norm``, not BLAS's, and the products go through
+    ``_vector.matvec``: at k = 1 the projection is a one-row product, which numpy sends to ``ddot`` (record 0068
+    item 1).
     """
     s = -1 + 2 * np.arange(n) / (n - 1)
     Q = np.zeros((n, n))
@@ -47,7 +48,7 @@ def _basis(n: int) -> np.ndarray:
 
 
 def gram_coefficients(y: np.ndarray) -> np.ndarray:
-    """Return the Gram coefficients c_0 ... c_(n-1) of a line's n evenly spaced values (CL2).
+    """Return the Gram coefficients c_0 … c_(n-1) of a line's n evenly spaced values (CL2).
 
     An orthogonal transform: y_j = sum_k c_k G_k(s_j), c_0 is the mean, and sum_(k >= 1) c_k^2 the variance
     (ddof 0). A constant line's coefficients are exactly (y_0, 0, ..., 0), so it has 0 degrees above any floor
@@ -85,7 +86,7 @@ def gram_coefficients(y: np.ndarray) -> np.ndarray:
 
 
 def tail(c: np.ndarray) -> np.ndarray:
-    """Return the tail T(k) = sqrt(sum_(j >= k) c_j^2), indexed by degree k = 0 ... n - 1.
+    """Return the tail T(k) = sqrt(sum_(j >= k) c_j^2), indexed by degree k = 0 … n - 1.
 
     T(1) is the line's standard deviation (ddof 0); T(0), which includes c_0, is kept so that index k is degree
     k, and is not used by the rate. Each sum is numpy's pairwise sum.
@@ -101,7 +102,7 @@ def tail(c: np.ndarray) -> np.ndarray:
 
 
 def degrees_above_floor(T: np.ndarray, floor: float) -> int:
-    """Return k*: the degrees k = 1, 2, ... whose tail is above ``floor``, counted until the first that isn't.
+    """Return k*: the degrees k = 1, 2, … whose tail is above ``floor``, counted until the first that isn't.
 
     Parameters
     ----------

@@ -65,7 +65,7 @@ def _read_text(path: str, what: str) -> str:
 
 
 def _check_templates(spec: ModelSpec, model_dir: str) -> None:
-    """M10: every ``$name`` and ``${name}`` names a model parameter; ``$$`` is a literal ``$``."""
+    """Check that every ``$name`` and ``${name}`` names a model parameter; ``$$`` is a literal ``$`` (M10)."""
     if not isinstance(spec.interface, CommandLine):
         return
     names = [p.name for p in spec.parameters]
@@ -99,7 +99,7 @@ def _imports(tree: ast.AST) -> list[ast.Import | ast.ImportFrom]:
 
 
 def _parse_function(spec: ModelSpec, model_dir: str) -> tuple[str, str, ast.Module] | None:
-    """Parse the Python function's file (``ast``; never imported, T4): its name, path, and tree; None for a command."""
+    """Parse the Python function's file (``ast``, never imported; T4): its name, path, and tree; None for a command."""
     if not isinstance(spec.interface, PythonFunction):
         return None
     file = spec.interface.function.rpartition(":")[0]
@@ -176,7 +176,7 @@ def _check_signature(spec: ModelSpec, parsed: tuple[str, str, ast.Module] | None
 def _unlisted_imports(
     spec: ModelSpec, model_dir: str, files: tuple[TrackedFile, ...], parsed: tuple[str, str, ast.Module] | None
 ) -> tuple[str, ...]:
-    """M17: each import in the function's file that resolves to an unlisted file in the model's directory.
+    """Return each import in the function's file that resolves to an unlisted file in the model's directory (M17).
 
     The file is parsed (``ast``), never imported (T4). Module names are resolved against the model's directory,
     the first entry of the child's ``sys.path`` (trust.md, Python function); a relative import against the
