@@ -124,12 +124,12 @@ One line per step; what each decided is in its records (`docs/decisions/README.m
   in 52 files of `src/ema/` reworded into parentheses (docstrings and comments only; code unchanged, 11,040 code
   lines), with the guides and `index.md`; a fast test checks every docstring and comment. Eight rendering defects
   already on `main` fixed on the way. Three independent reviews (2 major; 2 major; none major), all fixed but what
-  is left to the owner (the plan's Notes). Both tiers pass (2,221 passed, 1 skipped).
+  is left to the owner (the plan's Notes). Both tiers pass (2,221 passed, 1 skipped). Merged into `main` (9793527)
+  and pushed; the branch deleted; the site redeployed by `docs.yml` run 40706565439, and checked live: no citation,
+  no false "Type:" field, no page source served.
 
 ## Next
 
-- Step 18 (on `build-18-site-citations`): the owner's review and merge, then `docs.yml` started to redeploy the
-  site; then step 17.
 - Step 17: the guides' full text and the release.
 - The BLAS question for `ema.numerics` is settled (`docs/notes/blas_determinism_2026-10-01.md`; record 0068 item 1,
   accepted: no 1-D BLAS products or norms).
